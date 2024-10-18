@@ -114,10 +114,14 @@ GRANT ALL PRIVILEGES ON ssvm.* TO 'ssvm'@'*';
 FLUSH PRIVILEGES;
 EXIT;
 ```
-
+## to create database structure, or anytime you change the model, ie add a new field
+```
+python manage.py makemigrations
+python manage.py migrate
+```
 ## to create django admin user
 ```
-cd ~ssvm/ssvm/myproject
+cd ~ssvm/ssvm
 python manage.py createsuperuser
 ```
 ## to start Django app
@@ -132,11 +136,7 @@ nohup python manage.py runserver 127.0.0.1:8000 > django_output.log 2>&1 &
 
 The rest of this is just helpful to know
 
-## to make changes to the database, ie add a new field
-```
-python manage.py makemigrations
-python manage.py migrate
-```
+
 ## to set up background task during installation
 ```
 python manage.py migrate background_task
