@@ -8,8 +8,8 @@ yum install -y python3-devel git mariadb-server mariadb-devel npm conda genisoim
  nginx certbot python3-certbot-nginx openssl
 
 # nginx ssl:
-mkdir -p /etc/nginx/ssl
-cd /etc/nginx/ssl
+mkdir -p /etc/nginx/ssl;
+cd /etc/nginx/ssl;
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout nginx-selfsigned.key -out nginx-selfsigned.crt
 
 #Generating a RSA private key
