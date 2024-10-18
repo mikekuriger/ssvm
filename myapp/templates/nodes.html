@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+{% load static %}
+{% load custom_filters %}
+<html lang="en-us" dir="ltr">
+<head>
+    <title>Nodes</title>
+    <link rel="stylesheet" href="{% static 'css/shared.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}">
+    <style>
+    /* Container for sidebar and main content */
+    .container {
+        display: flex;
+    }
+
+    /* Sidebar styles */
+    .side-panel {
+        width: 100px;  /* Set the width of the sidebar */
+    }
+
+    /* Main content styles (shifted to the right) */
+    .content-right {
+        flex-grow: 1;  /* Takes up remaining space */
+        margin-left: 10px;  /* Space between sidebar and content */
+    }
+
+    /* Ensure table takes full width of content-right */
+    .content-right table {
+        width: 100%;
+    }
+        /* This centers the search container and moves it to the right side */
+    .search-container {
+        display: flex;
+/*         justify-content: flex-end; /* Moves the search box to the right */ */
+        margin-left: 0px;
+    }
+    button {
+        margin-left: 10px;
+        padding: 8px 12px;
+        background-color: #007BFF;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background-color: #0056b3;
+    }
+
+
+    </style>
+</head>
+{% include 'head.html' %}
+    <!-- END Header -->
+        <div class="main shifted" id="main">
+            <div class="content">
+                <!-- Content -->
+                <div id="content" >
+                    <h1>Nodes</h1>
+                </div>
+                <div class="table-container">
+                    <div id="content-main">
+                        <div class="app-background_task module">
+                            <div class="container">
+                                <!-- Sidebar placeholder -->
+                                <div class="side-panel">
+                                    <!-- Add any sidebar content here -->
+                                </div>
+                                <!-- Main content area where the table is shifted to the right -->
+                                <div class="content-right">
+                                    <table>
+                                        <colgroup>
+                                            <col style="width: 90px;">  <!-- view/edit -->
+                                            <col style="width: 260px;"> <!-- name -->
+                                            <col style="width: 150px;"> <!-- owner -->
+                                            <col style="width: 150px;"> <!-- zone -->
+                                            <col style="width: 350px;"> <!-- serial -->
+                                            <col style="width: 130px;"> <!-- status -->
+                                            <col style="width: 250px;"> <!-- HW -->
+                                            <col style="width: 100px;"> <!-- cpu -->
+                                            <col style="width: 100;"> <!-- memory -->
+                                            <col style="width: 100px;"> <!-- disk -->
+                                            <col style="width: 250px;"> <!-- OS -->
+                                        </colgroup>
+                                        <thead>
+                                            <tr>
+                                                <th></th>
+                                                <th>Name</th>
+                                                <th>Owner</th>
+                                                <th>Zone</th>
+                                                <th>Deployment</th>
+                                                <th>Status</th>
+                                                <th>Hardware Profile</th>
+                                                <th>CPU</th>
+                                                <th>Memory (MB)</th>
+                                                <th>Disk (GB)</th>
+                                                <th>Operating System</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <div class="search-container">
+                                                <form method="GET" action="{% url 'node_list' %}">
+                                                    <input type="text" name="q" placeholder="Search by name" value="{{ query }}">
+<!--                                                     <button type="submit">Search</button> -->
+                                                </form>
+                                            </div>
+                                            {% for node in page_obj %}
+                                            <tr>
+                                                <td><a href="{% url 'node_detail' node.id %}" style="display: inline;">View</a> /
+
+                                                {% if user.is_staff %} 
+                                                    <a href="{% url 'admin:myapp_node_change' node.id %}"style="display: inline;">Edit</a>
+                                                {% else %}
+                                                    <span style="color: gray; cursor: not-allowed;">Edit</span>
+                                                {% endif %}</td>
+
+                                                <td><a href="{% url 'node_detail' node.id %}">{{ node.name }}</a></td>
+                                                <td>{{ node.contact }}</td>
+                                                <td>{{ node.centrify_zone }}</td>
+                                                <td>
+                                                    {% if node.deployment %}
+                                                        <a href="{% url 'deployment_detail' node.deployment.id %}">{{ node.deployment }}</a>
+                                                    {% else %}
+                                                        None
+                                                    {% endif %}
+                                                </td>
+                                                <td class="
+                                                        {% if node.status.name == 'inservice' %}sstatus-inservice
+                                                        {% elif node.status.name == 'failed' %}sstatus-failed
+                                                        {% elif node.status.name == 'building' %}sstatus-building
+                                                        {% elif node.status.name == 'retired' %}sstatus-retired
+                                                        {% endif %}">
+                                                {{ node.status.name }}</td>   
+                                                <td>{{ node.hardware_profile }}</td>
+                                                <td>{{ node.processor_count }}</td>
+                                                <td>{{ node.physical_memory }}</td>
+                                                <td>{{ node.disk_size }}</td>
+                                                <td>{{ node.operating_system }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                            <div class="pagination">
+                                                <span class="step-links">
+                                                {% if page_obj.has_previous %}
+                                                    <a href="?q={{ query }}&page=1">&laquo; first</a>
+                                                    <a href="?q={{ query }}&page={{ page_obj.previous_page_number }}">previous</a>
+                                                {% endif %}
+
+                                                <span class="current">
+                                                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                                                </span>
+
+                                                {% if page_obj.has_next %}
+                                                    <a href="?q={{ query }}&page={{ page_obj.next_page_number }}">next</a>
+                                                    <a href="?q={{ query }}&page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+                                                {% endif %}
+                                            </span>
+                                            </div>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

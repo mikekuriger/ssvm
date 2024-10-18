@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+{% load static %}
+{% load custom_filters %}
+<html lang="en"dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}">
+    <link rel="stylesheet" href="{% static 'css/shared.css' %}">
+    {% block content %}
+    <style>   
+        .fixed-width-left {
+            width: 500px;
+        }
+        .fixed-width-center {
+            width: 450px; 
+        }
+        .small-label {
+            font-size: 0.75rem;
+        }
+        .custom-container {
+            max-width: 90%;
+            margin-top: 20px;
+        }
+        .my-smaller-field {
+            font-size: 12px;
+            height: 25px;
+            padding: 0px 18px;
+            width: 85%;
+            box-sizing: border-box;
+        }
+        #hostname_hint {
+            font-size: 10px;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .push-down {
+            margin-top: 40px;
+        }
+        .move-right {
+            margin-left: 150px;
+        }
+         select, textarea {
+            background-color: #a1d6f7 !important;
+        }
+        input:required:invalid {
+            border-color: orange;
+            background-color: #FFDAB9 !important;
+        }
+        input:required:valid {
+            border-color: green;
+            background-color: #e6ffe6 !important;
+        }
+        select:required:invalid {
+            border-color: orange;
+            background-color: #FFDAB9 !important;
+        }
+        select:required:valid {
+            border-color: green;
+            background-color: #e6ffe6 !important;
+        }
+        /* Style for centering the form */
+        .login-container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 100vh; /* Full viewport height */
+        }
+
+        .login-box {
+          width: 300px; /* Adjust width as needed */
+          padding: 20px;
+          box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+          border-radius: 5px;
+          background-color: #fff;
+        }
+
+        .login-box h2 {
+          text-align: center;
+        }
+
+        .login-box button {
+          width: 100%;
+          padding: 10px;
+          margin-top: 10px;
+        }
+      </style>
+
+  <div class="login-container">
+    <div class="login-box">
+      <h2>Login</h2>
+      <form method="post" action="{% url 'login' %}">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Login</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en-us" dir="ltr">
+<head>
+    <title>Deployment</title>
+    <link rel="stylesheet" href="{% static 'css/shared.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}">
+</head>
+{% include 'head.html' %}
+        <!-- END Header -->
+         <div class="main shifted" id="main">
+            <div class="content">
+                <!-- Content -->
+                <div id="content" >
+                    <h1 style="text-align: left;">Deployment Details</h1>
+                    <table style="width: 100%; text-align: left; border-collapse: collapse;">
+                    <tr>
+                        <th>Deployment Name</th>
+                        <td>{{ deployment.deployment_name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Deployment Date</th>
+                        <td>{{ deployment.deployment_date }}</td>
+                    </tr>
+                        <tr>
+                        <th>Built By</th>
+                        <td>{{ deployment.builtby }}</td>
+                    </tr>
+                    <tr>
+                        <th>Owner</th>
+                        <td>{{ deployment.owner }}</td>
+                    </tr>
+                    <tr>
+                        <th>Application Name</th>
+                        <td>{{ deployment.appname }}</td>
+                    </tr>
+                    <tr>
+                        <th>Full Hostnames</th>
+                        <td>{{ deployment.full_hostnames }}</td>
+                    </tr>
+                        <tr>
+                        <th>Domain</th>
+                        <td>{{ deployment.domain }}</td>
+                    </tr>
+                    
+                    <tr>
+                        <th>Ticket</th>
+                        <td>{{ deployment.ticket }}</td>
+                    </tr>
+               
+                    <tr>
+                        <th>Datacenter</th>
+                        <td>{{ deployment.datacenter }}</td>
+                    </tr>
+                    <tr>
+                        <th>Server Type</th>
+                        <td>{{ deployment.server_type_value }}</td>
+                    </tr>
+                    <tr>
+                        <th>Deployment Count</th>
+                        <td>{{ deployment.deployment_count }}</td>
+                    </tr>
+                    <tr>
+                        <th>Number of CPUs</th>
+                        <td>{{ deployment.cpu }}</td>
+                    </tr>
+                    <tr>
+                        <th>RAM (GB)</th>
+                        <td>{{ deployment.ram }}</td>
+                    </tr>
+                    <tr>
+                        <th>Operating System</th>
+                        <td>{{ deployment.os_value }}</td>
+                    </tr>
+                    <tr>
+                        <th>Disk Size (GB)</th>
+                        <td>{{ deployment.disk_size }}</td>
+                    </tr>
+                    <tr>
+                        <th>Cluster</th>
+                        <td>{{ deployment.cluster }}</td>
+                    </tr>
+                    <tr>
+                        <th>Network</th>
+                        <td>{{ deployment.network }}</td>
+                    </tr>
+                    <tr>
+                        <th>NFS Home Directory</th>
+                        <td>{{ deployment.nfs_home }}</td>
+                    </tr>
+                    <tr>
+                        <th>Add Additional Disks</th>
+                        <td>{{ deployment.add_disks }}</td>
+                    </tr>
+                    <tr>
+                        <th>Additional Disk Size</th>
+                        <td>{{ deployment.additional_disk_size }}</td>
+                    </tr>
+                    <tr>
+                        <th>Mount Path</th>
+                        <td>{{ deployment.mount_path }}</td>
+                    </tr>
+                    <tr>
+                        <th>Join Centrify</th>
+                        <td>{{ deployment.join_centrify }}</td>
+                    </tr>
+                    <tr>
+                        <th>Centrify Zone</th>
+                        <td>{{ deployment.centrify_zone }}</td>
+                    </tr>
+                    <tr>
+                        <th>Centrify Role</th>
+                        <td>{{ deployment.centrify_role }}</td>
+                    </tr>
+                    <tr>
+                        <th>Install Latest OS Patches</th>
+                        <td>{{ deployment.install_patches }}</td>
+                    </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>                
+</body>
+</html>

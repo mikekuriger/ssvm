@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create VM</title>
+    {% load static %}
+    {% load custom_filters %}
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}">
+</head>
+<body>
+    <div class="container mt-5">
+        <form method="POST">
+            {% csrf_token %}
+            <div class="row">
+                <!-- Left Column: Useful Data or Instructions -->
+                <div class="col-md-2">
+                    <h5>New VM request</h5>
+                    <div class="mb-3">
+                        {{ form.ticket.label_tag }}
+                        {{ form.ticket|add_class:"form-control" }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.appname.label_tag }}
+                        {{ form.appname|add_class:"form-control" }}
+                    </div>
+                    
+                </div>
+
+                <!-- Middle Column: User Input Fields -->
+                <div class="col-md-4">
+                    <h5>Request a VM</h5>
+                    <div class="mb-3">
+                        {{ form.owner.label_tag }}
+                        {{ form.owner|add_class:"form-control" }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.datacenter.label_tag }}
+                        {{ form.datacenter|add_class:"form-control" }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.server_type.label_tag }}
+                        {{ form.server_type|add_class:"form-control" }}
+                    </div> 
+                    <div class="mb-3">
+                        {{ form.hostname.label_tag }}
+                        {{ form.hostname|add_class:"form-control" }}
+                        <small id="hostname_hint" class="form-text text-muted">Max 8 characters for 1 VM, Max 6 characters for multiple VMs.</small>
+                    </div> 
+                    <div class="mb-3">
+                        {{ form.os.label_tag }}
+                        {{ form.os|add_class:"form-control" }}
+                    </div> 
+                    <div class="mb-3">
+                        {{ form.deployment_count.label_tag }}
+                        {{ form.deployment_count|add_class:"form-control" }}
+                    </div> 
+                    <div class="mb-3">
+                        {{ form.cpu.label_tag }}
+                        {{ form.cpu|add_class:"form-control" }}
+                    </div> 
+                    <div class="mb-3">
+                        {{ form.ram.label_tag }}
+                        {{ form.ram|add_class:"form-control" }}
+                    </div> 
+                    <div class="mb-3">
+                        {{ form.disk_size.label_tag }}
+                        {{ form.disk_size|add_class:"form-control" }}
+                    </div> 
+                </div>
+
+                <!-- Right Column: Additional User Input Fields -->
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="full_hostname">Hostname(s)</label>
+                        <textarea id="full_hostname" class="form-control" rows="1" readonly></textarea>
+                        <div id="dns_result" class="alert alert-danger d-none">DNS conflict detected!</div>
+                    </div>
+                    <div class="mb-3">
+                        <button type="submit" id="submit_button" class="btn btn-primary">Submit</button>
+                    </div>
+
+                    <!-- Flash Messages -->
+                    {% if messages %}
+                        <div class="alert alert-success">
+                            {% for message in messages %}
+                                <div>{{ message }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>  
+
+    <script src="{% static '/js/bootstrap.bundle.min.js' %}"></script>
+
+    <script>
+        // Get the CSRF token from the template context
+        const csrfToken = '{{ csrf_token }}';  
+        
+        // hostname manipulation
+        document.addEventListener('DOMContentLoaded', function() {
+            const hostnameField = document.getElementById('hostname');
+            const appnameField = document.getElementById('appname');
+            
+            // Automatically populate the hostname based on application value
+            appnameField.addEventListener('input', function() {
+                if (!hostnameField.dataset.userModified) {
+                    hostnameField.value = appnameField.value.toLowerCase();
+                }
+            });
+                
+            // Allow the user to modify the hostname manually
+            // Convert input to lowercase
+            hostnameField.addEventListener('input', function() {
+                hostnameField.dataset.userModified = true;
+                this.value = this.value.toLowerCase();
+            });
+        });
+        
+        // Script to dynamically update Full Hostnames and enforce hostname length
+        document.addEventListener('DOMContentLoaded', function() {
+            const submitButton = document.getElementById('submit_button');
+            const datacenterField = document.querySelector('#datacenter');
+            const serverTypeField = document.querySelector('#server_type');
+            const hostnameField = document.querySelector('#hostname');
+            const deploymentCountField = document.querySelector('#deployment_count');
+            const fullHostnameField = document.querySelector('#full_hostname');
+            const dnsResult = document.querySelector('#dns_result');
+
+            let dnsConflict = false;
+            
+            // Function to check form validity
+            function checkFormValidity() {
+                const datacenter = datacenterField.value.trim();
+                const serverType = serverTypeField.value.trim();
+                const hostname = hostnameField.value.trim();
+                const deploymentCount = deploymentCountField.value.trim();
+                // const dnsConflict = !dnsResult.classList.contains('d-none'); 
+    
+                // Enable button only if all fields are filled and no DNS conflict
+                if (datacenter && serverType && hostname && deploymentCount && !dnsConflict) {
+                    submitButton.disabled = false;
+                } else {
+                    submitButton.disabled = true;
+                }
+            }
+    
+            // Function to check DNS and manage conflict display
+            function checkDNS(hostnames) {
+                fetch('/check_dns/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ hostnames: hostnames })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    dnsConflict = false;
+                    
+                    for (const [hostname, exists] of Object.entries(data)) {
+                        if (exists) {
+                            dnsConflict = true;
+                            dnsResult.classList.remove('d-none');
+                            dnsResult.textContent = `Host already exists: ${hostname}`;
+                            break;
+                        }
+                    }
+                    
+                    if (!dnsConflict) {  // Only hide the message if the user typed
+                        dnsResult.classList.add('d-none');
+                    }
+                    
+                    // Re-check form validity after DNS check
+                    checkFormValidity();  
+                })
+                .catch(error => console.error('Error:', error));
+            }
+
+            // Function to resize the textarea based on the number of lines (hostnames)
+            function resizeTextArea() {
+                const hostnames = fullHostnameField.value.split('\n'); // Split by newline to get number of lines
+                const numberOfLines = hostnames.length;
+                // Set the textarea 'rows' attribute to the number of lines, but with a minimum of 3 rows
+                fullHostnameField.rows = Math.max(numberOfLines, 3);  
+            }
+            
+            // Function to put hostnames into textarea box
+            function updateFullHostnames(hostnames) {
+                // Add hostnames to textarea
+                fullHostnameField.value = hostnames.join('\n');
+                // Resize the textarea to fit the hostnames
+                resizeTextArea();  
+            }
+    
+            // Function to update hostnames and trigger DNS check
+            function updateHostnamesAndCheckDNS() {
+                const datacenter = datacenterField.value;
+                const serverType = serverTypeField.value;
+                const userHostname = hostnameField.value;
+                const deploymentCount = parseInt(deploymentCountField.value) || 1;
+    
+                let fullHostnames = [];
+                for (let i = 1; i <= deploymentCount; i++) {
+                    const suffix = (deploymentCount > 1) ? `${i.toString().padStart(2, '0')}` : '';
+                    fullHostnames.push(`${datacenter}${serverType}${userHostname}${suffix}`);
+                }      
+                console.log(fullHostnames);
+                
+                // Display generated hostnames in the Full Hostname box
+                updateFullHostnames(fullHostnames);
+                // Perform DNS check after updating hostnames
+                checkDNS(fullHostnames);  
+                return fullHostnames;
+            }
+
+            // Hide the DNS conflict message whenever the user interacts with the form fields
+            function resetDNSWarning() {
+                dnsResult.classList.add('d-none'); 
+                checkFormValidity();  
+            }
+
+            // Attach event listeners to all relevant fields to hide the DNS conflict message
+            datacenterField.addEventListener('change', resetDNSWarning);
+            serverTypeField.addEventListener('change', resetDNSWarning);
+            hostnameField.addEventListener('input', resetDNSWarning);
+            deploymentCountField.addEventListener('input', resetDNSWarning);
+        
+            // Event listeners to track input changes
+            datacenterField.addEventListener('change', updateHostnamesAndCheckDNS);
+            serverTypeField.addEventListener('change', updateHostnamesAndCheckDNS);
+            hostnameField.addEventListener('input', updateHostnamesAndCheckDNS);
+            deploymentCountField.addEventListener('input', updateHostnamesAndCheckDNS);
+    
+            // Re-check form validity on every input change
+            datacenterField.addEventListener('input', checkFormValidity);
+            serverTypeField.addEventListener('input', checkFormValidity);
+            hostnameField.addEventListener('input', checkFormValidity);
+            deploymentCountField.addEventListener('input', checkFormValidity);
+        });
+    </script>
+</body>
+</html>

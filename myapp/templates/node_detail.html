@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en-us" dir="ltr">
+<head>
+    <title>Node</title>
+    <link rel="stylesheet" href="{% static 'css/shared.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}">
+</head>
+{% include 'head.html' %}
+        <!-- END Header -->
+         <div class="main shifted" id="main">
+            <div class="content">
+                <!-- Content -->
+                <div id="content" >
+                    <h1 style="text-align: left;">Node Details</h1>
+                    <table style="width: 100%; text-align: left; border-collapse: collapse;">
+                    <tr>
+                        <th>Hostname</th>
+                        <td>{{ node.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Serial Number</th>
+                        <td>{{ node.serial_number }}</td>
+                    </tr>
+                    <tr>
+                        <th>Contact / Owner</th>
+                        <td>{{ node.contact }}</td>
+                    </tr>
+                    <tr>
+                        <th>Centrify Zone</th>
+                        <td>{{ node.centrify_zone }}</td>
+                    </tr>
+                    <tr>
+                        <th>Created At</th>
+                        <td>{{ node.created_at }}</td>
+                    </tr>
+                    <tr>
+                        <th>Updated At</th>
+                        <td>{{ node.updated_at }}</td>
+                    </tr>
+                    <tr>
+                        <th>Hardware Profile</th>
+                        <td>{{ node.hardware_profile }}</td>
+                    </tr>
+                    <tr>
+                        <th>Operating System</th>
+                        <td>{{ node.operating_system }}</td>
+                    </tr>
+                    <tr>
+                        <th>Status</th>
+                        <td>{{ node.status }}</td>
+                    </tr>
+                    <tr>
+                        <th>Processor Manufacturer</th>
+                        <td>{{ node.processor_manufacturer }}</td>
+                    </tr>
+                    <tr>
+                        <th>Processor Model</th>
+                        <td>{{ node.processor_model }}</td>
+                    </tr>
+                    <tr>
+                        <th>Processor Speed</th>
+                        <td>{{ node.processor_speed }}</td>
+                    </tr>
+                    <tr>
+                        <th>Processor Socket Count</th>
+                        <td>{{ node.processor_socket_count }}</td>
+                    </tr>
+                    <tr>
+                        <th>Processor Count</th>
+                        <td>{{ node.processor_count }}</td>
+                    </tr>
+<!--                     <tr>
+                        <th>OS Processor Count</th>
+                        <td>{{ node.os_processor_count }}</td>
+                    </tr> -->
+                    <tr>
+                        <th>Physical Memory (MB)</th>
+                        <td>{{ node.physical_memory }}</td>
+                    </tr>
+<!--                     <tr>
+                        <th>Physical Memory Sizes</th>
+                        <td>{{ node.physical_memory_sizes }}</td>
+                    </tr> -->
+<!--                     <tr>
+                        <th>OS Memory</th>
+                        <td>{{ node.os_memory }}</td>
+                    </tr> -->
+                    <tr>
+                        <th>Swap</th>
+                        <td>{{ node.swap }}</td>
+                    </tr>
+                    <tr>
+                        <th>Disk Size (GB)</th>
+                        <td>{{ node.disk_size }}</td>
+                    </tr>
+                    <tr>
+                        <th>Used Space (KB)</th>
+                        <td>{{ node.used_space }}</td>
+                    </tr>
+                    <tr>
+                        <th>Avail Space (KB)</th>
+                        <td>{{ node.avail_space }}</td>
+                    </tr>
+                    <tr>
+                        <th>UUID</th>
+                        <td>{{ node.uniqueid }}</td>
+                    </tr>
+                        <tr>
+                        <th>CMDB-UUID</th>
+                        <td>{{ node.asset_tag }}</td>
+                    </tr>
+                    <tr>
+                        <th>Kernel Version</th>
+                        <td>{{ node.kernel_version }}</td>
+                    </tr>
+                    <tr>
+                        <th>Description</th>
+                        <td>{{ node.description }}</td>
+                    </tr>
+                    <tr>
+                        <th>Time Zone</th>
+                        <td>{{ node.timezone }}</td>
+                    </tr>
+                    <tr>  
+                        <th><a href="{% url 'node_list' %}"><h2>Back to Nodes</h2></a></th>
+                    </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>                
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en-us" dir="ltr">
+<head>
+    <title>Deployments</title>
+    <link rel="stylesheet" href="{% static 'css/shared.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}">
+    <script src="{% static 'js/jquery.min.js' %}"></script>
+    <style>
+    /* Container for sidebar and main content */
+    .container {
+        display: flex;
+    }
+
+    /* Sidebar styles */
+    .side-panel {
+        width: 100px;  /* Set the width of the sidebar */
+    }
+
+    /* Main content styles (shifted to the right) */
+    .content-right {
+        flex-grow: 1;  /* Takes up remaining space */
+        margin-left: 10px;  /* Space between sidebar and content */
+    }
+
+    /* Ensure table takes full width of content-right */
+    .content-right table {
+        width: 100%;
+    }
+    </style>
+</head>
+{% include 'head.html' %}
+        <!-- END Header -->
+        <div class="main shifted" id="main">
+            <div class="content">
+                <!-- Content -->
+                <div id="content" >
+                    <h1>Deployments</h1>
+                </div>
+                <div class="table-container">
+                    <div id="content-main">
+                        <div class="app-background_task module">
+                             <div class="container">
+                                <!-- Sidebar placeholder -->
+                                <div class="side-panel">
+                                    <!-- Add any sidebar content here -->
+                                </div>
+                                 <!-- Main content area where the table is shifted to the right -->
+                                <div class="content-right">
+                                    <table>
+                                        <colgroup>
+                                            <col style="width: 250px;">
+                                            <col style="width: 100px;">
+                                            <col style="width: 150px;">
+                                            <col style="width: 100px;"> 
+                                            <col style="width: 100px;">
+                                            <col style="width: 150px;"> 
+                                            <col style="width: 100px;">
+                                            <col style="width: 220px;">
+                                            <col style="width: 25px;">
+                                        </colgroup>
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Built By</th>
+                                                <th>Owner / Contact</th>
+                                                <th>VM Count</th>
+                                                <th>Type</th>
+                                                <th>Created on</th>
+                                                <th>Status</th>
+                                                <th>Admin</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for deployment in deployments %}
+                                        <tr> 
+                                            <td><a href="{% url 'deployment_detail' deployment.id %}">{{ deployment.deployment_name }}</a></td>
+                                            <td>{{ deployment.builtby }}</td>
+                                            <td>{{ deployment.owner_value }}</td>
+                                            <td>{{ deployment.deployment_count }}</td>
+                                            <td>{{ deployment.server_type_value }}</td>
+                                            <td>{{ deployment.created_at }}</td>
+                                            <td class="
+                                                {% if deployment.status == 'queued' %}
+                                                    status-queued
+                                                {% elif deployment.status == 'failed' %}
+                                                    status-failed
+                                                {% elif deployment.status == 'building' %}
+                                                    status-building
+                                                {% elif deployment.status == 'deployed' %}
+                                                    status-deployed
+                                                {% elif deployment.status == 'needsapproval' %}
+                                                    status-failed
+                                                {% endif %}
+                                            ">
+                                                {{ deployment.status }}
+                                                {% if deployment.status == 'needsapproval' %}
+                                                    {% if user.is_staff %}
+                                                    <td><a href="{% url 'approve_deployment' deployment.id %}" class="btn btn-primary">Approve</a> / 
+                                                    <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">
+                                                        Destroy</a></td>
+                                                    {% else %}
+                                                    <td><span style="color: gray; cursor: not-allowed;">Approve</span> / 
+                                                        <span style="color: gray; cursor: not-allowed;">Destroy</span></td>
+                                                    {% endif %}
+                                                {% endif %}
+                                            
+                                                {% if deployment.status == 'failed' %}
+                                                    {% if user.is_staff %}
+                                                    <td><a href="{% url 'approve_deployment' deployment.id %}" class="btn btn-primary">Re-Deploy</a> / 
+                                                    <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">
+                                                        Destroy</a></td>
+                                                    {% else %}
+                                                    <td><span style="color: gray; cursor: not-allowed;">Re-Deploy</span> / 
+                                                        <span style="color: gray; cursor: not-allowed;">Destroy</span></td>
+                                                    {% endif %}
+                                                {% endif %}
+                                            
+                                                {% if deployment.status == 'queued' %}
+                                                    {% if user.is_staff %}
+                                                    <td><a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">
+                                                        Destroy</a></td> 
+                                                    {% else %}
+                                                    <td><span style="color: gray; cursor: not-allowed;">Destroy</span></td>
+                                                    {% endif %}
+                                                {% endif %}
+                                                
+                                                {% if deployment.status == 'deployed' %}
+                                                    {% if user.is_staff %}
+                                                        <td><span style="color: gray; cursor: not-allowed;">Destroy not available</span></td>
+<!--                                                     <td><a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">
+                                                        Destroy</a></td>  -->
+                                                    {% else %}
+                                                    <td><span style="color: gray; cursor: not-allowed;">Destroy</span></td>
+                                                    {% endif %}
+                                                {% endif %}
+                                            
+                                                {% if deployment.status == 'building' %}
+                                                    {% if user.is_staff %}
+                                                    <td><a href="{% url 'cancel_deployment' deployment.id %}" class="btn btn-primary">Cancel</a>
+                                                    {% else %}
+                                                    <td><span style="color: gray; cursor: not-allowed;">Cancel</span></td>
+                                                    {% endif %}
+                                                    
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- Modal HTML for Confirmation -->
+    <div id="confirmModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Are you sure you want to destroy this deployment?</h2>
+            <form id="confirmForm" method="post" action="{% url 'destroy_deployment' 0 %}">
+                {% csrf_token %}
+                <button type="submit">Yes, destroy</button>
+                <button type="button" id="cancelButton">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // jQuery to handle the modal display and form submission
+        $(document).ready(function(){
+            $('.destroy-button').click(function(e) {
+                e.preventDefault();
+                var deploymentId = $(this).data('id');
+                var deploymentStatus = $(this).data('status');
+                
+                if (deploymentStatus === 'needsapproval' || deploymentStatus === 'queued' || deploymentStatus === 'failed') {
+                    $('#confirmModal').show();
+                    
+                    $('#confirmForm').attr('action', `/destroy_deployment/${deploymentId}/`);
+                }
+            });
+
+            // Close modal on cancel button click
+            $('#cancelButton').click(function() {
+                $('#confirmModal').hide();
+            });
+        });
+    </script>
+
+    <style>
+        /* Basic styles for modal overlay */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 300px;
+            text-align: center;
+        }
+    </style>
+
+</body>
+</html>
+

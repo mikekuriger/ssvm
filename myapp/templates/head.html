@@ -1,0 +1,33 @@
+<body class="dashboard" data-admin-utc-offset="0">
+
+<!-- Container -->
+<div id="container">
+    <!-- Header -->
+    <div id="header">
+        <div id="branding">
+            <h1 id="site-name"><a href="/admin/">Thryv Self-Serve Virtual Machine</a></h1>
+        </div>
+        <div id="user-tools">
+            Welcome,
+            <strong>{{ user.username }}</strong> -
+            {% if user.is_authenticated %}
+            <a href="/create_vm">Create VM</a> /
+            {% else %}
+            <a href="{% url 'login' %}?next=/create_vm">Create VM</a> /
+            {% endif %}
+            <a href="/nodes">Nodes</a> /
+            {% if user.is_authenticated %} 
+            <a href="/deployments">Deployments</a> /
+            {% endif %}
+            <a href="/admin/" class="{% if request.resolver_match.url_name == 'admin:index' %}active{% endif %}">Admin</a> /
+            {% if user.is_authenticated %}
+            <a href="/admin/password_change/">Change password</a> /
+            <a href="{% url 'logout' %}">Logout</a>
+            {% else %}
+            <a href="{% url 'login' %}">Login</a>
+            {% endif %}
+        </div>
+    </div>
+    <!-- END Header -->
+{% if user.is_staff %}
+    {% endif %}

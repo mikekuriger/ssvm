@@ -1,0 +1,23 @@
+#cloud-config
+runcmd:
+  - # No yum update Selected
+  - # No Additional Disks to mount
+  - mkdir /vra_automation
+  - mount -o nfsvers=3 st1-isiprod01.nfs.corp.pvt:/ifs/st1-isiprod01/nfs/vra_automation /vra_automation
+  - /vra_automation/scripts/main2.sh | tee -a /var/log/vra_automation.log
+  - /vra_automation/installs/mount_extra_disks.sh
+  - # Cohesity Agent not Selected
+  - /vra_automation/installs/automount_homedir.sh
+  - # fYP Tools not Selected
+  - echo "HOSTNAME - ev3lntsvnev3-07.corp.pvt" >> /etc/cmdb.txt
+  - echo "BUILD DATE - 2024-10-12T22:48:02" >> /etc/cmdb.txt
+  - echo "ENVIRONMENT - Testing" >> /etc/cmdb.txt
+  - echo "BUILT BY - mk7193" >> /etc/cmdb.txt
+  - echo "JIRA TICKET - TSM-00007" >> /etc/cmdb.txt
+  - echo "APP NAME - svnev3" >> /etc/cmdb.txt
+  - echo "APP OWNER - mk7193" >> /etc/cmdb.txt
+  - # Centrify Zone not selected
+  - # fYP Tools not Selected
+  - /vra_automation/scripts/send_mail.sh | tee -a /var/log/vra_automation.log
+  - umount /vra_automation -f
+  - init 6

@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create VM</title>
+    {% load static %}
+    {% load custom_filters %}
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="icon" href="{% static 'favicon.ico' %}">
+</head>
+<body>
+    <div class="container mt-5">
+        <form method="POST">
+            {% csrf_token %}
+   
+            <div class="row">
+                <!-- Left Column: Useful Data or Instructions -->
+                <div class="col-md-2">
+                    
+                    <h5>Thryv SSVM</h5>
+                    
+                    <div class="mb-3 row d-flex align-items-center">
+                        <label for="ticket" class="col-sm-3 col-form-label">{{ form.ticket.label_tag }}</label>
+                        <div class="col-sm-9">
+                            {{ form.ticket|add_class:"form-control" }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 row d-flex align-items-center">
+                        <label for="appname" class="col-sm-3 col-form-label">{{ form.appname.label_tag }}</label>
+                        <div class="col-sm-9">
+                            {{ form.appname|add_class:"form-control" }}
+                            {% if form.appname.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.appname.errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div id="appnameError" style="color:red; display:none;"></div>
+                    
+                </div>
+
+                <!-- Middle Column: User Input Fields -->
+                <div class="col-md-4">
+                    <h5>Request form</h5>
+                    <div class="mb-3 row d-flex align-items-center">
+                        <label for="owner" class="col-sm-3 col-form-label">{{ form.owner.label_tag }}</label>
+                        <div class="col-sm-9">
+                            {{ form.owner|add_class:"form-control" }}
+                        </div>
+                    </div>
+                    <!-- Hidden input field to hold the selected value -->
+                    <input type="hidden" id="owner_value" name="owner_value" />
+                    <div class="mb-3">
+                        {{ form.datacenter.label_tag }}
+                        {{ form.datacenter|add_class:"form-control" }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.server_type.label_tag }}
+                        {{ form.server_type|add_class:"form-control" }}
+                    </div> 
+                    <!-- Hidden input field to hold the selected value -->
+                    <input type="hidden" id="server_type_value" name="server_type_value" />
+                    <div class="mb-3">
+                        {{ form.hostname.label_tag }}
+                        {{ form.hostname|add_class:"form-control" }}
+                        <small id="hostname_hint" class="form-text text-muted">Max 8 characters for 1 VM, Max 6 characters for multiple VMs.</small>
+                    </div> 
+                    <div class="mb-3">
+                        {{ form.os.label_tag }}
+                        {{ form.os|add_class:"form-control" }}
+                    </div> 
+                    <!-- Hidden input field to hold the selected value -->
+                    <input type="hidden" id="os_value" name="os_value" />
+                    <div class="mb-3">
+                        {{ form.deployment_count.label_tag }}
+                        {{ form.deployment_count|add_class:"form-control" }}
+                    </div> 
+                    <div class="mb-3">
+                        {{ form.cpu.label_tag }}
+                        {{ form.cpu|add_class:"form-control" }}
+                    </div> 
+                    <div class="mb-3">
+                        {{ form.ram.label_tag }}
+                        {{ form.ram|add_class:"form-control" }}
+                    </div> 
+                    <div class="mb-3">
+                        {{ form.disk_size.label_tag }}
+                        {{ form.disk_size|add_class:"form-control" }}
+                    </div> 
+                    <div class="mb-3">
+                        {{ form.cluster.label_tag }}
+                        {{ form.cluster|add_class:"form-control" }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.network.label_tag }}
+                        {{ form.network|add_class:"form-control" }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.nfs_home.label_tag }}
+                        {{ form.nfs_home }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.add_disks.label_tag }}
+                        {{ form.add_disks }} 
+                    </div>
+                    <div class="mb-3" id="additional_disk_fields" style="display: none;">
+                        {{ form.additional_disk_size.label_tag }}
+                        {{ form.additional_disk_size|add_class:"form-control" }}
+                    </div>
+                    <div class="mb-3" id="mount_path_field" style="display: none;">
+                        {{ form.mount_path.label_tag }}
+                        {{ form.mount_path|add_class:"form-control" }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.join_centrify.label_tag }}
+                        {{ form.join_centrify }}
+                    </div>
+                    <div class="mb-3" id="centrify_zone_fields" style="display: none;">
+                        {{ form.centrify_zone.label_tag }}
+                        {{ form.centrify_zone|add_class:"form-control" }}
+                    </div>
+                    <div class="mb-3" id="centrify_role_fields" style="display: none;">
+                        {{ form.centrify_role.label_tag }}
+                        {{ form.centrify_role|add_class:"form-control" }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.install_patches.label_tag }}
+                        {{ form.install_patches }}
+                    </div>
+                    
+                </div>
+
+                <!-- Right Column: Additional User Input Fields -->
+                <div class="col-md-4">
+                    <!-- Hidden input field to hold the hostnames -->
+                    <input type="hidden" id="full_hostnames" name="full_hostnames" value="">
+                    <div class="mb-3">
+                        <label for="full_hostname">Hostname(s)</label>
+                        <textarea id="full_hostname" class="form-control" rows="1" readonly></textarea>
+                        <div id="dns_result" class="alert alert-danger d-none">DNS conflict detected!</div>
+                    </div>
+                    <div class="mb-3">
+                        <button type="submit" id="submit_button" class="btn btn-primary">Submit</button>
+                    </div>
+
+                    <!-- Flash Messages -->
+                    {% if messages %}
+                        <div class="alert alert-success">
+                            {% for message in messages %}
+                                <div>{{ message }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script src="{% static '/js/bootstrap.bundle.min.js' %}"></script>
+
+    <script>
+        // Get the CSRF token from the template context
+        const csrfToken = '{{ csrf_token }}';  
+
+        // Ticket must be number
+        document.addEventListener('DOMContentLoaded', function() {
+           const ticketField = document.getElementById('ticket');
+            
+           ticketField.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '').replace(/^(\d)/, 'TSM-$1');
+           });
+        });
+                                         
+        // Initally, populate "hostname" field from "appname"
+        document.addEventListener('DOMContentLoaded', function() {
+            const hostnameField = document.getElementById('hostname');
+            const appnameField = document.getElementById('appname');
+            
+            // Automatically populate the hostname based on application value, Enforce 8-character limit
+            appnameField.addEventListener('input', function() {
+                if (!hostnameField.dataset.userModified) {
+                    hostnameField.value = appnameField.value.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase().substring(0, 8);
+                };
+            });
+                
+            // Convert hostname input to lowercase, no spaces
+            hostnameField.addEventListener('input', function() {
+                hostnameField.dataset.userModified = true;
+               // this.value = this.value.toLowerCase();
+                this.value = this.value.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
+            });
+        });
+        
+        // Dynamically update Full Hostnames and enforce hostname length
+        document.addEventListener('DOMContentLoaded', function() {
+            const submitButton = document.getElementById('submit_button');
+            const datacenterField = document.querySelector('#datacenter');
+            const serverTypeField = document.querySelector('#server_type');
+            const hostnameField = document.querySelector('#hostname');
+            const appnameField = document.querySelector('#appname');
+            const deploymentCountField = document.querySelector('#deployment_count');
+            const fullHostnameField = document.querySelector('#full_hostname');
+            const dnsResult = document.querySelector('#dns_result');
+
+            let dnsConflict = false;
+            
+            // Function to check form validity
+            function checkFormValidity() {
+                const datacenter = datacenterField.value.trim();
+                const serverType = serverTypeField.value.trim();
+                const hostname = hostnameField.value.trim();
+                const appname = appnameField.value.trim();
+                const deploymentCount = deploymentCountField.value.trim();
+                // const dnsConflict = !dnsResult.classList.contains('d-none'); 
+    
+                // Enable button only if all fields are filled and no DNS conflict
+                if (datacenter && serverType && hostname && deploymentCount && !dnsConflict) {
+                    submitButton.disabled = false;
+                } else {
+                    submitButton.disabled = true;
+                }
+            }
+    
+            // Function to check DNS and manage conflict display
+            function checkDNS(hostnames) {
+                fetch('/check_dns/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ hostnames: hostnames })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    dnsConflict = false;
+                    
+                    for (const [hostname, exists] of Object.entries(data)) {
+                        if (exists) {
+                            dnsConflict = true;
+                            dnsResult.classList.remove('d-none');
+                            dnsResult.textContent = `Host already exists: ${hostname}`;
+                            break;
+                        }
+                    }
+                    
+                    if (!dnsConflict) {  // Only hide the message if the user typed
+                        dnsResult.classList.add('d-none');
+                    }
+                    
+                    // Re-check form validity after DNS check
+                    checkFormValidity();  
+                })
+                .catch(error => console.error('Error:', error));
+            }
+
+            // Function to resize the Full Hostname box
+            function resizeTextArea() {
+                const hostnames = fullHostnameField.value.split('\n'); // Split by newline to get number of lines
+                const numberOfLines = hostnames.length;
+                // Set the textarea 'rows' attribute to the number of lines, but with a minimum of 3 rows
+                fullHostnameField.rows = Math.max(numberOfLines, 3);  
+            }
+            
+            // Function to put hostnames into textarea box
+            function updateFullHostnames(hostnames) {
+                // Add hostnames to textarea
+                fullHostnameField.value = hostnames.join('\n');
+                // Resize the textarea to fit the hostnames
+                resizeTextArea();  
+            }
+            
+            // Function to generate Full Hostname(s) and trigger DNS check
+            function updateHostnamesAndCheckDNS() {
+                const datacenter = datacenterField.value;
+                const serverType = serverTypeField.value;
+                const userHostname = hostnameField.value;
+                const deploymentCount = parseInt(deploymentCountField.value) || 1;
+    
+                let fullHostnames = [];
+                for (let i = 1; i <= deploymentCount; i++) {
+                    const suffix = (deploymentCount > 1) ? `${i.toString().padStart(2, '0')}` : '';
+                    fullHostnames.push(`${datacenter}${serverType}${userHostname}${suffix}`);
+                }      
+                console.log(fullHostnames);
+                
+                // Display generated hostnames in the Full Hostname box
+                updateFullHostnames(fullHostnames);
+                
+                // Perform DNS check after updating hostnames
+                checkDNS(fullHostnames);  
+                
+                // Store full hostnames in the hidden input field
+                document.getElementById('full_hostnames').value = fullHostnames.join(', ');
+                return fullHostnames;
+            }
+
+            // Hide the DNS conflict message whenever the user interacts with the form fields
+            function resetDNSWarning() {
+                dnsResult.classList.add('d-none'); 
+                checkFormValidity();  
+            }
+
+            // Attach event listeners to all relevant fields to hide the DNS conflict message
+            datacenterField.addEventListener('change', resetDNSWarning);
+            serverTypeField.addEventListener('change', resetDNSWarning);
+            hostnameField.addEventListener('input', resetDNSWarning);
+            deploymentCountField.addEventListener('input', resetDNSWarning);
+        
+            // Event listeners to track input changes
+            datacenterField.addEventListener('change', updateHostnamesAndCheckDNS);
+            serverTypeField.addEventListener('change', updateHostnamesAndCheckDNS);
+            hostnameField.addEventListener('input', updateHostnamesAndCheckDNS);
+            appnameField.addEventListener('input', updateHostnamesAndCheckDNS);
+            deploymentCountField.addEventListener('input', updateHostnamesAndCheckDNS);
+    
+            // Re-check form validity on every input change
+            datacenterField.addEventListener('input', checkFormValidity);
+            serverTypeField.addEventListener('input', checkFormValidity);
+            hostnameField.addEventListener('input', checkFormValidity);
+            deploymentCountField.addEventListener('input', checkFormValidity);
+        });
+        
+        // Store "pretty" server type for display on the submitted form
+        document.getElementById('server_type').addEventListener('change', function() {
+            var selectedValue = this.options[this.selectedIndex].text;
+            document.getElementById('server_type_value').value = selectedValue;
+        });
+        
+        // Store owner for display on the submitted form
+        document.getElementById('owner').addEventListener('change', function() {
+            var selectedValue = this.options[this.selectedIndex].text;
+            document.getElementById('owner_value').value = selectedValue;
+        });
+        
+        // Store os for display on the submitted form
+        document.getElementById('os').addEventListener('change', function() {
+            var selectedValue = this.options[this.selectedIndex].text;
+            document.getElementById('os_value').value = selectedValue;
+        });
+
+        // Cluster options loaded dynalically
+        document.addEventListener('DOMContentLoaded', function() {
+            const datacenterField = document.getElementById('datacenter');
+            const clusterField = document.getElementById('cluster');
+            const networkField = document.getElementById('network');
+
+            // Define the cluster options for each datacenter
+            const clusters = {
+                'st1': [
+                    {value: 'B-2-1', text: 'B-2-1'},
+                    {value: 'B-2-2', text: 'B-2-2'},
+                    {value: 'B-2-3', text: 'B-2-3'},
+                    {value: 'B-2-4', text: 'B-2-4'},
+                    {value: 'B-2-6', text: 'B-2-6'},
+                    {value: 'B-2-7', text: 'B-2-7'},
+                    {value: 'B-2-8', text: 'B-2-8'},
+                    {value: 'B-2-9', text: 'B-2-9'}
+                ],
+                'ev3': [
+                    {value: 'A-1-1', text: 'A-1-1'},
+                    {value: 'A-1-2', text: 'A-1-2'},
+                    {value: 'A-1-3', text: 'A-1-3'},
+                    {value: 'A-1-4', text: 'A-1-4'},
+                    {value: 'A-1-5', text: 'A-1-5'},
+                    {value: 'A-1-6', text: 'A-1-6'},
+                    {value: 'A-1-7', text: 'A-1-7'},
+                    {value: 'A-1-8', text: 'A-1-8'}
+                ]
+            };
+            
+            const networks = {
+                'st1': [
+                    {value: 'VLAN540', text: 'ST1 - VLAN540'},
+                    {value: 'VLAN421', text: 'ST1 - VLAN421'}
+                ],
+                'ev3': [
+                    {value: 'VLAN540', text: 'EV3 - VLAN540'},
+                    {value: 'VLAN421', text: 'EV3 - VLAN421'}
+                ]
+            };
+
+            // Function to update the cluster options based on the selected datacenter
+            function updateClusterOptions(datacenter) {
+                // Clear the current options
+                clusterField.innerHTML = '';
+
+                // Add new options based on the selected datacenter
+                clusters[datacenter].forEach(cluster => {
+                    const option = document.createElement('option');
+                    option.value = cluster.value;
+                    option.textContent = cluster.text;
+                    clusterField.appendChild(option);
+                });
+            }
+            
+            // Function to update the network options based on the selected datacenter
+            function updateNetworkOptions(datacenter) {
+                // Clear the current options
+                networkField.innerHTML = '';
+
+                // Add new options based on the selected datacenter
+                networks[datacenter].forEach(network => {
+                    const option = document.createElement('option');
+                    option.value = network.value;
+                    option.textContent = network.text;
+                    networkField.appendChild(option);
+                });
+            }
+
+            // Listen for changes to the datacenter field
+            datacenterField.addEventListener('change', function() {
+                const selectedDatacenter = datacenterField.value;
+                updateClusterOptions(selectedDatacenter);
+                updateNetworkOptions(selectedDatacenter);
+            });
+
+            // Trigger the update when the page loads to set the initial options
+            updateClusterOptions(datacenterField.value);
+            updateNetworkOptions(datacenterField.value);
+        });
+        
+        // calculate centrify-role based on server-type, and centrify-zone slecected
+        document.addEventListener('DOMContentLoaded', function() {
+            const zoneField = document.getElementById('centrify_zone');
+            const roleField = document.getElementById('centrify_role');
+            const environmentField = document.getElementById('server_type');
+
+            function updateRoles() {
+                const centrify_zone = zoneField.value;
+                const Type = environmentField.value;
+
+                let roles = [];
+
+                // Mike Kuriger logic for role assignment
+                if (centrify_zone.indexOf('app-') !== -1) {
+                    if (Type === 'Production' || Type === 'lnp') {
+                        roles = [centrify_zone + '-prod'];
+                    } else {
+                        roles = [centrify_zone + '-dev'];
+                    }
+                }
+                else if (centrify_zone === 'grp-dba') {
+                    roles = (Type === 'Production' || Type === 'lnp') ? 
+                        ["app-db-prod", "app-mariadb-prod", "app-mongodb-prod", "app-mysql-prod", "app-postgresdb-prod"] :
+                        ["app-db-dev", "app-mariadb-dev", "app-mongodb-dev", "app-mysql-dev", "app-postgresdb-dev"];
+                }
+                else if (centrify_zone === 'grp-search') {
+                    roles = (Type === 'Production' || Type === 'lnp') ? 
+                        ["grp-search-prod"] :
+                        ["grp-search-dev"];
+                }
+                else if (centrify_zone === 'grp-sre') {
+                    roles = (Type === 'Production' || Type === 'lnp') ? 
+                        ["app-adportal", "app-cdn", "app-git-prod", "app-jenkins", "app-jmeter", "app-junkins", "app-reverseproxy-prod", "app-rundeck", "app-stash", "app-svn-prod", "grp-sre-prod"] :
+                        ["app-adportal", "app-cdn", "app-jenkins", "app-jmeter", "app-junkins", "app-rundeck", "app-stash"];
+                }
+                else if (centrify_zone === 'grp-vra') {
+                    roles = (Type === 'Production' || Type === 'lnp') ? 
+                        ["grp-vra-prod"] :
+                        ["grp-vra-dev"];
+                }
+                else {
+                    let appname = centrify_zone.split('-');
+                    roles = (Type === 'Production' || Type === 'lnp') ? 
+                        ["app-" + appname[1] + "-prod"] :
+                        ["app-" + appname[1] + "-dev"];
+                }
+
+                // Clear previous options in roleField
+                roleField.innerHTML = '';
+
+                // Populate the role dropdown with new options
+                roles.forEach(role => {
+                    let option = document.createElement('option');
+                    option.value = role;
+                    option.text = role;
+                    //roleField.add(option);
+                    roleField.appendChild(option);
+                });
+            }
+
+            // Event listeners to update roles dynamically
+            zoneField.addEventListener('change', updateRoles);
+            environmentField.addEventListener('change', updateRoles);
+            
+            zoneField.addEventListener('change', function() {
+                const selectedZone = zoneField.value;
+                updateRoles(selectedZone);
+            });
+            
+        });
+        
+        // JavaScript to show/hide extra disk fields
+        document.addEventListener('DOMContentLoaded', function() {
+            const addDisksCheckbox = document.getElementById('add_disks');
+            const additionalDiskFields = document.getElementById('additional_disk_fields');
+            const mountPathField = document.getElementById('mount_path_field');
+
+            addDisksCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    additionalDiskFields.style.display = 'block';
+                    mountPathField.style.display = 'block';
+                } else {
+                    additionalDiskFields.style.display = 'none';
+                    mountPathField.style.display = 'none';
+                }
+            });
+        });
+        
+        // JavaScript to show/hide centrify fields
+        document.addEventListener('DOMContentLoaded', function() {
+            const joincentrifyCheckbox = document.getElementById('join_centrify');
+            const centrifyzoneFields = document.getElementById('centrify_zone_fields');
+            const centrifyroleField = document.getElementById('centrify_role_fields');
+
+            joincentrifyCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    centrifyzoneFields.style.display = 'block';
+                    centrifyroleField.style.display = 'block';
+                } else {
+                    centrifyzoneFields.style.display = 'none';
+                    centrifyroleField.style.display = 'none';
+                }
+            });
+        });
+            
+    </script>
+</body>
+</html>

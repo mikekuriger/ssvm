@@ -1,0 +1,119 @@
+import csv
+from django import forms
+
+# Helper function to load users from a CSV file
+def load_users_from_csv(filepath='myapp/data/users2.csv'):
+    users = []
+    with open(filepath, mode='r') as file:
+        csv_reader = csv.reader(file)
+        for row in csv_reader:
+            username, full_name = row
+            display_value = f"{full_name} ({username})"
+            users.append((username, display_value))
+    return users
+
+class VMCreationForm(forms.Form):
+    ticket = forms.CharField(
+        label="Jira Ticket",
+        min_length=6,
+        max_length=11,
+        required=True,
+        initial='TSM-000000',
+        error_messages={
+            'max_length': "Enter Jira ticket number",
+            'min_length': "Enter Jira ticket number"
+        },
+        widget=forms.TextInput(attrs={'id': 'ticket',
+                                      'class': 'form-control',})
+    )
+    
+    appname = forms.CharField(
+        label="Application",
+        required=True,
+        widget=forms.TextInput(attrs={'id': 'appname',
+                                      'class': 'form-control',
+                                      'placeholder': 'My App',})
+    )
+    # Load users from CSV file for the owner dropdown
+    owner = forms.ChoiceField(
+        label="Owner",
+        choices=load_users_from_csv(),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=True
+    )
+
+    datacenter = forms.ChoiceField(
+        label="Datacenter",
+        choices=[('ev3', 'ev3'), ('st1', 'st1')],
+       # initial='ev3',
+        required=True,
+        widget=forms.Select(attrs={'id': 'datacenter', 'class': 'form-control'})
+    )
+        #widget=forms.RadioSelect(attrs={'id': 'datacenter', 'class': 'form-check-input'})
+
+    server_type = forms.ChoiceField(
+        label="Server Type",
+        choices=[('lnp', 'Production'), ('lnt', 'Test'), ('lnd', 'Development')],
+       # initial='lnt',
+        required=True,
+        widget=forms.Select(attrs={'id': 'server_type', 'class': 'form-control'})
+    )
+
+    deployment_count = forms.ChoiceField(
+        label="Deployment Count",
+        choices=[(str(i), str(i)) for i in range(1, 11)],
+        initial='1',
+        required=True,
+        widget=forms.Select(attrs={'id': 'deployment_count', 'class': 'form-control'})
+    )
+
+    hostname = forms.CharField(
+        label="Customize Hostname",
+        max_length=8,
+        min_length=3,
+        required=True,
+        error_messages={
+            'min_length': "name must be at least 3 characters.",
+            'max_length': "name must not exceed 8 characters."
+        },
+        widget=forms.TextInput(attrs={'id': 'hostname',
+                                      'class': 'form-control',
+                                      'placeholder': 'example',})
+    )
+
+    cpu = forms.ChoiceField(
+        label="Number of CPUs",
+        choices=[(str(i), str(i)) for i in [2, 4, 8, 12, 16, 20, 24, 32, 48, 64]],
+        initial='2',
+        required=True,
+        widget=forms.Select(attrs={'id': 'cpu', 'class': 'form-control'})
+    )
+
+    ram = forms.ChoiceField(
+        label="RAM (GB)",
+        choices=[(str(i), str(i)) for i in [2, 4, 8, 12, 16, 20, 24, 32, 48, 64]],
+        initial='2',
+        required=True,
+        widget=forms.Select(attrs={'id': 'ram', 'class': 'form-control'})
+    )
+
+    os = forms.ChoiceField(
+        label="Operating System",
+        choices=[
+            ('VRA-SSVM-OEL7', 'Oracle Enterprise Linux 7'),
+            ('VRA-SSVM-OEL8', 'Oracle Enterprise Linux 8'),
+            ('VRA-SSVM-OEL9', 'Oracle Enterprise Linux 9')
+        ],
+        initial='VRA-SSVM-OEL8',
+        required=True,
+        widget=forms.Select(attrs={'id': 'os', 'class': 'form-control'})
+    )
+
+    disk_size = forms.ChoiceField(
+        label="Hard Disk Size (GB)",
+        choices=[(str(i), str(i)) for i in [60, 100, 150, 200, 250, 512, 1024]],
+        initial='60',
+        required=True,
+        widget=forms.Select(attrs={'id': 'disk_size', 'class': 'form-control'})
+    )
+

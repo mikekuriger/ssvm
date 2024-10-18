@@ -1,0 +1,23 @@
+#cloud-config
+runcmd:
+  - /usr/bin/yum update -y
+  - echo 'False' >> /etc/vra.disk
+  - mkdir /vra_automation
+  - mount -o nfsvers=3 st1-isiprod01.nfs.corp.pvt:/ifs/st1-isiprod01/nfs/vra_automation /vra_automation
+  - /vra_automation/scripts/main2.sh | tee -a /var/log/vra_automation.log
+  - /vra_automation/installs/mount_extra_disks.sh
+  - # Cohesity Agent not Selected
+  - /vra_automation/installs/automount_homedir.sh
+  - # fYP Tools not Selected
+  - echo "HOSTNAME - st1lnpbingo04.corp.pvt" >> /etc/cmdb.txt
+  - echo "BUILD DATE - 2024-10-11T18:35:25" >> /etc/cmdb.txt
+  - echo "ENVIRONMENT - Production" >> /etc/cmdb.txt
+  - echo "BUILT BY - mk7193" >> /etc/cmdb.txt
+  - echo "JIRA TICKET - TSM-00003" >> /etc/cmdb.txt
+  - echo "APP NAME - bingo" >> /etc/cmdb.txt
+  - echo "APP OWNER - mk7193" >> /etc/cmdb.txt
+  - /usr/sbin/adjoin --server DFW2W2SDC05.corp.pvt -z grp-unix -R app-unix-prod -c OU=Computers,OU=Centrify,DC=corp,DC=pvt -f corp.pvt -u svc_centrify -p '#xupMcMlURubO2|'
+  - sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/centrifydc/ssh/sshd_config; systemctl mask sshd; systemctl enable centrify-sshd; mv /usr/bin/sudo /usr/bin/sudo.pre.cfy; ln -s /usr/bin/dzdo /usr/bin/sudo
+  - /vra_automation/scripts/send_mail.sh | tee -a /var/log/vra_automation.log
+  - umount /vra_automation -f
+  - init 6
