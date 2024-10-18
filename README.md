@@ -80,6 +80,11 @@ su - ssvm
 mkdir ssvm
 cd ssvm
 ```
+## get the code from github
+```
+cd ~ssvm
+git clone https://github.com/mikekuriger/ssvm.git
+```
 ## python stuff
 ```
 python3 -m venv ssvm_env
@@ -108,6 +113,7 @@ GRANT ALL PRIVILEGES ON ssvm.* TO 'ssvm'@'*';
 FLUSH PRIVILEGES;
 EXIT;
 ```
+
 ## to create django admin user
 ```
 python manage.py createsuperuser
