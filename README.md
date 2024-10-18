@@ -140,12 +140,11 @@ python manage.py createsuperuser
 python manage.py process_tasks
 
 # to start app
+# standalone:
 nohup python manage.py runserver 0.0.0.0:8000 > django_output.log 2>&1 & (maybe use systemd)
-http://localhost:8000/
 
-# to import scheduled tasks (for build, and alerting), edit the settings.py and uncomment #SCHEDULER_AUTOSTART = True
-# the app "should" restart once you make the change, and the tasks will be imported.  
-# comment the setting again, or the tasks will keep importing every time you make a change that restarts the app
+# localhost with nginx
+nohup python manage.py runserver 127.0.0.1:8000 > django_output.log 2>&1 &
 
 # to run jupytherlab 
 jupyter lab --ip=0.0.0.0 --port=8888 --no-browser
