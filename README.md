@@ -103,6 +103,7 @@ pip install django-debug-toolbar
 pip install django-background-tasks
 pip install jupyterlab
 pip install jupyterlab_github
+pip install PyYAML
 ```
 
 ## database stuff
