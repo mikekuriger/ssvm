@@ -98,6 +98,7 @@ EOF
 pip install --upgrade pip
 pip install mysqlclient
 pip install django
+pip install djangorestframework
 pip install django-debug-toolbar
 pip install django-background-tasks
 pip install jupyterlab
@@ -116,6 +117,7 @@ EXIT;
 
 ## to create django admin user
 ```
+cd ~ssvm/ssvm/myproject
 python manage.py createsuperuser
 ```
 ## to start Django app
