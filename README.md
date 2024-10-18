@@ -32,11 +32,14 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout nginx-selfsigned.key
 #Common Name (eg, your name or your server's hostname) []:st1lntmk7193.corp.pvt
 #Email Address []:mk7193@thryv.com
 
+#(takes a long time) 
+
 openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
-#(takes a long time)
+
+#Add the following configuration to configure nginx
 
 vi /etc/nginx/nginx.conf
-#Add the following configuration to configure nginx
+
 #user  nobody;
 worker_processes  1;
 
