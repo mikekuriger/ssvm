@@ -16,25 +16,11 @@ cd /etc/nginx/ssl;
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout nginx-selfsigned.key -out nginx-selfsigned.crt
 openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
 ```
-## Add the following configuration to configure nginx
+## Replace the http section of your config
 ```
 vi /etc/nginx/nginx.conf
-
-#user  nobody;
-worker_processes  1;
-
-#error_log  logs/error.log;
-#error_log  logs/error.log  notice;
-#error_log  logs/error.log  info;
-
-#pid        logs/nginx.pid;
-
-
-events {
-    worker_connections  1024;
-}
-
-
+```
+```
 http {
     include       mime.types;
     default_type  application/octet-stream;
