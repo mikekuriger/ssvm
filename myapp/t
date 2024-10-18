@@ -1,1 +1,0 @@
-tail -f ~/python/myproject/django_output.log
