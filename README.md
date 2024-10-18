@@ -73,6 +73,10 @@ systemctl enable mariadb
 systemctl start  mariadb
 mysql_secure_installation
 ```
+## import a copy of the database
+```
+mysql -u root -p ssvm < ssvm.dump
+```
 ## create ssvm user
 ```
 useradd ssvm
