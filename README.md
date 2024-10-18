@@ -4,7 +4,7 @@
 # govc binary for interacting with vcenter
 curl -L -o - "https://github.com/vmware/govmomi/releases/latest/download/govc_$(uname -s)_$(uname -m).tar.gz" | tar -C /usr/local/bin -xvzf - govc
 
-yum install -y python37 python3-devel git git-credential-manager mariadb-server mariadb-devel npm conda genisoimage
+yum install -y python37 python3-devel git mariadb-server mariadb-devel npm conda genisoimage
  nginx certbot python3-certbot-nginx openssl
 
 # nginx ssl:
