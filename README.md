@@ -2,7 +2,7 @@
 
 This started off as some shell scripts to set up VMs in Vcenter, and has evolved into this thing.
 
-## govc binary for interacting with vcenter
+## govc binary and yum install
 ```
 curl -L -o - "https://github.com/vmware/govmomi/releases/latest/download/govc_$(uname -s)_$(uname -m).tar.gz" | tar -C /usr/local/bin -xvzf - govc
 
