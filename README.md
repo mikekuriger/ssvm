@@ -66,8 +66,34 @@ http {
     }
 }
 ```
+
+## database setup
+create root password for mysql
+```
+systemctl enable mariadb
+systemctl start  mariadb
+mysql_secure_installation
+```
+
+## create ssvm user
+```
+useradd ssvm
+su - ssvm
+mkdir ssvm
+cd ssvm
+```
+
 ## python stuff
 ```
+python3 -m venv ssvm_env
+source ssvm_env/bin/activate
+
+cat <<EOF >> ~/.bash_profile
+cd ssvm
+source ssvm_env/bin/activate
+EOF
+
+pip install --upgrade pip
 pip install mysqlclient
 pip install django
 pip install django-debug-toolbar
