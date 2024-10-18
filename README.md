@@ -66,7 +66,6 @@ http {
     }
 }
 ```
-
 ## database setup
 create root password for mysql
 ```
@@ -74,7 +73,6 @@ systemctl enable mariadb
 systemctl start  mariadb
 mysql_secure_installation
 ```
-
 ## create ssvm user
 ```
 useradd ssvm
@@ -82,7 +80,6 @@ su - ssvm
 mkdir ssvm
 cd ssvm
 ```
-
 ## python stuff
 ```
 python3 -m venv ssvm_env
@@ -111,39 +108,35 @@ GRANT ALL PRIVILEGES ON ssvm.* TO 'ssvm'@'*';
 FLUSH PRIVILEGES;
 EXIT;
 ```
+## to create django admin user
+```
+python manage.py createsuperuser
+```
+## to start Django app
+### standalone:
+```
+nohup python manage.py runserver 0.0.0.0:8000 > django_output.log 2>&1 & (maybe use systemd)
+```
+### localhost with nginx ssl
+```
+nohup python manage.py runserver 127.0.0.1:8000 > django_output.log 2>&1 &
+```
+
+The rest of this is just helpful to know
 
 ## to make changes to the database, ie add a new field
 ```
 python manage.py makemigrations
 python manage.py migrate
 ```
-
 ## to set up background task during installation
 ```
 python manage.py migrate background_task
 ```
-
-## to create django admin user
-```
-python manage.py createsuperuser
-```
-
 ## to start the task scheduler (maybe use systemd)
 ```
 python manage.py process_tasks
 ```
-
-## to start app
-### standalone:
-```
-nohup python manage.py runserver 0.0.0.0:8000 > django_output.log 2>&1 & (maybe use systemd)
-```
-
-### localhost with nginx ssl
-```
-nohup python manage.py runserver 127.0.0.1:8000 > django_output.log 2>&1 &
-```
-
 ## to run jupytherlab 
 ```
 jupyter lab --ip=0.0.0.0 --port=8888 --no-browser
