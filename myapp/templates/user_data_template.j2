@@ -6,9 +6,9 @@ runcmd:
   - mount -o nfsvers=3 st1-isiprod01.nfs.corp.pvt:/ifs/st1-isiprod01/nfs/vra_automation /vra_automation
   - /vra_automation/scripts/main2.sh | tee -a /var/log/vra_automation.log
   - {{ mountdisks if adddisk else "# No Additional Disks to mount" }}
-  - {{ cohesity_install if cohesity else "# Cohesity Agent not Selected" }}
-  - {{ automount_homedir if automount else "# Automount not Selected" }}
-  - {{ fyptools_install if fyptools else "# fYP Tools not Selected" }}
+  - {{ cohesity_install if cohesity == "True" else "# Cohesity Agent not Selected" }}
+  - {{ automount_homedir if automount == "True" else "# Automount not Selected" }}
+  - {{ fyptools_install if fyptools == "True" else "# fYP Tools not Selected" }}
   - echo "HOSTNAME - {{ vm }}" >> /etc/cmdb.txt
   - echo "BUILD DATE - {{ date }}" >> /etc/cmdb.txt
   - echo "ENVIRONMENT - {{ type }}" >> /etc/cmdb.txt
