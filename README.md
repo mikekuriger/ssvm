@@ -126,7 +126,7 @@ GRANT ALL PRIVILEGES ON ssvm.* TO 'ssvm'@'*';
 FLUSH PRIVILEGES;
 EXIT;
 
-# to make changes to the database, ie adda new field
+# to make changes to the database, ie add a new field
 python manage.py makemigrations
 python manage.py migrate
 
