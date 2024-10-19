@@ -1,0 +1,12 @@
+#python manage.py runserver
+#python manage.py runserver 0.0.0.0:8000
+#!/bin/bash
+if [[ -f django_pid.txt ]]; then
+./kill.sh
+fi
+# (for testing) nohup python manage.py runserver 0.0.0.0:8000 > django_output.log 2>&1 &
+nohup python manage.py runserver 127.0.0.1:8000 > django_output.log 2>&1 &
+echo started pid $! 
+echo $! > django_pid.txt
+tail -f django_output.log
+
