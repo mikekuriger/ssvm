@@ -2,7 +2,7 @@
 
 This started off as some shell scripts to set up VMs in Vcenter, and has evolved into this thing.
 
-## govc binary for interacting with vcenter
+## govc binary and yum install
 ```
 curl -L -o - "https://github.com/vmware/govmomi/releases/latest/download/govc_$(uname -s)_$(uname -m).tar.gz" | tar -C /usr/local/bin -xvzf - govc
 
@@ -73,6 +73,10 @@ systemctl enable mariadb
 systemctl start  mariadb
 mysql_secure_installation
 ```
+## import a copy of the database
+```
+mysql -u root -p ssvm < ssvm.dump
+```
 ## create ssvm user
 ```
 useradd ssvm
@@ -98,10 +102,13 @@ EOF
 pip install --upgrade pip
 pip install mysqlclient
 pip install django
+pip install djangorestframework
 pip install django-debug-toolbar
 pip install django-background-tasks
 pip install jupyterlab
+pip install jupyterlab-git
 pip install jupyterlab_github
+pip install PyYAML
 ```
 
 ## database stuff
@@ -113,9 +120,14 @@ GRANT ALL PRIVILEGES ON ssvm.* TO 'ssvm'@'*';
 FLUSH PRIVILEGES;
 EXIT;
 ```
-
+## to create database structure, or anytime you change the model, ie add a new field
+```
+python manage.py makemigrations
+python manage.py migrate
+```
 ## to create django admin user
 ```
+cd ~ssvm/ssvm
 python manage.py createsuperuser
 ```
 ## to start Django app
@@ -130,11 +142,7 @@ nohup python manage.py runserver 127.0.0.1:8000 > django_output.log 2>&1 &
 
 The rest of this is just helpful to know
 
-## to make changes to the database, ie add a new field
-```
-python manage.py makemigrations
-python manage.py migrate
-```
+
 ## to set up background task during installation
 ```
 python manage.py migrate background_task
