@@ -11,11 +11,11 @@ datacenters:
         eipmaster: "st1dceipmaster.corp.pvt"
         vcenter: "st1vccomp01a.corp.pvt"
         eip_credentials:
-            username: "mk7193"
-            password: "Mrkamk2021#"
+            username: ""
+            password: ""
         credentials:
-            username: "administrator@vsphere.local"
-            password: "X5r%QZ6VCp4BsEG3He2w"
+            username: ""
+            password: ""
         vlans:
             VLAN540: "ST1 - Weblogic"
             #VLAN673: "vlan673_vmware_management"
@@ -42,11 +42,11 @@ datacenters:
         eipmaster: "st1dceipmaster.corp.pvt"
         vcenter: "ev3vccomp01a.corp.pvt"
         eip_credentials:
-            username: "mk7193"
-            password: "Mrkamk2021#"
+            username: ""
+            password: ""
         credentials:
-            username: "administrator@vsphere.local"
-            password: "kLo5(S&iYQSH"
+            username: ""
+            password: ""
         vlans:
             VLAN540: "EV3 - Weblogic"
             #VLAN673: "vlan673_vmware_management"
