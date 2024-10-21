@@ -3,27 +3,22 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.http import JsonResponse
-from django.shortcuts import render
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
+from myapp.config_helper import load_config
+from myapp.forms import VMCreationForm
+from myapp.models import Deployment, Node, HardwareProfile, OperatingSystem, Status
+from myapp.serializers import NodeSerializer
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .config_helper import load_config
-from .forms import VMCreationForm
-from .models import Deployment
-from .models import HardwareProfile
-from .models import Node
-from .models import OperatingSystem
-from .models import Status
-from .serializers import NodeSerializer
 import json
 import os as _os
 import socket
+import subprocess
 import yaml
-
 
 @api_view(['POST'])
 def register_node(request):
@@ -33,6 +28,10 @@ def register_node(request):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+# deployment status refresh
+def get_deployment_status(request, deployment_id):
+    deployment = Deployment.objects.get(id=deployment_id)
+    return JsonResponse({'status': deployment.status})
 
 # deployment approvals
 def approve_deployment(request, deployment_id):
@@ -58,38 +57,131 @@ def cancel_deployment(request, deployment_id):
     deployment.save()
     return redirect('deployment_list') 
 
-# deployment destruction
+
+# deployment destruction - this is triggeed either by the usr clicking destory from 
+# the deployment list page, or by the scheduled task in the event that the destroy 
+# did not complete for some reason.  i may change this so the scheduled task is the 
+# only trigger since this seems illogical
+
+# function to remove node from vcenter
+def destroy_vm(node, deployment):
+    # get vcenter credentials
+    datacenter = deployment.datacenter
+    config = load_config()
+    vcenter = datacenter['vcenter']
+    username = datacenter['credentials']['username']
+    password = datacenter['credentials']['password']
+
+    # Set environment variables for govc
+    os.environ["GOVC_URL"] = f"https://{vcenter}"
+    os.environ["GOVC_USERNAME"] = username
+    os.environ["GOVC_PASSWORD"] = password
+    
+    vm_short_name = node.name.split('.')[0]
+    domain = deployment.domain or 'corp.pvt'
+    vm_fqdn = f"{vm_short_name}.{domain}"
+
+    # Try destroying by short name, then FQDN if needed
+    for vm_name in [vm_short_name, vm_fqdn]:
+        destroy_vm_command = ["govc", "vm.destroy", vm_name]
+        result = subprocess.run(destroy_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if result.returncode == 0:
+            node.status = Status.objects.get(name='destroyed')
+            node.save(update_fields=['status'])
+            print(f"VM {vm_name} destroyed successfully.")
+            return True
+        else:
+            print(f"Error destroying VM {vm_name}: {result.stderr}")
+    return False
+
+# function to remove node from DNS
+def remove_dns_entry(node, deployment):
+    datacenter = deployment.datacenter
+    sds_conn = SOLIDserverRest(datacenter['eipmaster'])
+    sds_conn.set_ssl_verify(False)
+    sds_conn.use_basicauth_sds(user=datacenter['eip_credentials']['username'], password=datacenter['eip_credentials']['password'])
+
+    dns_name = node.name.split('.')[0]
+    dns_zone = deployment.domain or 'corp.pvt'
+    parameters = {"WHERE": f"name='{dns_name}.{dns_zone}'"}
+    response = sds_conn.query("ip_address_list", parameters)
+
+    if response.status_code == 200:
+        ip_list = json.loads(response.content)
+        if ip_list:
+            ip_id = ip_list[0].get('ip_id')
+            delete_response = sds_conn.query("ip_address_delete", {"ip_id": ip_id})
+            if delete_response.status_code == 200:
+                print(f"DNS entry {dns_name}.{dns_zone} deleted.")
+                return True
+            else:
+                print(f"Error deleting DNS entry: {delete_response.content.decode()}")
+    else:
+        print(f"Error fetching DNS entry: {response.content.decode()}")
+    return False
+
+
+# Main Destroy Deployment logic
 def destroy_deployment(request, deployment_id):
     deployment = get_object_or_404(Deployment, id=deployment_id)
-    
-    # Check if the status requires confirmation
-    if deployment.status in ['queued']:
-    # if deployment.status in ['deployed', 'queued']:  # to delete a "deplpyed" deployment, i need to code up the delete process.  maybe someday
-        # Only proceed with deletion if confirmation has been given (POST request)
-        if request.method == 'POST':
+
+    try:
+        if deployment.status == 'queued':
+            if request and request.method == 'POST':
+                deployment.delete()
+                return True, None
+            else:
+                return False, "Confirmation required to destroy queued deployments."
+
+        if deployment.status in ['needsapproval', 'failed']:
             deployment.delete()
-            #messages.success(request, "Deployment has been successfully destroyed.")
-            return redirect('deployment_list')
-        else:
-            # Render the confirmation page for GET requests
-            return render(request, 'confirm_destroy.html', {'deployment': deployment})
+            return True, None
+
+        if deployment.status == 'deployed':
+            if request and request.method == 'POST':
+
+                # Update deployment status
+                deployment.status = 'destroying'
+                deployment.save()
+
+                # go through nodes, try to remove from vcenter and dns
+                nodes_in_deployment = Node.objects.filter(deployment=deployment)
+                for node in nodes_in_deployment:
+                    
+                    # Step 1: Destroy VMs in the deployment
+                    vm_destroyed = destroy_vm(node, deployment)
+                    if vm_destroyed:
+                        print(f"Node {node.name} has been successfully removed from Vcenter.")
+                    else:
+                        print(f"Failed to remove node {node.name} from Vcenter.")
     
-    # For other statuses, delete immediately
-    if deployment.status in ['needsapproval', 'failed']:
-        deployment.delete()
-        #messages.success(request, "Deployment has been successfully destroyed.")
-    
-    return redirect('deployment_list')
+                    # Step 2: Remove DNS entries
+                    dns_removed = remove_dns_entry(node, deployment)
+                    if dns_removed:
+                        print(f"Node {node.name} has been successfully removed from DNS.")
+                    else:
+                        print(f"Failed to remove node {node.name} from DNS.")
+                        
+                # Update deployment status
+                if vm_destroyed and dns_removed:
+                    print(f"Node {node.name} has been successfully destroyed and DNS entry removed.")
+                    deployment.status = 'destroyed'
+                    deployment.save()
+                    return True, None
+                else:
+                    print(f"Failed to completely destroy node {node.name} or remove its DNS entry.")
+                    deployment.status = 'error'
+                    deployment.save()
+                    return True, None
+
+            else:
+                return False, "Confirmation required to destroy running deployments."
+        
+        return False, "Invalid deployment status for destruction."
+    except Exception as e:
+        return False, str(e)
 
 
-# # list nodes
-# def nodes(request):
-#     nodes = Node.objects.all().order_by('name')
-#     return render(request, 'nodes.html', {'nodes': nodes})
-
-# pagination
-from django.core.paginator import Paginator
-from django.shortcuts import render
 
 def node_list(request):
     #nodes = Node.objects.all().order_by('name')
@@ -177,7 +269,8 @@ def create_vm(request):
             centrify_zone = data['centrify_zone']
             centrify_role = data['centrify_role']
             install_patches = data['install_patches']
-            deployment_date = datetime.now().strftime('%Y-%m-%dT%H:%M') 
+            deployment_date = timezone.now()
+            #deployment_date = datetime.now().strftime('%Y-%m-%dT%H:%M') 
             #deployment_name = f"{deployment_date}-{owner}-{hostname}-{deployment_count}"
             deployment_name = f"{datacenter}{server_type}{hostname}-{owner}-{deployment_date}" 
 
@@ -345,11 +438,6 @@ def create_vm(request):
         'deployments': deployments
     })
 
-
-
-
-import socket
-from django.http import JsonResponse
 
 def check_dns(request):
     if request.method == 'POST':
