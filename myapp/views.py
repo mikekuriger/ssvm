@@ -63,14 +63,21 @@ def cancel_deployment(request, deployment_id):
 # did not complete for some reason.  i may change this so the scheduled task is the 
 # only trigger since this seems illogical
 
+import logging
+
+# Get the logger for the deployment tasks
+logger = logging.getLogger('deployment')
+
 # function to remove node from vcenter
 def destroy_vm(node, deployment):
-    # get vcenter credentials
     datacenter = deployment.datacenter
-    config = load_config()  # Ensure this loads correctly
+    config = load_config()
     vcenter = datacenter['vcenter']
     username = datacenter['credentials']['username']
     password = datacenter['credentials']['password']
+
+    # Log the vCenter credentials being used
+    logger.info(f"Using vCenter {vcenter} to destroy VM {node.name}")
 
     # Set environment variables for govc
     os.environ["GOVC_URL"] = f"https://{vcenter}"
@@ -83,15 +90,16 @@ def destroy_vm(node, deployment):
 
     # Try destroying by short name, then FQDN if needed
     for vm_name in [vm_short_name, vm_fqdn]:
+        logger.info(f"Attempting to destroy VM: {vm_name}")
         destroy_vm_command = ["govc", "vm.destroy", vm_name]
         result = subprocess.run(destroy_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if result.returncode == 0:
+            logger.info(f"VM {vm_name} destroyed successfully.")
             node.status = Status.objects.get(name='destroyed')
             node.save(update_fields=['status'])
-            print(f"VM {vm_name} destroyed successfully.")
             return True
         else:
-            print(f"Error destroying VM {vm_name}: {result.stderr}")
+            logger.error(f"Error destroying VM {vm_name}: {result.stderr}")
     return False
 
 # function to remove node from DNS
@@ -104,6 +112,8 @@ def remove_dns_entry(node, deployment):
     dns_name = node.name.split('.')[0]
     dns_zone = deployment.domain or 'corp.pvt'
     parameters = {"WHERE": f"name='{dns_name}.{dns_zone}'"}
+    
+    logger.info(f"Attempting to fetch DNS entry for {dns_name}.{dns_zone}")
     response = sds_conn.query("ip_address_list", parameters)
 
     if response.status_code == 200:
@@ -112,14 +122,13 @@ def remove_dns_entry(node, deployment):
             ip_id = ip_list[0].get('ip_id')
             delete_response = sds_conn.query("ip_address_delete", {"ip_id": ip_id})
             if delete_response.status_code == 200:
-                print(f"DNS entry {dns_name}.{dns_zone} deleted.")
+                logger.info(f"DNS entry {dns_name}.{dns_zone} deleted.")
                 return True
             else:
-                print(f"Error deleting DNS entry: {delete_response.content.decode()}")
+                logger.error(f"Error deleting DNS entry: {delete_response.content.decode()}")
     else:
-        print(f"Error fetching DNS entry: {response.content.decode()}")
+        logger.error(f"Error fetching DNS entry: {response.content.decode()}")
     return False
-
 
 # Main Destroy Deployment logic
 def destroy_deployment(request, deployment_id):
@@ -129,12 +138,15 @@ def destroy_deployment(request, deployment_id):
         if deployment.status == 'queued':
             if request and request.method == 'POST':
                 deployment.delete()
+                logger.info(f"Deployment {deployment.deployment_name} deleted (queued).")
                 return True, None
             else:
+                logger.warning(f"Confirmation required to destroy queued deployment: {deployment.deployment_name}")
                 return False, "Confirmation required to destroy queued deployments."
 
         if deployment.status in ['needsapproval', 'failed']:
             deployment.delete()
+            logger.info(f"Deployment {deployment.deployment_name} deleted (needsapproval/failed).")
             return True, None
 
         if deployment.status == 'deployed':
@@ -143,43 +155,46 @@ def destroy_deployment(request, deployment_id):
                 # Update deployment status
                 deployment.status = 'destroying'
                 deployment.save()
+                logger.info(f"Deployment {deployment.deployment_name} is now in 'destroying' status.")
 
-                # go through nodes, try to remove from vcenter and dns
                 nodes_in_deployment = Node.objects.filter(deployment=deployment)
                 for node in nodes_in_deployment:
                     
                     # Step 1: Destroy VMs in the deployment
                     vm_destroyed = destroy_vm(node, deployment)
                     if vm_destroyed:
-                        print(f"Node {node.name} has been successfully removed from Vcenter.")
+                        logger.info(f"Node {node.name} destroyed from vCenter.")
                     else:
-                        print(f"Failed to remove node {node.name} from Vcenter.")
+                        logger.error(f"Failed to destroy node {node.name} from vCenter.")
     
                     # Step 2: Remove DNS entries
                     dns_removed = remove_dns_entry(node, deployment)
                     if dns_removed:
-                        print(f"Node {node.name} has been successfully removed from DNS.")
+                        logger.info(f"Node {node.name} removed from DNS.")
                     else:
-                        print(f"Failed to remove node {node.name} from DNS.")
+                        logger.error(f"Failed to remove node {node.name} from DNS.")
                         
                 # Update deployment status
                 if vm_destroyed and dns_removed:
-                    print(f"Node {node.name} has been successfully destroyed and DNS entry removed.")
                     deployment.status = 'destroyed'
                     deployment.save()
+                    logger.info(f"Deployment {deployment.deployment_name} marked as 'destroyed'.")
                     return True, None
                 else:
-                    print(f"Failed to completely destroy node {node.name} or remove its DNS entry.")
                     deployment.status = 'error'
                     deployment.save()
+                    logger.error(f"Failed to completely destroy deployment {deployment.deployment_name}.")
                     return True, None
 
             else:
+                logger.warning(f"Confirmation required to destroy running deployment: {deployment.deployment_name}")
                 return False, "Confirmation required to destroy running deployments."
         
         return False, "Invalid deployment status for destruction."
     except Exception as e:
+        logger.error(f"Error during deployment destruction: {str(e)}")
         return False, str(e)
+
 
 
 
