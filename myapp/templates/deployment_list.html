@@ -121,7 +121,11 @@
                                                         <span style="color: gray; cursor: not-allowed;">Destroy</span>
                                                     {% endif %}
                                                 {% elif deployment.status == 'deployed' %}
-                                                    <span style="color: gray; cursor: not-allowed;">Destroy not available</span>
+                                                    {% if user.is_staff %}
+                                                        <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy</a>
+                                                    {% else %}
+                                                        <span style="color: gray; cursor: not-allowed;">Destroy</span>
+                                                    {% endif %}
                                                 {% elif deployment.status == 'building' %}
                                                     {% if user.is_staff %}
                                                         <a href="{% url 'cancel_deployment' deployment.id %}" class="btn btn-primary">Cancel</a>
@@ -162,7 +166,7 @@
                 var deploymentId = $(this).data('id');
                 var deploymentStatus = $(this).data('status');
                 
-                if (deploymentStatus === 'needsapproval' || deploymentStatus === 'queued' || deploymentStatus === 'failed') {
+                if (deploymentStatus === 'needsapproval' || deploymentStatus === 'queued' || deploymentStatus === 'failed' || deploymentStatus === 'deployed') {
                     $('#confirmModal').show();
                     
                     $('#confirmForm').attr('action', `/destroy_deployment/${deploymentId}/`);
@@ -203,7 +207,7 @@
                             actionsElement.innerHTML = `<a href="/cancel_deployment/${deploymentId}" class="btn btn-primary">Cancel</a>`;
                         } else if (data.status === 'deployed') {
                             statusElement.classList.add('status-deployed');
-                            actionsElement.innerHTML = `<span style="color: gray; cursor: not-allowed;">Destroy not available</span>`;
+                            actionsElement.innerHTML = `<a href="#" class="destroy-button" data-id="${deploymentId}" data-status="deployed">Destroy</a>`;
                         } else if (data.status === 'needsapproval') {
                             statusElement.classList.add('status-needsapproval');
                             actionsElement.innerHTML = `<a href="/approve_deployment/${deploymentId}" class="btn btn-primary">Approve</a> / 

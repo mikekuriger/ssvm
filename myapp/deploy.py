@@ -13,7 +13,7 @@ import sys
 from datetime import datetime
 
 # Adjust this to the path of your Django project
-sys.path.append("/home/mk7193/python/myproject")
+sys.path.append("/home/ssvm/ssvm")
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')
 django.setup()
 

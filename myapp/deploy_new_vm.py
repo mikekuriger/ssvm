@@ -15,7 +15,7 @@ from datetime import datetime
 # deploy.py is called by the scheduler
 
 # Ensure the script is aware of the Django settings module
-sys.path.append('/home/mk7193/python/myproject') 
+sys.path.append('/home/ssvm/ssvm') 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')
 django.setup()
 
@@ -703,7 +703,7 @@ else:
     print("Failed to set custom field 'deployment'.")
     print("Error:", set_result.stderr)
 
-fields_set_command = ["govc", "fields.set", "Created_by", "Michael Kuriger (mk7193)", f"{folder}/{VM}"]
+fields_set_command = ["govc", "fields.set", "Created_by", f"SSVM ({BUILTBY})", f"{folder}/{VM}"]
 #fields_set_command = ["govc", "fields.set", "Created_by", "Michael Kuriger", f"{folder}/{VM}"]
 set_result = subprocess.run(fields_set_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                       

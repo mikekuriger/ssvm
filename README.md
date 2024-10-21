@@ -109,6 +109,7 @@ pip install jupyterlab
 pip install jupyterlab-git
 pip install jupyterlab_github
 pip install PyYAML
+pip install SOLIDserverRest
 ```
 
 ## database stuff
@@ -156,3 +157,23 @@ python manage.py process_tasks
 jupyter lab --ip=0.0.0.0 --port=8888 --no-browser
 http://localhost:8888/lab/tree/Users/mk7193/python/myproject/myproject/settings.py
 ```
+## systemd for tasks
+vi /etc/systemd/system/django-background-tasks.service
+```
+[Unit]
+Description=Django Background Task Processor
+After=network.target
+
+[Service]
+User=ssvm
+Group=ssvm
+WorkingDirectory=/home/svm/ssvm
+ExecStart=/bin/bash -c 'source /home/ssvm/ssvm/ssvm_env/bin/activate && python /home/ssvm/ssvm/manage.py process_tasks'
+Restart=on-failure
+Environment="PATH=/home/ssvm/ssvm/ssvm_env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
+Environment="DJANGO_SETTINGS_MODULE=myproject.settings"
+StandardOutput=append:/home/ssvm/ssvm/django-background-tasks.log
+StandardError=append:/home/ssvm/ssvm/django-background-tasks.log
+
+[Install]
+WantedBy=multi-user.target

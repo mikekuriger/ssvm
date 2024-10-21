@@ -67,7 +67,7 @@ def cancel_deployment(request, deployment_id):
 def destroy_vm(node, deployment):
     # get vcenter credentials
     datacenter = deployment.datacenter
-    config = load_config()
+    config = load_config()  # Ensure this loads correctly
     vcenter = datacenter['vcenter']
     username = datacenter['credentials']['username']
     password = datacenter['credentials']['password']

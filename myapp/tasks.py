@@ -1,23 +1,25 @@
 # myapp/tasks.py
 from background_task import background
 from myapp.models import Deployment
+#from myapp.views import destroy_deployment
 from django.conf import settings
 from django.core.mail import send_mail
 from django.urls import reverse
 import subprocess
 import os, sys
 
-sys.path.append("/home/mk7193/python/myproject")
+sys.path.append("/home/ssvm/ssvm")
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')
 
 
 #@background(schedule=300)  # delay 5 minutes before running (first time)
+# this task looks for 'queued' deployments and triggers the build script
 @background
 def check_queued_deployments():
     queued_deployments = Deployment.objects.filter(status='queued')
     #source_path = settings.MEDIA_ROOT
     base_path = settings.BASE_DIR
-    python_executable = f"{base_path}/../myenv/bin/python"
+    python_executable = f"{base_path}/ssvm_env/bin/python"
     #python_executable = "python"
     
 
@@ -35,6 +37,25 @@ def check_queued_deployments():
             
         except subprocess.CalledProcessError as e:
             print(f"Error deploying {deployment_name}: {e.stderr.decode('utf-8')}")
+
+            
+# # Background task to check and destroy 'destroying' deployments
+# @background
+# def check_destroying_deployments():
+#     destroying_deployments = Deployment.objects.filter(status='destroying')
+
+#     # Loop through each deployment and run the destroy logic
+#     for deployment in destroying_deployments:
+#         deployment_name = deployment.deployment_name
+#         print(f"Attempting to destroy: {deployment_name}")
+
+#         # Call the destroy function from the views logic
+#         success, error = destroy_deployment_logic(deployment)
+
+#         if success:
+#             print(f"Deployment {deployment_name} destroyed successfully.")
+#         else:
+#             print(f"Error destroying {deployment_name}: {error}")
 
             
 @background
