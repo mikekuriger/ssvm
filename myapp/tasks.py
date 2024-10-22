@@ -40,23 +40,23 @@ def check_queued_deployments():
             print(f"Error deploying {deployment_name}: {e.stderr.decode('utf-8')}")
 
             
-# # Background task to check and destroy 'destroying' deployments
-# @background
-# def check_destroying_deployments():
-#     destroying_deployments = Deployment.objects.filter(status='destroying')
+# Background task to check and destroy deployments stuck in "queued for destruction"
+@background
+def check_destroying_deployments():
+    destroying_deployments = Deployment.objects.filter(status='queued_for_destruction')
 
-#     # Loop through each deployment and run the destroy logic
-#     for deployment in destroying_deployments:
-#         deployment_name = deployment.deployment_name
-#         print(f"Attempting to destroy: {deployment_name}")
+    # Loop through each deployment and run the destroy logic
+    for deployment in destroying_deployments:
+        deployment_name = deployment.deployment_name
+        print(f"Attempting to destroy: {deployment_name}")
 
-#         # Call the destroy function from the views logic
-#         success, error = destroy_deployment_logic(deployment)
+        # Call the destroy function from the views logic
+        success, error = destroy_deployment_logic(deployment)
 
-#         if success:
-#             print(f"Deployment {deployment_name} destroyed successfully.")
-#         else:
-#             print(f"Error destroying {deployment_name}: {error}")
+        if success:
+            print(f"Deployment {deployment_name} destroyed successfully.")
+        else:
+            print(f"Error destroying {deployment_name}: {error}")
 
             
 @background

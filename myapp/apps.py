@@ -9,7 +9,7 @@ class MyappConfig(AppConfig):
 
     def ready(self):
         # Import tasks to avoid circular imports
-        from myapp.tasks import check_queued_deployments, send_failure_alert, send_approval_alert
+        from myapp.tasks import check_queued_deployments, send_failure_alert, send_approval_alert, check_destroying_deployments
         from background_task.models import Task
         
         # Dynamically adjust repeat choices for background_task's Task model
@@ -42,8 +42,8 @@ class MyappConfig(AppConfig):
             if not Task.objects.filter(task_name='myapp.tasks.send_failure_alert').exists():
                 send_failure_alert(repeat=60*60*24, run_at=next_run)
             
-            # if not Task.objects.filter(task_name='myapp.tasks.check_destroying_deployments').exists():
-            #     check_destroying_deployments()
+            if not Task.objects.filter(task_name='myapp.tasks.check_destroying_deployments').exists():
+                check_destroying_deployments()
         
             
             

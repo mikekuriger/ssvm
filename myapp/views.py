@@ -2,7 +2,7 @@ from datetime import datetime
 from django.conf import settings
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -178,48 +178,16 @@ def destroy_deployment(request, deployment_id):
         if deployment.status in ['needsapproval', 'failed']:
             deployment.delete()
             logger.info(f"Deployment {deployment.deployment_name} deleted (needsapproval/failed).")
-            messages.success(request, f"Deployment {deployment.deployment_name} has been successfully destroyed.")
+            messages.success(request, f"Deployment {deployment.deployment_name} has been successfully queued for destruction.")
             return redirect('deployment_list')
 
         if deployment.status == 'deployed':
             if request.method == 'POST':
-
-                # Update deployment status
-                deployment.status = 'destroying'
+                deployment.status = 'queued-for-destroy'
                 deployment.save()
-                logger.info(f"Deployment {deployment.deployment_name} is now in 'destroying' status.")
-
-                nodes_in_deployment = Node.objects.filter(deployment=deployment)
-                vm_destroyed, dns_removed = True, True  # Initialize variables for logging
-
-                for node in nodes_in_deployment:
-                    
-                    # Step 1: Destroy VMs in the deployment
-                    vm_destroyed = destroy_vm(node, deployment)
-                    if vm_destroyed:
-                        logger.info(f"Node {node.name} destroyed from vCenter.")
-                    else:
-                        logger.error(f"Failed to destroy node {node.name} from vCenter.")
-    
-                    # Step 2: Remove DNS entries
-                    dns_removed = remove_dns_entry(node, deployment)
-                    if dns_removed:
-                        logger.info(f"Node {node.name} removed from DNS.")
-                    else:
-                        logger.error(f"Failed to remove node {node.name} from DNS.")
-                        
-                # Update deployment status
-                if vm_destroyed and dns_removed:
-                    deployment.status = 'destroyed'
-                    deployment.save()
-                    logger.info(f"Deployment {deployment.deployment_name} marked as 'destroyed'.")
-                    messages.success(request, f"Deployment {deployment.deployment_name} has been successfully destroyed.")
-                else:
-                    deployment.status = 'error'
-                    deployment.save()
-                    logger.error(f"Failed to completely destroy deployment {deployment.deployment_name}.")
-                    messages.error(request, f"Failed to completely destroy deployment {deployment.deployment_name}.")
-
+                logger.info(f"Deployment {deployment.deployment_name} is now in 'queued-for-destroy' status.")
+                # Queue the destroy operation as a background task
+                #destroy_deployment_task(deployment_id)
                 return redirect('deployment_list')
 
             else:
@@ -231,10 +199,63 @@ def destroy_deployment(request, deployment_id):
         return redirect('deployment_list')
 
     except Exception as e:
-        logger.error(f"Error during deployment destruction: {str(e)}")
-        messages.error(request, f"An error occurred while destroying deployment {deployment.deployment_name}: {str(e)}")
+        logger.error(f"Error queueing deployment destruction: {str(e)}")
+        messages.error(request, f"An error occurred while queueing deployment destruction {deployment.deployment_name}: {str(e)}")
         return redirect('deployment_list')
+                
+def destroy_deployment_logic(deployment_id):
+    deployment = get_object_or_404(Deployment, id=deployment_id)
+    
+    nodes_in_deployment = Node.objects.filter(deployment=deployment)
+    vm_destroyed, dns_removed = True, True  # Initialize variables for logging
 
+    for node in nodes_in_deployment:
+
+        # Step 1: Destroy VMs in the deployment
+        vm_destroyed = destroy_vm(node, deployment)
+        if vm_destroyed:
+            logger.info(f"Node {node.name} destroyed from vCenter.")
+        else:
+            logger.error(f"Failed to destroy node {node.name} from vCenter.")
+
+        # Step 2: Remove DNS entries
+        dns_removed = remove_dns_entry(node, deployment)
+        if dns_removed:
+            logger.info(f"Node {node.name} removed from DNS.")
+        else:
+            logger.error(f"Failed to remove node {node.name} from DNS.")
+
+    # Update deployment status
+    if vm_destroyed and dns_removed:
+        deployment.status = 'destroyed'
+        deployment.save()
+        logger.info(f"Deployment {deployment.deployment_name} marked as 'destroyed'.")
+        messages.success(request, f"Deployment {deployment.deployment_name} has been successfully destroyed.")
+        return True
+    else:
+        deployment.status = 'error'
+        deployment.save()
+        logger.error(f"Failed to completely destroy deployment {deployment.deployment_name}.")
+        messages.error(request, f"Failed to completely destroy deployment {deployment.deployment_name}.")
+        return False
+
+
+def view_log(request, node_id):
+    node = get_object_or_404(Node, id=node_id)
+    vm_short_name = node.name.split('.')[0]
+    
+    # Construct the path to the log file based on the node's name or other identifier
+    log_file_path = _os.path.join(settings.MEDIA_ROOT, f"{vm_short_name}.log")
+    
+    print(f"Looking for log file at: {log_file_path}")
+    
+    try:
+        with open(log_file_path, 'r') as log_file:
+            log_content = log_file.read()
+    except FileNotFoundError:
+        return HttpResponse("Log file not found", status=404)
+
+    return render(request, 'view_log.html', {'log_content': log_content, 'node': node})
 
 
 

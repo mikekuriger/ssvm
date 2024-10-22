@@ -11,6 +11,10 @@ import django
 import re
 from datetime import datetime
 
+import warnings
+from cryptography.utils import CryptographyDeprecationWarning
+warnings.filterwarnings("ignore", category=CryptographyDeprecationWarning)
+
 # This script is called from deploy.py, to do the deployment
 # deploy.py is called by the scheduler
 
@@ -621,7 +625,7 @@ def add_to_dns():
     mac_addr = mac_address
     node = add_ip_address(free_address['address'][2],hostname,space['id'],mac_addr)
     #print(node)
-    print(free_address['address'][2])
+    #print(free_address['address'][2])
 
     del(SDS_CON)
 

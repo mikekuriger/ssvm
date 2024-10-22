@@ -70,7 +70,7 @@
                                 <div class="content-right">
                                     <table>
                                         <colgroup>
-                                            <col style="width: 90px;">  <!-- view/edit -->
+                                            <col style="width: 150px;">  <!-- view/edit -->
                                             <col style="width: 260px;"> <!-- name -->
                                             <col style="width: 150px;"> <!-- owner -->
                                             <col style="width: 150px;"> <!-- zone -->
@@ -109,7 +109,8 @@
                                                 <td><a href="{% url 'node_detail' node.id %}" style="display: inline;">View</a> /
 
                                                 {% if user.is_staff %} 
-                                                    <a href="{% url 'admin:myapp_node_change' node.id %}"style="display: inline;">Edit</a>
+                                                    <a href="{% url 'admin:myapp_node_change' node.id %}"style="display: inline;">Edit</a> /
+                                                    <a href="{% url 'view_log' node.id %}"style="display: inline;">Build Log</a>
                                                 {% else %}
                                                     <span style="color: gray; cursor: not-allowed;">Edit</span>
                                                 {% endif %}</td>

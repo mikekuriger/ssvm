@@ -1,0 +1,20 @@
+<!-- view_log.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Log for {{ node.name }}</title>
+</head>
+<body>
+    <h1>Log for {{ node.name }}</h1>
+<!--     <div style="font-family: 'Courier New', Courier, monospace; font-size: 14px; white-space: pre-wrap;">
+{{ log_content }}
+    </div> -->
+    <pre>{{ log_content }}</pre>
+    <a href="{% url 'node_detail' node.id %}">View Node</a> / 
+    <a href="{% url 'node_list' %}">Back to Nodes</a>
+</body>
+</html>
+
+
+

@@ -23,6 +23,7 @@ urlpatterns = [
     path('login/', LoginView.as_view(template_name='login.html'), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('deployment-status/<int:deployment_id>/', get_deployment_status, name='get_deployment_status'),
+    path('nodes/<int:node_id>/view-log/', views.view_log, name='view_log'),
 ]
 
 if settings.DEBUG:
