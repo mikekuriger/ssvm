@@ -70,8 +70,9 @@ logger = logging.getLogger('deployment')
 
 # function to remove node from vcenter
 def destroy_vm(node, deployment):
-    datacenter = deployment.datacenter
+    datacenter_name = deployment.datacenter
     config = load_config()
+    datacenter = config['datacenters'].get(datacenter_name)
     vcenter = datacenter['vcenter']
     username = datacenter['credentials']['username']
     password = datacenter['credentials']['password']
@@ -80,9 +81,9 @@ def destroy_vm(node, deployment):
     logger.info(f"Using vCenter {vcenter} to destroy VM {node.name}")
 
     # Set environment variables for govc
-    os.environ["GOVC_URL"] = f"https://{vcenter}"
-    os.environ["GOVC_USERNAME"] = username
-    os.environ["GOVC_PASSWORD"] = password
+    _os.environ["GOVC_URL"] = f"https://{vcenter}"
+    _os.environ["GOVC_USERNAME"] = username
+    _os.environ["GOVC_PASSWORD"] = password
     
     vm_short_name = node.name.split('.')[0]
     domain = deployment.domain or 'corp.pvt'
@@ -92,7 +93,7 @@ def destroy_vm(node, deployment):
     for vm_name in [vm_short_name, vm_fqdn]:
         logger.info(f"Attempting to destroy VM: {vm_name}")
         destroy_vm_command = ["govc", "vm.destroy", vm_name]
-        result = subprocess.run(destroy_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(destroy_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         if result.returncode == 0:
             logger.info(f"VM {vm_name} destroyed successfully.")
             node.status = Status.objects.get(name='destroyed')
@@ -104,7 +105,13 @@ def destroy_vm(node, deployment):
 
 # function to remove node from DNS
 def remove_dns_entry(node, deployment):
-    datacenter = deployment.datacenter
+    datacenter_name = deployment.datacenter
+    config = load_config()
+    datacenter = config['datacenters'].get(datacenter_name)
+    vcenter = datacenter['vcenter']
+    username = datacenter['credentials']['username']
+    password = datacenter['credentials']['password']
+    
     sds_conn = SOLIDserverRest(datacenter['eipmaster'])
     sds_conn.set_ssl_verify(False)
     sds_conn.use_basicauth_sds(user=datacenter['eip_credentials']['username'], password=datacenter['eip_credentials']['password'])
@@ -136,21 +143,24 @@ def destroy_deployment(request, deployment_id):
 
     try:
         if deployment.status == 'queued':
-            if request and request.method == 'POST':
+            if request.method == 'POST':
                 deployment.delete()
                 logger.info(f"Deployment {deployment.deployment_name} deleted (queued).")
-                return True, None
+                messages.success(request, f"Deployment {deployment.deployment_name} has been successfully destroyed.")
+                return redirect('deployment_list')
             else:
                 logger.warning(f"Confirmation required to destroy queued deployment: {deployment.deployment_name}")
-                return False, "Confirmation required to destroy queued deployments."
+                messages.warning(request, "Confirmation required to destroy queued deployments.")
+                return render(request, 'confirm_destroy.html', {'deployment': deployment})
 
         if deployment.status in ['needsapproval', 'failed']:
             deployment.delete()
             logger.info(f"Deployment {deployment.deployment_name} deleted (needsapproval/failed).")
-            return True, None
+            messages.success(request, f"Deployment {deployment.deployment_name} has been successfully destroyed.")
+            return redirect('deployment_list')
 
         if deployment.status == 'deployed':
-            if request and request.method == 'POST':
+            if request.method == 'POST':
 
                 # Update deployment status
                 deployment.status = 'destroying'
@@ -158,6 +168,8 @@ def destroy_deployment(request, deployment_id):
                 logger.info(f"Deployment {deployment.deployment_name} is now in 'destroying' status.")
 
                 nodes_in_deployment = Node.objects.filter(deployment=deployment)
+                vm_destroyed, dns_removed = True, True  # Initialize variables for logging
+
                 for node in nodes_in_deployment:
                     
                     # Step 1: Destroy VMs in the deployment
@@ -179,21 +191,27 @@ def destroy_deployment(request, deployment_id):
                     deployment.status = 'destroyed'
                     deployment.save()
                     logger.info(f"Deployment {deployment.deployment_name} marked as 'destroyed'.")
-                    return True, None
+                    messages.success(request, f"Deployment {deployment.deployment_name} has been successfully destroyed.")
                 else:
                     deployment.status = 'error'
                     deployment.save()
                     logger.error(f"Failed to completely destroy deployment {deployment.deployment_name}.")
-                    return True, None
+                    messages.error(request, f"Failed to completely destroy deployment {deployment.deployment_name}.")
+
+                return redirect('deployment_list')
 
             else:
                 logger.warning(f"Confirmation required to destroy running deployment: {deployment.deployment_name}")
-                return False, "Confirmation required to destroy running deployments."
+                messages.warning(request, "Confirmation required to destroy running deployments.")
+                return render(request, 'confirm_destroy.html', {'deployment': deployment})
         
-        return False, "Invalid deployment status for destruction."
+        messages.error(request, "Invalid deployment status for destruction.")
+        return redirect('deployment_list')
+
     except Exception as e:
         logger.error(f"Error during deployment destruction: {str(e)}")
-        return False, str(e)
+        messages.error(request, f"An error occurred while destroying deployment {deployment.deployment_name}: {str(e)}")
+        return redirect('deployment_list')
 
 
 

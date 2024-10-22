@@ -122,7 +122,11 @@
                                                     {% endif %}
                                                 {% elif deployment.status == 'deployed' %}
                                                     {% if user.is_staff %}
-                                                        <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy</a>
+                                                        {% if deployment.protected %}
+                                                            <span style="color: gray; cursor: not-allowed;">Protected</span>
+                                                        {% else %}
+                                                            <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy</a>
+                                                        {% endif %}
                                                     {% else %}
                                                         <span style="color: gray; cursor: not-allowed;">Destroy</span>
                                                     {% endif %}
@@ -134,6 +138,7 @@
                                                     {% endif %}
                                                 {% endif %}
                                             </td>
+                                          
                                         </tr>
                                         {% endfor %}
 
@@ -206,8 +211,13 @@
                             statusElement.classList.add('status-building');
                             actionsElement.innerHTML = `<a href="/cancel_deployment/${deploymentId}" class="btn btn-primary">Cancel</a>`;
                         } else if (data.status === 'deployed') {
-                            statusElement.classList.add('status-deployed');
-                            actionsElement.innerHTML = `<a href="#" class="destroy-button" data-id="${deploymentId}" data-status="deployed">Destroy</a>`;
+                            } if (data.protected === True) {
+                                statusElement.classList.add('status-deployed');
+                                actionsElement.innerHTML = `<span style="color: gray; cursor: not-allowed;">Protected</span>`;
+                            } else {
+                                statusElement.classList.add('status-deployed');
+                                actionsElement.innerHTML = `<a href="#" class="destroy-button" data-id="${deploymentId}" data-status="deployed">Destroy</a>`;
+                            }
                         } else if (data.status === 'needsapproval') {
                             statusElement.classList.add('status-needsapproval');
                             actionsElement.innerHTML = `<a href="/approve_deployment/${deploymentId}" class="btn btn-primary">Approve</a> / 
