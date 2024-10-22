@@ -42,7 +42,8 @@ class Deployment(models.Model):
     install_patches = models.BooleanField()
     status = models.CharField(max_length=20, default='needsapproval')  # for tracking status
     created_at = models.DateTimeField(auto_now_add=True)
-    approval_alert_sent = models.BooleanField(default=False) 
+    approval_alert_sent = models.BooleanField(default=False)
+    protected = models.BooleanField(default=False)
     
     def __str__(self):
         return f"{self.deployment_name}"

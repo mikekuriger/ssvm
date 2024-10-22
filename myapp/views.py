@@ -64,6 +64,7 @@ def cancel_deployment(request, deployment_id):
 # only trigger since this seems illogical
 
 import logging
+from SOLIDserverRest import SOLIDserverRest
 
 # Get the logger for the deployment tasks
 logger = logging.getLogger('deployment')
@@ -89,18 +90,33 @@ def destroy_vm(node, deployment):
     domain = deployment.domain or 'corp.pvt'
     vm_fqdn = f"{vm_short_name}.{domain}"
 
-    # Try destroying by short name, then FQDN if needed
-    for vm_name in [vm_short_name, vm_fqdn]:
-        logger.info(f"Attempting to destroy VM: {vm_name}")
-        destroy_vm_command = ["govc", "vm.destroy", vm_name]
-        result = subprocess.run(destroy_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    # Check if VM is found in Vcenter
+    govc_command = ["govc", "vm.info", f"{vm_short_name}"]
+    result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    if result.returncode == 0:
+        logger.info(f"Found {vm_short_name} in Vcenter")
+        vm_name = vm_short_name
+    else:
+        govc_command = ["govc", "vm.info", f"{vm_fqdn}"]
+        result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         if result.returncode == 0:
-            logger.info(f"VM {vm_name} destroyed successfully.")
-            node.status = Status.objects.get(name='destroyed')
-            node.save(update_fields=['status'])
-            return True
+            logger.info(f"Found {vm_fqdn} in Vcenter")  
+            vm_name = vm_fqdn
         else:
-            logger.error(f"Error destroying VM {vm_name}: {result.stderr}")
+            logger.info(f"Failed to find {vm_short_name} or {vm_fqdn} in Vcenter, skipping VM delete operation")
+            return True
+    
+    # Try destroying by short name, then FQDN if needed
+    logger.info(f"Attempting to destroy VM: {vm_name}")
+    destroy_vm_command = ["govc", "vm.destroy", vm_name]
+    result = subprocess.run(destroy_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    if result.returncode == 0:
+        logger.info(f"VM {vm_name} destroyed successfully.")
+        node.status = Status.objects.get(name='destroyed')
+        node.save(update_fields=['status'])
+        return True
+    else:
+        logger.error(f"Error destroying VM {vm_name}: {result.stderr}")
     return False
 
 # function to remove node from DNS
@@ -140,7 +156,13 @@ def remove_dns_entry(node, deployment):
 # Main Destroy Deployment logic
 def destroy_deployment(request, deployment_id):
     deployment = get_object_or_404(Deployment, id=deployment_id)
-
+    
+    # Check if the deployment is protected
+    if deployment.protected:
+        logger.warning(f"Deployment {deployment.deployment_name} is protected and cannot be deleted.")
+        messages.error(request, f"Deployment {deployment.deployment_name} is protected and cannot be deleted.")
+        return redirect('deployment_list')
+    
     try:
         if deployment.status == 'queued':
             if request.method == 'POST':
@@ -405,7 +427,8 @@ def create_vm(request):
             # Add the requested nodes to the database and set status to prebuild
             #full_hostnames_list = full_hostnames.split(",")
             full_hostnames_list = [hostname.strip() for hostname in full_hostnames.split(",")]
-
+            ram=int(ram)
+            rammb = int(ram*1024)
             nodes = [
                 Node(
                     name=f"{hostname}.{domain}",
@@ -416,7 +439,7 @@ def create_vm(request):
                     status=status_instance,
                     processor_count=cpu,
                     disk_size=disk_size,
-                    physical_memory=ram,
+                    physical_memory=rammb,
                     hardware_profile=hwprofile_instance,
                     deployment=deployment
                     # add these to the model to deploy without spool files
@@ -450,8 +473,10 @@ def create_vm(request):
             # Flash message
             from django.contrib import messages
             nodes_url = reverse('node_list')
-            messages.success(request, mark_safe(f'VM creation request submitted:<br>{vm_details_str} <br><a href="{nodes_url}">Back to Nodes</a>'))
+            deployments_url = reverse('deployment_list')
+            messages.success(request, mark_safe(f'VM creation request submitted:<br>{vm_details_str} <br><a href="{nodes_url}">View Nodes</a><br><a href="{deployments_url}">View Deployments</a>'))
             return redirect('create_vm')
+            #return redirect('deployment_list')
         
 
         if not form.is_valid():

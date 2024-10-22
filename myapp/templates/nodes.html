@@ -14,7 +14,7 @@
 
     /* Sidebar styles */
     .side-panel {
-        width: 100px;  /* Set the width of the sidebar */
+        width: 50px;  /* Set the width of the sidebar */
     }
 
     /* Main content styles (shifted to the right) */
@@ -55,8 +55,8 @@
         <div class="main shifted" id="main">
             <div class="content">
                 <!-- Content -->
-                <div id="content" >
-                    <h1>Nodes</h1>
+                <div id="content">
+                    <h1>Nodes</h1><a href="/nodes">
                 </div>
                 <div class="table-container">
                     <div id="content-main">
@@ -125,10 +125,12 @@
                                                     {% endif %}
                                                 </td>
                                                 <td class="
-                                                        {% if node.status.name == 'inservice' %}sstatus-inservice
-                                                        {% elif node.status.name == 'failed' %}sstatus-failed
-                                                        {% elif node.status.name == 'building' %}sstatus-building
-                                                        {% elif node.status.name == 'retired' %}sstatus-retired
+                                                        {% if node.status.name == 'inservice' %}status-inservice
+                                                        {% elif node.status.name == 'setup' %}status-setup
+                                                        {% elif node.status.name == 'failed' %}status-failed
+                                                        {% elif node.status.name == 'building' %}status-building
+                                                        {% elif node.status.name == 'retired' %}status-retired
+                                                        {% elif node.status.name == 'destroyed' %}status-destroyed
                                                         {% endif %}">
                                                 {{ node.status.name }}</td>   
                                                 <td>{{ node.hardware_profile }}</td>

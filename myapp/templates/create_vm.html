@@ -71,16 +71,7 @@
         <div class="content">
             <!-- Page Title -->
             <div id="content">
-                <h1>
-                        {% if user.is_authenticated %}
-                    <a href="/create_vm"><strong>Create VM</strong></a> /
-                        {% else %}
-                        <a href="{% url 'login' %}?next=/create_vm">Create VM</a> /
-                        {% endif %}
-                        <a href="/nodes">Nodes</a> /
-                        {% if user.is_authenticated %} 
-                        <a href="/deployments">Deployments</a>      
-                        {% endif %}</h1>
+                <h1>Create VM</h1><a href="/create_vm">
             </div>
 
             <!-- Form -->

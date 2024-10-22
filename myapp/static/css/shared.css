@@ -1069,8 +1069,12 @@ table#change-history tbody th {
     padding: 10px 20px;
 }
 
-status-queued {
+.status-queued {
     color: orange;
+}
+
+.status-building {
+    color: blue;
 }
 
 .status-failed {
@@ -1078,25 +1082,21 @@ status-queued {
     font-weight: bold;
 }
 
-.status-building {
-    color: blue;
-}
-
-.status-deployed {
+.status-inservice {
     color: green;
-    font-weight: bold;
+    font-weight: normal;
 }
 
-.sstatus-inservice {
-    color: green;
+.status-setup {
+    color: lightgreen;
 }
 
-.sstatus-failed {
-    color: red;
-    font-weight: bold;
+.status-destroyed {
+    color: grey;
+    font-weight: lighter;
 }
 
-.sstatus-retired {
-    color: green;
-    font-weight: bold;
+.status-retired {
+    color: grey;
+    font-weight: lighter;
 }

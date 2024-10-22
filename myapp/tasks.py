@@ -8,6 +8,7 @@ from django.urls import reverse
 import subprocess
 import os, sys
 
+
 sys.path.append("/home/ssvm/ssvm")
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')
 
