@@ -170,20 +170,32 @@ LOGGING = {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'deployment.log'),  
+            'filename': os.path.join(BASE_DIR, 'deployment.log'),
             'formatter': 'verbose',
+        },
+        'quiet_file': {  # New handler for less frequent logging
+            'level': 'ERROR',  
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'quiet_tasks.log'),
+            'formatter': 'simple',
         },
     },
     'loggers': {
         'django': {
             'handlers': ['file'],
-            'level': 'DEBUG',
-            'propagate': True,
+            'level': 'ERROR',
+            'propagate': False,
         },
         'deployment': {
             'handlers': ['file'],
             'level': 'DEBUG',
             'propagate': False,
         },
+        'frequent_tasks': {  # Logger for frequent tasks with reduced logging
+            'handlers': ['quiet_file'],
+            'level': 'ERROR',  # Only log errors, not info/debug
+            'propagate': False,
+        },
     },
 }
+
