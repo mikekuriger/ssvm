@@ -1,13 +1,15 @@
 # myapp/tasks.py
 from background_task import background
 from myapp.models import Deployment
-#from myapp.views import destroy_deployment
+from myapp.views import destroy_deployment_logic
 from django.conf import settings
 from django.core.mail import send_mail
 from django.urls import reverse
 import subprocess
 import os, sys
+import logging
 
+logger = logging.getLogger('frequent_tasks')
 
 sys.path.append("/home/ssvm/ssvm")
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')
@@ -23,8 +25,6 @@ def check_queued_deployments():
     python_executable = f"{base_path}/ssvm_env/bin/python"
     #python_executable = "python"
     
-
-
     # Loop through each deployment and run the deploy script
     for deployment in queued_deployments:
         deployment_name = deployment.deployment_name
@@ -42,21 +42,28 @@ def check_queued_deployments():
             
 # Background task to check and destroy deployments stuck in "queued for destruction"
 @background
-def check_destroying_deployments():
-    destroying_deployments = Deployment.objects.filter(status='queued_for_destruction')
+def check_destroy_deployments():
+    destroying_deployments = Deployment.objects.filter(status='queued_for_destroy')
 
+    print(f"Found {destroying_deployments.count()} deployments queued for destruction.")
+    logger.info(f"Found {destroying_deployments.count()} deployments queued for destruction.")
+        
     # Loop through each deployment and run the destroy logic
     for deployment in destroying_deployments:
         deployment_name = deployment.deployment_name
-        print(f"Attempting to destroy: {deployment_name}")
+        deployment_id = eployment.deployment_id
+        print(f"Attempting to destroy deployment: {deployment_name} with ID: {deployment_id}")
+        logger.info(f"Attempting to destroy Deployment: {deployment_name} with ID: {deployment_id}")
 
         # Call the destroy function from the views logic
-        success, error = destroy_deployment_logic(deployment)
+        success, error = destroy_deployment_logic(deployment_id)
 
         if success:
             print(f"Deployment {deployment_name} destroyed successfully.")
+            logger.info(f"Deployment {deployment_name} destroyed successfully.")
         else:
             print(f"Error destroying {deployment_name}: {error}")
+            logger.error(f"Error destroying {deployment_name}: {error}")
 
             
 @background

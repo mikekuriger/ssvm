@@ -35,7 +35,7 @@
             <div class="content">
                 <!-- Content -->
                 <div id="content">
-                    <h1>Deployments</h1><a href="/deployment_list">
+                    <h1>Deployments</h1><a href="/deployments">
                 </div>
                 <div class="table-container">
                     <div id="content-main">
@@ -73,69 +73,101 @@
                                         </thead>
                                         <tbody>
                                         {% for deployment in deployments %}
-                                        <tr>
-                                            <td><a href="{% url 'deployment_detail' deployment.id %}">{{ deployment.deployment_name }}</a></td>
-                                            <td>{{ deployment.builtby }}</td>
-                                            <td>{{ deployment.owner_value }}</td>
-                                            <td>{{ deployment.deployment_count }}</td>
-                                            <td>{{ deployment.server_type_value }}</td>
-                                            <td>{{ deployment.created_at }}</td>
-                                            <td id="deployment-status-{{ deployment.id }}" class="
-                                                {% if deployment.status == 'queued' %}status-queued
-                                                {% elif deployment.status == 'failed' %}status-failed
-                                                {% elif deployment.status == 'building' %}status-building
-                                                {% elif deployment.status == 'deployed' %}status-inservice
-                                                {% elif deployment.status == 'needsapproval' %}status-needsapproval
-                                                {% elif deployment.status == 'destroyed' %}status-destroyed
-                                                {% endif %}
-                                            ">
-                                                {{ deployment.status }}
-                                            </td>
-
-                                            <!-- Action buttons -->
-                                            <td id="deployment-actions-{{ deployment.id }}">
-                                                {% if deployment.status == 'needsapproval' %}
-                                                    {% if user.is_staff %}
-                                                        <a href="{% url 'approve_deployment' deployment.id %}" class="btn btn-primary">Approve</a> / 
-                                                        <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy</a>
-                                                    {% else %}
-                                                        <span style="color: gray; cursor: not-allowed;">Approve</span> / 
-                                                        <span style="color: gray; cursor: not-allowed;">Destroy</span>
+                                            {% if deployment.status != 'destroyed' %}
+                                            <tr>
+                                                <td><a href="{% url 'deployment_detail' deployment.id %}">{{ deployment.deployment_name }}</a></td>
+                                                <td>{{ deployment.builtby }}</td>
+                                                <td>{{ deployment.owner_value }}</td>
+                                                <td>{{ deployment.deployment_count }}</td>
+                                                <td>{{ deployment.server_type_value }}</td>
+                                                <td>{{ deployment.created_at }}</td>
+                                                <td id="deployment-status-{{ deployment.id }}" class="
+                                                    {% if deployment.status == 'queued' %}status-queued
+                                                    {% elif deployment.status == 'failed' %}status-failed
+                                                    {% elif deployment.status == 'building' %}status-building
+                                                    {% elif deployment.status == 'deployed' %}status-inservice
+                                                    {% elif deployment.status == 'needsapproval' %}status-needsapproval
+                                                    {% elif deployment.status == 'destroyed' %}status-destroyed
                                                     {% endif %}
-                                                {% elif deployment.status == 'failed' %}
+                                                ">
+                                                    {{ deployment.status }}
+                                                </td>
+
+                                                <!-- Action buttons -->
+                                                <td id="deployment-actions-{{ deployment.id }}">
+                                                    {% if deployment.status == 'needsapproval' %}
+                                                        {% if user.is_staff %}
+                                                            <a href="{% url 'approve_deployment' deployment.id %}" class="btn btn-primary">Approve</a> / 
+                                                            <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy</a>
+                                                        {% else %}
+                                                            <span style="color: gray; cursor: not-allowed;">Approve</span> / 
+                                                            <span style="color: gray; cursor: not-allowed;">Destroy</span>
+                                                        {% endif %}
+                                                    {% elif deployment.status == 'failed' %}
+                                                        {% if user.is_staff %}
+                                                            <a href="{% url 'approve_deployment' deployment.id %}" class="btn btn-primary">Re-Deploy</a> / 
+                                                            <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy</a>
+                                                        {% else %}
+                                                            <span style="color: gray; cursor: not-allowed;">Re-Deploy</span> / 
+                                                            <span style="color: gray; cursor: not-allowed;">Destroy</span>
+                                                        {% endif %}
+                                                    {% elif deployment.status == 'queued' %}
+                                                        {% if user.is_staff %}
+                                                            <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy</a> 
+                                                        {% else %}
+                                                            <span style="color: gray; cursor: not-allowed;">Destroy</span>
+                                                        {% endif %}
+                                                    {% elif deployment.status == 'deployed' %}
+                                                        {% if user.is_staff %}
+                                                            {% if deployment.protected %}
+                                                                <span style="color: gray; cursor: not-allowed;">Protected</span>
+                                                            {% else %}
+                                                                <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy</a>
+                                                            {% endif %}
+                                                        {% else %}
+                                                            <span style="color: gray; cursor: not-allowed;">Destroy</span>
+                                                        {% endif %}
+                                                    {% elif deployment.status == 'building' %}
+                                                        {% if user.is_staff %}
+                                                            <a href="{% url 'cancel_deployment' deployment.id %}" class="btn btn-primary">Cancel</a>
+                                                        {% else %}
+                                                            <span style="color: gray; cursor: not-allowed;">Cancel</span>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </td>
+
+                                            </tr>
+                                            {% endif %}
+                                            
+                                            {% if deployment.status == 'destroyed' %}
+                                            <tr class=status-destroyed>
+                                                <td><a href="{% url 'deployment_detail' deployment.id %}">{{ deployment.deployment_name }}</a></td>
+                                                <td>{{ deployment.builtby }}</td>
+                                                <td>{{ deployment.owner_value }}</td>
+                                                <td>{{ deployment.deployment_count }}</td>
+                                                <td>{{ deployment.server_type_value }}</td>
+                                                <td>{{ deployment.created_at }}</td>
+                                                <td id="deployment-status-{{ deployment.id }}" class=status-destroyed>
+                                                    {{ deployment.status }}
+                                                </td>
+
+                                                <!-- Action buttons -->
+                                                <td id="deployment-actions-{{ deployment.id }}">
+                                                   
                                                     {% if user.is_staff %}
                                                         <a href="{% url 'approve_deployment' deployment.id %}" class="btn btn-primary">Re-Deploy</a> / 
-                                                        <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy</a>
+                                                        <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy Forever</a>
                                                     {% else %}
                                                         <span style="color: gray; cursor: not-allowed;">Re-Deploy</span> / 
-                                                        <span style="color: gray; cursor: not-allowed;">Destroy</span>
+                                                        <span style="color: gray; cursor: not-allowed;">Destroy Forever</span>
                                                     {% endif %}
-                                                {% elif deployment.status == 'queued' %}
-                                                    {% if user.is_staff %}
-                                                        <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy</a> 
-                                                    {% else %}
-                                                        <span style="color: gray; cursor: not-allowed;">Destroy</span>
-                                                    {% endif %}
-                                                {% elif deployment.status == 'deployed' %}
-                                                    {% if user.is_staff %}
-                                                        {% if deployment.protected %}
-                                                            <span style="color: gray; cursor: not-allowed;">Protected</span>
-                                                        {% else %}
-                                                            <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy</a>
-                                                        {% endif %}
-                                                    {% else %}
-                                                        <span style="color: gray; cursor: not-allowed;">Destroy</span>
-                                                    {% endif %}
-                                                {% elif deployment.status == 'building' %}
-                                                    {% if user.is_staff %}
-                                                        <a href="{% url 'cancel_deployment' deployment.id %}" class="btn btn-primary">Cancel</a>
-                                                    {% else %}
-                                                        <span style="color: gray; cursor: not-allowed;">Cancel</span>
-                                                    {% endif %}
-                                                {% endif %}
-                                            </td>
-                                          
-                                        </tr>
+                                                   
+                                                
+                                                </td>
+
+                                            </tr>
+                                            {% endif %}
+                                            
                                         {% endfor %}
 
                                     </table>
@@ -167,7 +199,7 @@
                 var deploymentId = $(this).data('id');
                 var deploymentStatus = $(this).data('status');
                 
-                if (deploymentStatus === 'needsapproval' || deploymentStatus === 'queued' || deploymentStatus === 'failed' || deploymentStatus === 'deployed') {
+                if (deploymentStatus === 'needsapproval' || deploymentStatus === 'queued' || deploymentStatus === 'failed' || deploymentStatus === 'deployed' || deploymentStatus === 'destroyed') {
                     $('#confirmModal').show();
                     
                     $('#confirmForm').attr('action', `/destroy_deployment/${deploymentId}/`);

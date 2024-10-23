@@ -176,7 +176,7 @@ def destroy_deployment(request, deployment_id):
                 messages.warning(request, "Confirmation required to destroy queued deployments.")
                 return render(request, 'confirm_destroy.html', {'deployment': deployment})
 
-        if deployment.status in ['needsapproval', 'failed']:
+        if deployment.status in ['needsapproval', 'failed', 'destroyed']:
             deployment.delete()
             logger.info(f"Deployment {deployment.deployment_name} deleted (needsapproval/failed).")
             messages.success(request, f"Deployment {deployment.deployment_name} has been successfully queued for destruction.")
@@ -184,9 +184,9 @@ def destroy_deployment(request, deployment_id):
 
         if deployment.status == 'deployed':
             if request.method == 'POST':
-                deployment.status = 'queued-for-destroy'
+                deployment.status = 'queued_for_destroy'
                 deployment.save()
-                logger.info(f"Deployment {deployment.deployment_name} is now in 'queued-for-destroy' status.")
+                logger.info(f"Deployment {deployment.deployment_name} is now in 'queued_for_destroy' status.")
                 # Queue the destroy operation as a background task
                 #destroy_deployment_task(deployment_id)
                 return redirect('deployment_list')
@@ -206,39 +206,46 @@ def destroy_deployment(request, deployment_id):
                 
 def destroy_deployment_logic(deployment_id):
     deployment = get_object_or_404(Deployment, id=deployment_id)
-    
-    nodes_in_deployment = Node.objects.filter(deployment=deployment)
-    vm_destroyed, dns_removed = True, True  # Initialize variables for logging
-
-    for node in nodes_in_deployment:
-
-        # Step 1: Destroy VMs in the deployment
-        vm_destroyed = destroy_vm(node, deployment)
-        if vm_destroyed:
-            logger.info(f"Node {node.name} destroyed from vCenter.")
-        else:
-            logger.error(f"Failed to destroy node {node.name} from vCenter.")
-
-        # Step 2: Remove DNS entries
-        dns_removed = remove_dns_entry(node, deployment)
-        if dns_removed:
-            logger.info(f"Node {node.name} removed from DNS.")
-        else:
-            logger.error(f"Failed to remove node {node.name} from DNS.")
-
-    # Update deployment status
-    if vm_destroyed and dns_removed:
-        deployment.status = 'destroyed'
+    if deployment.status == 'queued_for_destroy':
+        deployment.status = 'destroying'
         deployment.save()
-        logger.info(f"Deployment {deployment.deployment_name} marked as 'destroyed'.")
-        messages.success(request, f"Deployment {deployment.deployment_name} has been successfully destroyed.")
-        return True
+        logger.info(f"Deployment {deployment.deployment_name} is now in 'destroying' status.")
+        print(f"Deployment {deployment.deployment_name} is now in 'destroying' status.")
+        
+        nodes_in_deployment = Node.objects.filter(deployment=deployment)
+        vm_destroyed, dns_removed = True, True  # Initialize variables for logging
+
+        for node in nodes_in_deployment:
+
+            # Step 1: Destroy VMs in the deployment
+            vm_destroyed = destroy_vm(node, deployment)
+            if vm_destroyed:
+                logger.info(f"Node {node.name} destroyed from vCenter.")
+            else:
+                logger.error(f"Failed to destroy node {node.name} from vCenter.")
+
+            # Step 2: Remove DNS entries
+            dns_removed = remove_dns_entry(node, deployment)
+            if dns_removed:
+                logger.info(f"Node {node.name} removed from DNS.")
+            else:
+                logger.error(f"Failed to remove node {node.name} from DNS.")
+
+        # Update deployment status
+        if vm_destroyed and dns_removed:
+            deployment.status = 'destroyed'
+            deployment.save()
+            logger.info(f"Deployment {deployment.deployment_name} marked as 'destroyed'.")
+            messages.success(request, f"Deployment {deployment.deployment_name} has been successfully destroyed.")
+            return True
+        else:
+            deployment.status = 'error'
+            deployment.save()
+            logger.error(f"Failed to completely destroy deployment {deployment.deployment_name}.")
+            messages.error(request, f"Failed to completely destroy deployment {deployment.deployment_name}.")
+            return False
     else:
-        deployment.status = 'error'
-        deployment.save()
-        logger.error(f"Failed to completely destroy deployment {deployment.deployment_name}.")
-        messages.error(request, f"Failed to completely destroy deployment {deployment.deployment_name}.")
-        return False
+        logger.info(f"Deployment {deployment.deployment_name} is not in 'queued_for_destroy' status.")
 
 
 def view_log(request, node_id):
@@ -258,8 +265,8 @@ def view_log(request, node_id):
 
     return render(request, 'view_log.html', {'node': node, 'vm_short_name': vm_short_name})
 
-import logging
-logger = logging.getLogger(__name__)
+
+# logger = logging.getLogger(__name__)
 
 def tail_log(request, node_name):
     vm_short_name = node_name.split('.')[0]

@@ -105,41 +105,73 @@
                                                 </form>
                                             </div>
                                             {% for node in page_obj %}
-                                            <tr>
-                                                <td><a href="{% url 'node_detail' node.id %}" style="display: inline;">View</a> /
+                                                {% if node.status.name != 'destroyed' %}
+                                                <tr>
+                                                    <td><a href="{% url 'node_detail' node.id %}" style="display: inline;">View</a> /
 
-                                                {% if user.is_staff %} 
-                                                    <a href="{% url 'admin:myapp_node_change' node.id %}"style="display: inline;">Edit</a> /
-                                                    <a href="{% url 'view_log' node.id %}"style="display: inline;">Build Log</a>
-                                                {% else %}
-                                                    <span style="color: gray; cursor: not-allowed;">Edit</span>
-                                                {% endif %}</td>
-
-                                                <td><a href="{% url 'node_detail' node.id %}">{{ node.name }}</a></td>
-                                                <td>{{ node.contact }}</td>
-                                                <td>{{ node.centrify_zone }}</td>
-                                                <td>
-                                                    {% if node.deployment %}
-                                                        <a href="{% url 'deployment_detail' node.deployment.id %}">{{ node.deployment }}</a>
+                                                    {% if user.is_staff %} 
+                                                        <a href="{% url 'admin:myapp_node_change' node.id %}"style="display: inline;">Edit</a> /
+                                                        <a href="{% url 'view_log' node.id %}"style="display: inline;">Log</a>
                                                     {% else %}
-                                                        None
-                                                    {% endif %}
-                                                </td>
-                                                <td class="
-                                                        {% if node.status.name == 'inservice' %}status-inservice
-                                                        {% elif node.status.name == 'setup' %}status-setup
-                                                        {% elif node.status.name == 'failed' %}status-failed
-                                                        {% elif node.status.name == 'building' %}status-building
-                                                        {% elif node.status.name == 'retired' %}status-retired
-                                                        {% elif node.status.name == 'destroyed' %}status-destroyed
-                                                        {% endif %}">
-                                                {{ node.status.name }}</td>   
-                                                <td>{{ node.hardware_profile }}</td>
-                                                <td>{{ node.processor_count }}</td>
-                                                <td>{{ node.physical_memory }}</td>
-                                                <td>{{ node.disk_size }}</td>
-                                                <td>{{ node.operating_system }}</td>
-                                            </tr>
+                                                        <span style="color: gray; cursor: not-allowed;">Edit</span>
+                                                    {% endif %}</td>
+
+                                                    <td><a href="{% url 'node_detail' node.id %}">{{ node.name }}</a></td>
+                                                    <td>{{ node.contact }}</td>
+                                                    <td>{{ node.centrify_zone }}</td>
+                                                    <td>
+                                                        {% if node.deployment %}
+                                                            <a href="{% url 'deployment_detail' node.deployment.id %}">{{ node.deployment }}</a>
+                                                        {% else %}
+                                                            None
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="
+                                                            {% if node.status.name == 'inservice' %}status-inservice
+                                                            {% elif node.status.name == 'setup' %}status-setup
+                                                            {% elif node.status.name == 'failed' %}status-failed
+                                                            {% elif node.status.name == 'building' %}status-building
+                                                            {% elif node.status.name == 'retired' %}status-retired
+                                                            {% elif node.status.name == 'destroyed' %}status-destroyed
+                                                            {% endif %}">
+                                                    {{ node.status.name }}</td>   
+                                                    <td>{{ node.hardware_profile }}</td>
+                                                    <td>{{ node.processor_count }}</td>
+                                                    <td>{{ node.physical_memory }}</td>
+                                                    <td>{{ node.disk_size }}</td>
+                                                    <td>{{ node.operating_system }}</td>
+                                                </tr>
+                                                {% endif %}
+                                            
+                                                {% if node.status.name == 'destroyed' %}
+                                                <tr class=status-destroyed>
+                                                    <td><span style="color: gray; cursor: not-allowed;">View</span> /
+
+                                                    {% if user.is_staff %} 
+                                                        <span style="color: gray; cursor: not-allowed;">Edit</span> /
+                                                        <span style="color: gray; cursor: not-allowed;">Log</span>
+                                                    {% endif %}</td>
+
+                                                    <td><a href="{% url 'node_detail' node.id %}">{{ node.name }}</a></td>
+                                                    <td>{{ node.contact }}</td>
+                                                    <td>{{ node.centrify_zone }}</td>
+                                                    <td>
+                                                        {% if node.deployment %}
+                                                            <a href="{% url 'deployment_detail' node.deployment.id %}">{{ node.deployment }}</a>
+                                                        {% else %}
+                                                            None
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class=status-destroyed>
+                                                    {{ node.status.name }}</td>   
+                                                    <td>{{ node.hardware_profile }}</td>
+                                                    <td>{{ node.processor_count }}</td>
+                                                    <td>{{ node.physical_memory }}</td>
+                                                    <td>{{ node.disk_size }}</td>
+                                                    <td>{{ node.operating_system }}</td>
+                                                </tr>
+                                                {% endif %}
+                                            
                                             {% endfor %}
                                             <div class="pagination">
                                                 <span class="step-links">

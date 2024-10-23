@@ -1088,7 +1088,7 @@ table#change-history tbody th {
 }
 
 .status-setup {
-    color: lightgreen;
+    color: red;
 }
 
 .status-destroyed {
