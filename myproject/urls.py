@@ -24,6 +24,7 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
     path('deployment-status/<int:deployment_id>/', get_deployment_status, name='get_deployment_status'),
     path('nodes/<int:node_id>/view-log/', views.view_log, name='view_log'),
+    path('logs/<str:node_name>/', views.tail_log, name='tail_log'),
 ]
 
 if settings.DEBUG:

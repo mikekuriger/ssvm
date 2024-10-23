@@ -14,6 +14,7 @@ from myapp.serializers import NodeSerializer
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from time import sleep
 import json
 import os as _os
 import socket
@@ -255,9 +256,36 @@ def view_log(request, node_id):
     except FileNotFoundError:
         return HttpResponse("Log file not found", status=404)
 
-    return render(request, 'view_log.html', {'log_content': log_content, 'node': node})
+    return render(request, 'view_log.html', {'node': node, 'vm_short_name': vm_short_name})
 
+import logging
+logger = logging.getLogger(__name__)
 
+def tail_log(request, node_name):
+    vm_short_name = node_name.split('.')[0]
+    log_file_path = _os.path.join(settings.MEDIA_ROOT, f"{vm_short_name}.log")
+    
+    logger.info(f"Looking for log file at: {log_file_path}")
+    
+    if not _os.path.exists(log_file_path):
+        logger.error(f"Log file {log_file_path} not found")
+        return JsonResponse({"status": "error", "message": "Log file {vm_short_name}.log not found"}, status=404)
+
+    try:
+        with open(log_file_path, 'r') as log_file:
+            # Get the last N lines of the file
+            log_file.seek(0, _os.SEEK_END)
+            file_size = log_file.tell()
+            log_file.seek(max(file_size - 1024 * 10, 0))  # Read the last 10 KB of the log file
+
+            lines = log_file.readlines()
+            logger.info(f"Successfully read log file: {log_file_path}")
+            return JsonResponse({"status": "success", "log": ''.join(lines)}, status=200)
+    except Exception as e:
+        logger.error(f"Error reading log file {log_file_path}: {str(e)}")
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+    
 
 def node_list(request):
     #nodes = Node.objects.all().order_by('name')

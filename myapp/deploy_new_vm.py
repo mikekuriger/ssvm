@@ -686,7 +686,7 @@ if result.returncode != 0:
         print("Standard Error:", result.stderr, flush=True)
 else:
     # Success case
-    print(result.stdout, flush=True)
+    print("Customization successful.", flush=True)
 
 
 
@@ -702,7 +702,7 @@ fields_set_command = ["govc", "fields.set", "deployment", deployment_name, f"{fo
 set_result = subprocess.run(fields_set_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
 if set_result.returncode == 0:
-    print("Custom field 'deployment' set successfully.")
+    print("Custom field 'deployment' successfully set to {deployment_name}")
 else:
     print("Failed to set custom field 'deployment'.")
     print("Error:", set_result.stderr)
@@ -712,12 +712,13 @@ fields_set_command = ["govc", "fields.set", "Created_by", f"SSVM ({BUILTBY})", f
 set_result = subprocess.run(fields_set_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                       
 if set_result.returncode == 0:
-    print("Custom field 'createdby' set successfully.")
+    print("Custom field 'createdby' successfully set to {BUILTBY}")
 else:
     print("Failed to set custom field 'createdby'.")
     print("Error:", set_result.stderr)
 
 # grab cmdb_uuid_value to put into the database at end of build
+print("Fetching cmdb_uuid and UUID from Vcenter")
 govc_command = ["govc", "vm.info", "-json", VM]
 uuid_result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 if uuid_result.returncode == 0:
@@ -842,7 +843,7 @@ os_type = platform.system()
 iso_command = [
     "-o", iso_file, "-volid", "cidata", "-joliet", "-rock", user_data_file, meta_data_file
 ]
-print(os_type)
+#print(os_type)
 
 print(f"{bold}Creating ISO image for cloud-init{_bold}", flush=True)
 
@@ -927,7 +928,9 @@ if "yellowpages" in DOMAIN:
 
                             
 if "poweredOn" in power_status.stdout:
-    print(f"{VM} is powered up and booting. Cloud-init will now perform post-deployment operations.  Please be patient, this can take a while", flush=True)
+    print(f"{VM} is powered up and booting.", flush=True)
+    print(f"Cloud-init will now perform post-deployment operations.  Please be patient, this can take a while.", flush=True)
+    print(f"Build is complete.", flush=True)
 
     # Update the specific fields
     node.status = statuss_instance
