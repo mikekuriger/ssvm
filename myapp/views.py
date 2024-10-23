@@ -2,7 +2,7 @@ from datetime import datetime
 from django.conf import settings
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -87,6 +87,20 @@ def destroy_vm(node, deployment):
     _os.environ["GOVC_USERNAME"] = username
     _os.environ["GOVC_PASSWORD"] = password
     
+    logger.info(f"Testing vCenter {vcenter}")
+    
+    govc_command = ["govc", "about"]
+    result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    if result.returncode != 0 or "503 Service Unavailable" in result.stderr:
+        logger.error(f"vCenter {vcenter} is not responding (503 error), setting deployment back to 'deployed'.")
+        deployment.status = 'deployed'  
+        deployment.save(update_fields=['status'])
+        return False
+    
+    else:
+        logger.info(f"vCenter {vcenter} is responding successfully.")
+        
+        
     vm_short_name = node.name.split('.')[0]
     domain = deployment.domain or 'corp.pvt'
     vm_fqdn = f"{vm_short_name}.{domain}"
@@ -105,20 +119,22 @@ def destroy_vm(node, deployment):
             vm_name = vm_fqdn
         else:
             logger.info(f"Failed to find {vm_short_name} or {vm_fqdn} in Vcenter, skipping VM delete operation")
-            return True
+            deployment.status = 'error'
+            deployment.save(update_fields=['status'])
+            return False
     
     # Try destroying by short name, then FQDN if needed
     logger.info(f"Attempting to destroy VM: {vm_name}")
     destroy_vm_command = ["govc", "vm.destroy", vm_name]
     result = subprocess.run(destroy_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     if result.returncode == 0:
-        logger.info(f"VM {vm_name} destroyed successfully.")
+        logger.info(f"VM {vm_name} successfully destroyed from Vcenter.")
         node.status = Status.objects.get(name='destroyed')
         node.save(update_fields=['status'])
         return True
     else:
         logger.error(f"Error destroying VM {vm_name}: {result.stderr}")
-    return False
+        return False
 
 # function to remove node from DNS
 def remove_dns_entry(node, deployment):
@@ -149,10 +165,10 @@ def remove_dns_entry(node, deployment):
                 logger.info(f"DNS entry {dns_name}.{dns_zone} deleted.")
                 return True
             else:
-                logger.error(f"Error deleting DNS entry: {delete_response.content.decode()}")
+                logger.error(f"Error deleting DNS entry {dns_name}.{dns_zone}: {delete_response.content.decode()}")
     else:
-        logger.error(f"Error fetching DNS entry: {response.content.decode()}")
-    return False
+        logger.error(f"Error fetching DNS entry {dns_name}.{dns_zone} (it may already be deleted): {response.content.decode()}")
+        return False
 
 # Main Destroy Deployment logic
 def destroy_deployment(request, deployment_id):
@@ -223,6 +239,7 @@ def destroy_deployment_logic(deployment_id):
                 logger.info(f"Node {node.name} destroyed from vCenter.")
             else:
                 logger.error(f"Failed to destroy node {node.name} from vCenter.")
+                return false
 
             # Step 2: Remove DNS entries
             dns_removed = remove_dns_entry(node, deployment)
@@ -247,7 +264,26 @@ def destroy_deployment_logic(deployment_id):
     else:
         logger.info(f"Deployment {deployment.deployment_name} is not in 'queued_for_destroy' status.")
 
+        
+# functions to view system logs
+def view_system_logs(request, log_type):
+    # Define the paths to the log files
+    log_files = {
+        'deployment': _os.path.join(settings.BASE_DIR, 'deployment.log'),
+        'task': _os.path.join(settings.BASE_DIR, 'django-background-tasks.log'),
+        'application': _os.path.join(settings.BASE_DIR, 'django.log'),
+    }
 
+    # Get the requested log file
+    log_file_path = log_files.get(log_type)
+
+    if log_file_path and _os.path.exists(log_file_path):
+        # Use FileResponse to serve the log file for download
+        return FileResponse(open(log_file_path, 'rb'), content_type='text/plain')
+    else:
+        return HttpResponse(f"Log file '{log_type}' not found.", status=404)
+    
+    
 def view_log(request, node_id):
     node = get_object_or_404(Node, id=node_id)
     vm_short_name = node.name.split('.')[0]

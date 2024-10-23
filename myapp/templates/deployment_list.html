@@ -36,6 +36,10 @@
                 <!-- Content -->
                 <div id="content">
                     <h1>Deployments</h1><a href="/deployments">
+                    <a href="{% url 'view_system_logs' log_type='deployment' %}">Deployment Logs</a> |
+                    <a href="{% url 'view_system_logs' log_type='task' %}">Task Logs</a> |
+                    <a href="{% url 'view_system_logs' log_type='application' %}">Application Logs</a>
+
                 </div>
                 <div class="table-container">
                     <div id="content-main">

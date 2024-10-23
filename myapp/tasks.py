@@ -51,7 +51,7 @@ def check_destroy_deployments():
     # Loop through each deployment and run the destroy logic
     for deployment in destroying_deployments:
         deployment_name = deployment.deployment_name
-        deployment_id = eployment.deployment_id
+        deployment_id = deployment.id
         print(f"Attempting to destroy deployment: {deployment_name} with ID: {deployment_id}")
         logger.info(f"Attempting to destroy Deployment: {deployment_name} with ID: {deployment_id}")
 

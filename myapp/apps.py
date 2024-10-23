@@ -45,7 +45,7 @@ class MyappConfig(AppConfig):
                 send_failure_alert(repeat=60*60*24)
             
             if not Task.objects.filter(task_name='myapp.tasks.check_destroy_deployments').exists():
-                check_destroy_deployments()
+                check_destroy_deployments(repeat=60*60*24)
         
             
             

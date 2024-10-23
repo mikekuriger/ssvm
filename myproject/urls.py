@@ -25,6 +25,7 @@ urlpatterns = [
     path('deployment-status/<int:deployment_id>/', get_deployment_status, name='get_deployment_status'),
     path('nodes/<int:node_id>/view-log/', views.view_log, name='view_log'),
     path('logs/<str:node_name>/', views.tail_log, name='tail_log'),
+    path('system-logs/<str:log_type>/', views.view_system_logs, name='view_system_logs'),
 ]
 
 if settings.DEBUG:
