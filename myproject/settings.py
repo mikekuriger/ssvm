@@ -167,6 +167,12 @@ LOGGING = {
         },
     },
     'handlers': {
+        'djangofile': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'django.log'),
+            'formatter': 'verbose',
+        },
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
@@ -182,18 +188,18 @@ LOGGING = {
     },
     'loggers': {
         'django': {
-            'handlers': ['file'],
-            'level': 'ERROR',
-            'propagate': False,
+            'handlers': ['djangofile'],
+            'level': 'INFO',
+            'propagate': True,
         },
         'deployment': {
             'handlers': ['file'],
             'level': 'DEBUG',
             'propagate': False,
         },
-        'frequent_tasks': {  # Logger for frequent tasks with reduced logging
+        'myapp': {  # Logger for frequent tasks with reduced logging
             'handlers': ['quiet_file'],
-            'level': 'ERROR',  # Only log errors, not info/debug
+            'level': 'DEBUG',  
             'propagate': False,
         },
     },
