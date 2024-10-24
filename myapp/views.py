@@ -70,7 +70,7 @@ from SOLIDserverRest import SOLIDserverRest
 # Get the logger for the deployment tasks
 logger = logging.getLogger('deployment')
 
-# function to remove node from vcenter
+# function to remove VM from vcenter
 def destroy_vm(node, deployment):
     datacenter_name = deployment.datacenter
     config = load_config()
@@ -105,36 +105,35 @@ def destroy_vm(node, deployment):
     domain = deployment.domain or 'corp.pvt'
     vm_fqdn = f"{vm_short_name}.{domain}"
 
-    # Check if VM is found in Vcenter
-    govc_command = ["govc", "vm.info", f"{vm_short_name}"]
-    result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-    if result.returncode == 0:
-        logger.info(f"Found {vm_short_name} in Vcenter")
-        vm_name = vm_short_name
-    else:
-        govc_command = ["govc", "vm.info", f"{vm_fqdn}"]
-        result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    for vm_name in [vm_short_name, vm_fqdn]:
+        # Try destroying by name and FQDN
+        logger.info(f"Attempting to destroy VM: {vm_name}")
+        destroy_vm_command = ["govc", "vm.destroy", vm_name]
+        result = subprocess.run(destroy_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        
         if result.returncode == 0:
-            logger.info(f"Found {vm_fqdn} in Vcenter")  
-            vm_name = vm_fqdn
+            # If the command succeeded, the VM was destroyed
+            logger.info(f"VM {vm_name} successfully destroyed from Vcenter.")
+            node.status = Status.objects.get(name='destroyed')
+            node.save(update_fields=['status'])
+            return True  
+        
+        elif 'not found' in result.stderr.lower():
+            # If the VM was not found, log and continue to try the next VM name
+            logger.info(f"VM {vm_name} not found.")
+        
         else:
-            logger.info(f"Failed to find {vm_short_name} or {vm_fqdn} in Vcenter, skipping VM delete operation")
+            # If there was any other error, log it and exit with an error
+            logger.error(f"Error executing govc vm.destroy command for {vm_name}: {result.stderr}")
             deployment.status = 'error'
             deployment.save(update_fields=['status'])
-            return False
+            return 'Error'  # Exit if there was any unexpected error
     
-    # Try destroying by short name, then FQDN if needed
-    logger.info(f"Attempting to destroy VM: {vm_name}")
-    destroy_vm_command = ["govc", "vm.destroy", vm_name]
-    result = subprocess.run(destroy_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-    if result.returncode == 0:
-        logger.info(f"VM {vm_name} successfully destroyed from Vcenter.")
-        node.status = Status.objects.get(name='destroyed')
-        node.save(update_fields=['status'])
-        return True
-    else:
-        logger.error(f"Error destroying VM {vm_name}: {result.stderr}")
-        return False
+    # If both VM names were not found, return True since no deletion is needed
+    #logger.info(f"VM {vm_short_name} not found in Vcenter. No need to delete.")
+    return False
+
+    
 
 # function to remove node from DNS
 def remove_dns_entry(node, deployment):
@@ -166,8 +165,9 @@ def remove_dns_entry(node, deployment):
                 return True
             else:
                 logger.error(f"Error deleting DNS entry {dns_name}.{dns_zone}: {delete_response.content.decode()}")
+                return 'Error'
     else:
-        logger.error(f"Error fetching DNS entry {dns_name}.{dns_zone} (it may already be deleted): {response.content.decode()}")
+        #logger.info(f"{dns_name}.{dns_zone} was not found in DNS: {response.content.decode()}")
         return False
 
 # Main Destroy Deployment logic
@@ -235,31 +235,47 @@ def destroy_deployment_logic(deployment_id):
 
             # Step 1: Destroy VMs in the deployment
             vm_destroyed = destroy_vm(node, deployment)
-            if vm_destroyed:
-                logger.info(f"Node {node.name} destroyed from vCenter.")
+            if vm_destroyed == True:
+                logger.info(f"VM {node.name} destroyed from vCenter.")
+                
+            elif vm_destroyed == False:  
+                logger.info(f"VM {node.name} not in Vcenter, skipping VM delete operation")
+                vm_destroyed = True # all is good
+                
+            elif vm_destroyed == 'Error':  
+                logger.error(f"Error deleting {vm_short_name} or {vm_fqdn} in Vcenter")
+                return 'Error'
             else:
-                logger.error(f"Failed to destroy node {node.name} from vCenter.")
-                return false
-
+                # logger.info(f"Node {node.name} not in vCenter, no need to destroy.")
+                logger.error(f"Failed to find {vm_short_name} or {vm_fqdn} in Vcenter, skipping VM delete operation")
+                return 'Error'
+            
+        
             # Step 2: Remove DNS entries
             dns_removed = remove_dns_entry(node, deployment)
-            if dns_removed:
-                logger.info(f"Node {node.name} removed from DNS.")
+            if dns_removed == True:
+                logger.info(f"VM {node.name} removed from DNS.")
+                
+            elif dns_removed == False:
+                logger.info(f"VM {node.name} not found in DNS.")
+                dns_removed = True # for next check, all is good!
             else:
                 logger.error(f"Failed to remove node {node.name} from DNS.")
+                return 'Error'
 
+        
         # Update deployment status
         if vm_destroyed and dns_removed:
             deployment.status = 'destroyed'
             deployment.save()
             logger.info(f"Deployment {deployment.deployment_name} marked as 'destroyed'.")
-            messages.success(request, f"Deployment {deployment.deployment_name} has been successfully destroyed.")
+            messages.success(f"Deployment {deployment.deployment_name} has been successfully destroyed.")
             return True
         else:
             deployment.status = 'error'
             deployment.save()
-            logger.error(f"Failed to completely destroy deployment {deployment.deployment_name}.")
-            messages.error(request, f"Failed to completely destroy deployment {deployment.deployment_name}.")
+            logger.error(f"Failed to completely destroy deployment {deployment.deployment_name}. Check the logs to see what issues occured")
+            messages.error(f"Failed to completely destroy deployment {deployment.deployment_name}. Check the logs to see what issues occured")
             return False
     else:
         logger.info(f"Deployment {deployment.deployment_name} is not in 'queued_for_destroy' status.")
@@ -267,28 +283,61 @@ def destroy_deployment_logic(deployment_id):
         
 # functions to view system logs
 def view_system_logs(request, log_type):
-    # Define the paths to the log files
     log_files = {
-        'deployment': _os.path.join(settings.BASE_DIR, 'deployment.log'),
-        'task': _os.path.join(settings.BASE_DIR, 'django-background-tasks.log'),
-        'application': _os.path.join(settings.BASE_DIR, 'django.log'),
+        'deployment': [ _os.path.join(settings.BASE_DIR, 'deployment.log') ],
+        'task': [ _os.path.join(settings.BASE_DIR, 'django-background-tasks.log') ],
+        'application': [
+            _os.path.join(settings.BASE_DIR, 'django.log'),
+            _os.path.join(settings.BASE_DIR, 'django_output.log')
+        ],
     }
 
-    # Get the requested log file
-    log_file_path = log_files.get(log_type)
+     # Get the requested log file path
+    log_file_paths = log_files.get(log_type)
+    
+    if log_file_paths:
+        filtered_lines = []
+    # Iterate through each log file in the list
+        for log_file_path in log_file_paths:
+            if _os.path.exists(log_file_path):
+                with open(log_file_path, 'r') as log_file:
+                    log_lines = log_file.readlines()
 
-    if log_file_path and _os.path.exists(log_file_path):
-        # Use FileResponse to serve the log file for download
-        return FileResponse(open(log_file_path, 'rb'), content_type='text/plain')
-    else:
-        return HttpResponse(f"Log file '{log_type}' not found.", status=404)
-    
-    
+                    # Apply filters based on the log type
+                    if log_type == 'deployment':
+                        # Filter out specific deployment log entries
+                        filtered_lines.extend([
+                            line for line in log_lines
+                            if "Successfully read log file" not in line
+                            and "Looking for log file at" not in line
+                        ])
+                    elif log_type == 'task':
+                        # Filter out 'Found 0 deployments' from the background task log
+                        filtered_lines.extend([
+                            line for line in log_lines
+                            if "Found 0 deployments" not in line
+                        ])
+                    elif log_type == 'application':
+                        # Filter out 'Looking for log file' from both application log files
+                        filtered_lines.extend([
+                            line for line in log_lines
+                            if "INFO" not in line
+                        ])
+                    else:
+                        # No filtering for other log types
+                        filtered_lines.extend(log_lines)
+            else:
+                return HttpResponse(f"Log file '{log_file_path}' not found.", status=404)
+
+        # Return the filtered log content as plain text
+        response_content = ''.join(filtered_lines)
+        return HttpResponse(response_content, content_type='text/plain')
+
+    return HttpResponse(f"Log type '{log_type}' not found.", status=404)
 def view_log(request, node_id):
     node = get_object_or_404(Node, id=node_id)
     vm_short_name = node.name.split('.')[0]
     
-    # Construct the path to the log file based on the node's name or other identifier
     log_file_path = _os.path.join(settings.MEDIA_ROOT, f"{vm_short_name}.log")
     
     print(f"Looking for log file at: {log_file_path}")
@@ -506,7 +555,7 @@ def create_vm(request):
             status_instance, status_created = Status.objects.get_or_create(
                 name='prebuild',
                     defaults={
-                        'description': 'Node is in prebuild status',  
+                        'description': 'VM is in prebuild status',  
                     }
             )
             hwprofile_instance, hwprofile_created = HardwareProfile.objects.get_or_create(
