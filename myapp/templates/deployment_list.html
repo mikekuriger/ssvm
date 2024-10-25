@@ -5,6 +5,7 @@
     <title>Deployments</title>
     <link rel="stylesheet" href="{% static 'css/shared.css' %}">
     <link rel="icon" href="{% static 'favicon.ico' %}">
+<!--     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"> -->
     <script src="{% static 'js/jquery.min.js' %}"></script>
     <style>
     /* Container for sidebar and main content */
@@ -27,7 +28,34 @@
     .content-right table {
         width: 100%;
     }
+    /* Alert base class */
+    .alert {
+      width: 100%;  
+      position: relative;
+      padding: 0.75rem 1.25rem;
+      margin-bottom: 1rem;
+      border: 1px solid transparent;
+      border-radius: 8px;
+    }
+
+    .alert-success {
+      background-color: #d1e7dd;
+      border-color: #badbcc;
+    }
+
+    .alert-success hr {
+      border-top-color: #b1dfbb;
+    }
+        
+    .alert-success {
+      --link-fg: red;
+    }
+
+        
+    
+
     </style>
+    
 </head>
 {% include 'head.html' %}
         <!-- END Header -->
@@ -35,11 +63,22 @@
             <div class="content">
                 <!-- Content -->
                 <div id="content">
-                    <h1>Deployments</h1><a href="/deployments">
-                    <a href="{% url 'view_system_logs' log_type='deployment' %}">Deployment Logs</a> |
-                    <a href="{% url 'view_system_logs' log_type='task' %}">Task Logs</a> |
-                    <a href="{% url 'view_system_logs' log_type='application' %}">Application Logs</a>
-
+                    <h1>Deployments</h1>
+                    {% if messages %}
+                    <div class="alert alert-success">
+                        {% for message in messages %}
+                            <div>{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                        
+                    <a href="{% url 'view_system_logs' log_type='deployment' %}">Deployment Log</a> |
+                    <a href="{% url 'view_system_logs' log_type='destroy' %}">Destroy Log</a> |
+                    <a href="{% url 'view_system_logs' log_type='task' %}">Task Log</a> |
+                    <a href="{% url 'view_system_logs' log_type='application' %}">Application Log</a>
+                    
+                       
+                   
                 </div>
                 <div class="table-container">
                     <div id="content-main">
@@ -115,28 +154,36 @@
                                                             <span style="color: gray; cursor: not-allowed;">Re-Deploy</span> / 
                                                             <span style="color: gray; cursor: not-allowed;">Destroy</span>
                                                         {% endif %}
-                                                    {% elif deployment.status == 'queued' %}
-                                                        {% if user.is_staff %}
-                                                            <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy</a> 
-                                                        {% else %}
-                                                            <span style="color: gray; cursor: not-allowed;">Destroy</span>
-                                                        {% endif %}
+                                                    
                                                     {% elif deployment.status == 'deployed' %}
                                                         {% if user.is_staff %}
                                                             {% if deployment.protected %}
                                                                 <span style="color: gray; cursor: not-allowed;">Protected</span>
                                                             {% else %}
-                                                                <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy</a>
+                                                                <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Screamtest</a>
                                                             {% endif %}
                                                         {% else %}
-                                                            <span style="color: gray; cursor: not-allowed;">Destroy</span>
+                                                            <span style="color: gray; cursor: not-allowed;">Screamtest</span>
                                                         {% endif %}
                                                     {% elif deployment.status == 'building' %}
-                                                        {% if user.is_staff %}
-                                                            <a href="{% url 'cancel_deployment' deployment.id %}" class="btn btn-primary">Cancel</a>
-                                                        {% else %}
-                                                            <span style="color: gray; cursor: not-allowed;">Cancel</span>
-                                                        {% endif %}
+                                                        <div class="loader"></div>
+
+                                                        <style>
+                                                        .loader {
+                                                          border: 3px solid #f3f3f3;
+                                                          border-top: 3px solid #3498db;
+                                                          border-radius: 50%;
+                                                          width: 12px;
+                                                          height: 12px;
+                                                          animation: spin 3s linear infinite;
+                                                        }
+
+                                                        @keyframes spin {
+                                                          0% { transform: rotate(0deg); }
+                                                          100% { transform: rotate(360deg); }
+                                                        }
+                                                        </style>
+
                                                     {% endif %}
                                                 </td>
 
@@ -152,6 +199,35 @@
                                                 <td>{{ deployment.server_type_value }}</td>
                                                 <td>{{ deployment.created_at }}</td>
                                                 <td id="deployment-status-{{ deployment.id }}" class=status-destroyed>
+                                                    {{ deployment.status }}
+                                                </td>
+
+                                                <!-- Action buttons -->
+                                                <td id="deployment-actions-{{ deployment.id }}">
+                                                   
+                                                    {% if user.is_staff %}
+                                                        <a href="{% url 'approve_deployment' deployment.id %}" class="btn btn-primary">Re-Deploy</a> / 
+                                                        <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy Forever</a>
+                                                    {% else %}
+                                                        <span style="color: gray; cursor: not-allowed;">Re-Deploy</span> / 
+                                                        <span style="color: gray; cursor: not-allowed;">Destroy Forever</span>
+                                                    {% endif %}
+                                                   
+                                                
+                                                </td>
+
+                                            </tr>
+                                            {% endif %}
+                                            
+                                            {% if deployment.status == 'screamtest' %}
+                                            <tr class=status-screamtest>
+                                                <td><a href="{% url 'deployment_detail' deployment.id %}">{{ deployment.deployment_name }}</a></td>
+                                                <td>{{ deployment.builtby }}</td>
+                                                <td>{{ deployment.owner_value }}</td>
+                                                <td>{{ deployment.deployment_count }}</td>
+                                                <td>{{ deployment.server_type_value }}</td>
+                                                <td>{{ deployment.created_at }}</td>
+                                                <td id="deployment-status-{{ deployment.id }}" class=status-screamtest>
                                                     {{ deployment.status }}
                                                 </td>
 

@@ -68,6 +68,7 @@ import logging
 from SOLIDserverRest import SOLIDserverRest
 
 # Get the logger for the deployment tasks
+loggerdestroy = logging.getLogger('destroy')
 logger = logging.getLogger('deployment')
 
 # function to remove VM from vcenter
@@ -80,25 +81,25 @@ def destroy_vm(node, deployment):
     password = datacenter['credentials']['password']
 
     # Log the vCenter credentials being used
-    logger.info(f"Using vCenter {vcenter} to destroy VM {node.name}")
+    loggerdestroy.info(f"Using vCenter {vcenter} to destroy VM {node.name}")
 
     # Set environment variables for govc
     _os.environ["GOVC_URL"] = f"https://{vcenter}"
     _os.environ["GOVC_USERNAME"] = username
     _os.environ["GOVC_PASSWORD"] = password
     
-    logger.info(f"Testing vCenter {vcenter}")
+    loggerdestroy.info(f"Testing vCenter {vcenter}")
     
     govc_command = ["govc", "about"]
     result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     if result.returncode != 0 or "503 Service Unavailable" in result.stderr:
-        logger.error(f"vCenter {vcenter} is not responding (503 error), setting deployment back to 'deployed'.")
+        loggerdestroy.error(f"vCenter {vcenter} is not responding (503 error), setting deployment back to 'deployed'.")
         deployment.status = 'deployed'  
         deployment.save(update_fields=['status'])
         return False
     
     else:
-        logger.info(f"vCenter {vcenter} is responding successfully.")
+        loggerdestroy.info(f"vCenter {vcenter} is responding successfully.")
         
         
     vm_short_name = node.name.split('.')[0]
@@ -107,30 +108,30 @@ def destroy_vm(node, deployment):
 
     for vm_name in [vm_short_name, vm_fqdn]:
         # Try destroying by name and FQDN
-        logger.info(f"Attempting to destroy VM: {vm_name}")
+        loggerdestroy.info(f"Attempting to destroy VM: {vm_name}")
         destroy_vm_command = ["govc", "vm.destroy", vm_name]
         result = subprocess.run(destroy_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         
         if result.returncode == 0:
             # If the command succeeded, the VM was destroyed
-            logger.info(f"VM {vm_name} successfully destroyed from Vcenter.")
+            loggerdestroy.info(f"VM {vm_name} successfully destroyed from Vcenter.")
             node.status = Status.objects.get(name='destroyed')
             node.save(update_fields=['status'])
             return True  
         
         elif 'not found' in result.stderr.lower():
             # If the VM was not found, log and continue to try the next VM name
-            logger.info(f"VM {vm_name} not found.")
+            loggerdestroy.info(f"VM {vm_name} not found.")
         
         else:
             # If there was any other error, log it and exit with an error
-            logger.error(f"Error executing govc vm.destroy command for {vm_name}: {result.stderr}")
+            loggerdestroy.error(f"Error executing govc vm.destroy command for {vm_name}: {result.stderr}")
             deployment.status = 'error'
             deployment.save(update_fields=['status'])
             return 'Error'  # Exit if there was any unexpected error
     
     # If both VM names were not found, return True since no deletion is needed
-    #logger.info(f"VM {vm_short_name} not found in Vcenter. No need to delete.")
+    #loggerdestroy.info(f"VM {vm_short_name} not found in Vcenter. No need to delete.")
     return False
 
     
@@ -152,7 +153,7 @@ def remove_dns_entry(node, deployment):
     dns_zone = deployment.domain or 'corp.pvt'
     parameters = {"WHERE": f"name='{dns_name}.{dns_zone}'"}
     
-    logger.info(f"Attempting to fetch DNS entry for {dns_name}.{dns_zone}")
+    loggerdestroy.info(f"Attempting to fetch DNS entry for {dns_name}.{dns_zone}")
     response = sds_conn.query("ip_address_list", parameters)
 
     if response.status_code == 200:
@@ -161,13 +162,13 @@ def remove_dns_entry(node, deployment):
             ip_id = ip_list[0].get('ip_id')
             delete_response = sds_conn.query("ip_address_delete", {"ip_id": ip_id})
             if delete_response.status_code == 200:
-                logger.info(f"DNS entry {dns_name}.{dns_zone} deleted.")
+                loggerdestroy.info(f"DNS entry {dns_name}.{dns_zone} deleted.")
                 return True
             else:
-                logger.error(f"Error deleting DNS entry {dns_name}.{dns_zone}: {delete_response.content.decode()}")
+                loggerdestroy.error(f"Error deleting DNS entry {dns_name}.{dns_zone}: {delete_response.content.decode()}")
                 return 'Error'
     else:
-        #logger.info(f"{dns_name}.{dns_zone} was not found in DNS: {response.content.decode()}")
+        #loggerdestroy.info(f"{dns_name}.{dns_zone} was not found in DNS: {response.content.decode()}")
         return False
 
 # Main Destroy Deployment logic
@@ -176,7 +177,7 @@ def destroy_deployment(request, deployment_id):
     
     # Check if the deployment is protected
     if deployment.protected:
-        logger.warning(f"Deployment {deployment.deployment_name} is protected and cannot be deleted.")
+        loggerdestroy.warning(f"Deployment {deployment.deployment_name} is protected and cannot be deleted.")
         messages.error(request, f"Deployment {deployment.deployment_name} is protected and cannot be deleted.")
         return redirect('deployment_list')
     
@@ -184,31 +185,32 @@ def destroy_deployment(request, deployment_id):
         if deployment.status == 'queued':
             if request.method == 'POST':
                 deployment.delete()
-                logger.info(f"Deployment {deployment.deployment_name} deleted (queued).")
+                loggerdestroy.info(f"Deployment {deployment.deployment_name} deleted (queued).")
                 messages.success(request, f"Deployment {deployment.deployment_name} has been successfully destroyed.")
                 return redirect('deployment_list')
             else:
-                logger.warning(f"Confirmation required to destroy queued deployment: {deployment.deployment_name}")
+                loggerdestroy.warning(f"Confirmation required to destroy queued deployment: {deployment.deployment_name}")
                 messages.warning(request, "Confirmation required to destroy queued deployments.")
                 return render(request, 'confirm_destroy.html', {'deployment': deployment})
 
-        if deployment.status in ['needsapproval', 'failed', 'destroyed']:
+        elif deployment.status in ['needsapproval', 'failed', 'destroyed']:
             deployment.delete()
-            logger.info(f"Deployment {deployment.deployment_name} deleted (needsapproval/failed).")
-            messages.success(request, f"Deployment {deployment.deployment_name} has been successfully queued for destruction.")
+            loggerdestroy.info(f"Deployment {deployment.deployment_name} deleted (needsapproval/failed/destroyed).")
+            messages.success(request, f"Deployment {deployment.deployment_name} has been successfully destroyed.")
             return redirect('deployment_list')
 
-        if deployment.status == 'deployed':
+        elif deployment.status == 'deployed':
             if request.method == 'POST':
                 deployment.status = 'queued_for_destroy'
                 deployment.save()
-                logger.info(f"Deployment {deployment.deployment_name} is now in 'queued_for_destroy' status.")
+                loggerdestroy.info(f"Deployment {deployment.deployment_name} is now in 'queued_for_destroy' status.")
+                messages.success(request, f"Deployment {deployment.deployment_name} has been successfully queued for destroy.")
                 # Queue the destroy operation as a background task
                 #destroy_deployment_task(deployment_id)
                 return redirect('deployment_list')
 
             else:
-                logger.warning(f"Confirmation required to destroy running deployment: {deployment.deployment_name}")
+                loggerdestroy.warning(f"Confirmation required to destroy running deployment: {deployment.deployment_name}")
                 messages.warning(request, "Confirmation required to destroy running deployments.")
                 return render(request, 'confirm_destroy.html', {'deployment': deployment})
         
@@ -216,7 +218,7 @@ def destroy_deployment(request, deployment_id):
         return redirect('deployment_list')
 
     except Exception as e:
-        logger.error(f"Error queueing deployment destruction: {str(e)}")
+        loggerdestroy.error(f"Error queueing deployment destruction: {str(e)}")
         messages.error(request, f"An error occurred while queueing deployment destruction {deployment.deployment_name}: {str(e)}")
         return redirect('deployment_list')
                 
@@ -225,7 +227,7 @@ def destroy_deployment_logic(deployment_id):
     if deployment.status == 'queued_for_destroy':
         deployment.status = 'destroying'
         deployment.save()
-        logger.info(f"Deployment {deployment.deployment_name} is now in 'destroying' status.")
+        loggerdestroy.info(f"Deployment {deployment.deployment_name} is now in 'destroying' status.")
         print(f"Deployment {deployment.deployment_name} is now in 'destroying' status.")
         
         nodes_in_deployment = Node.objects.filter(deployment=deployment)
@@ -236,31 +238,31 @@ def destroy_deployment_logic(deployment_id):
             # Step 1: Destroy VMs in the deployment
             vm_destroyed = destroy_vm(node, deployment)
             if vm_destroyed == True:
-                logger.info(f"VM {node.name} destroyed from vCenter.")
+                loggerdestroy.info(f"VM {node.name} destroyed from vCenter.")
                 
             elif vm_destroyed == False:  
-                logger.info(f"VM {node.name} not in Vcenter, skipping VM delete operation")
+                loggerdestroy.info(f"VM {node.name} not in Vcenter, skipping VM delete operation")
                 vm_destroyed = True # all is good
                 
             elif vm_destroyed == 'Error':  
-                logger.error(f"Error deleting {vm_short_name} or {vm_fqdn} in Vcenter")
+                loggerdestroy.error(f"Error deleting {vm_short_name} or {vm_fqdn} in Vcenter")
                 return 'Error'
             else:
-                # logger.info(f"Node {node.name} not in vCenter, no need to destroy.")
-                logger.error(f"Failed to find {vm_short_name} or {vm_fqdn} in Vcenter, skipping VM delete operation")
+                # loggerdestroy.info(f"Node {node.name} not in vCenter, no need to destroy.")
+                loggerdestroy.error(f"Failed to find {vm_short_name} or {vm_fqdn} in Vcenter, skipping VM delete operation")
                 return 'Error'
             
         
             # Step 2: Remove DNS entries
             dns_removed = remove_dns_entry(node, deployment)
             if dns_removed == True:
-                logger.info(f"VM {node.name} removed from DNS.")
+                loggerdestroy.info(f"VM {node.name} removed from DNS.")
                 
             elif dns_removed == False:
-                logger.info(f"VM {node.name} not found in DNS.")
+                loggerdestroy.info(f"VM {node.name} not found in DNS.")
                 dns_removed = True # for next check, all is good!
             else:
-                logger.error(f"Failed to remove node {node.name} from DNS.")
+                loggerdestroy.error(f"Failed to remove node {node.name} from DNS.")
                 return 'Error'
 
         
@@ -268,23 +270,25 @@ def destroy_deployment_logic(deployment_id):
         if vm_destroyed and dns_removed:
             deployment.status = 'destroyed'
             deployment.save()
-            logger.info(f"Deployment {deployment.deployment_name} marked as 'destroyed'.")
+            loggerdestroy.info(f"Deployment {deployment.deployment_name} marked as 'destroyed'.")
             messages.success(f"Deployment {deployment.deployment_name} has been successfully destroyed.")
             return True
         else:
             deployment.status = 'error'
             deployment.save()
-            logger.error(f"Failed to completely destroy deployment {deployment.deployment_name}. Check the logs to see what issues occured")
+            loggerdestroy.error(f"Failed to completely destroy deployment {deployment.deployment_name}. Check the logs to see what issues occured")
             messages.error(f"Failed to completely destroy deployment {deployment.deployment_name}. Check the logs to see what issues occured")
             return False
     else:
-        logger.info(f"Deployment {deployment.deployment_name} is not in 'queued_for_destroy' status.")
+        loggerdestroy.info(f"Deployment {deployment.deployment_name} is not in 'queued_for_destroy' status.")
 
         
 # functions to view system logs
+import glob
 def view_system_logs(request, log_type):
     log_files = {
-        'deployment': [ _os.path.join(settings.BASE_DIR, 'deployment.log') ],
+        'destroy': [ _os.path.join(settings.BASE_DIR, 'destroy.log')],
+        'deployment': [ _os.path.join(settings.BASE_DIR, 'deployment.log')],
         'task': [ _os.path.join(settings.BASE_DIR, 'django-background-tasks.log') ],
         'application': [
             _os.path.join(settings.BASE_DIR, 'django.log'),
@@ -305,6 +309,13 @@ def view_system_logs(request, log_type):
 
                     # Apply filters based on the log type
                     if log_type == 'deployment':
+                        # Filter out specific deployment log entries
+                        filtered_lines.extend([
+                            line for line in log_lines
+                            if "Successfully read log file" not in line
+                            and "Looking for log file at" not in line
+                        ])
+                    elif log_type == 'destroy':
                         # Filter out specific deployment log entries
                         filtered_lines.extend([
                             line for line in log_lines
@@ -357,10 +368,10 @@ def tail_log(request, node_name):
     vm_short_name = node_name.split('.')[0]
     log_file_path = _os.path.join(settings.MEDIA_ROOT, f"{vm_short_name}.log")
     
-    logger.info(f"Looking for log file at: {log_file_path}")
+    loggerdestroy.info(f"Looking for log file at: {log_file_path}")
     
     if not _os.path.exists(log_file_path):
-        logger.error(f"Log file {log_file_path} not found")
+        loggerdestroy.error(f"Log file {log_file_path} not found")
         return JsonResponse({"status": "error", "message": "Log file {vm_short_name}.log not found"}, status=404)
 
     try:
@@ -371,10 +382,10 @@ def tail_log(request, node_name):
             log_file.seek(max(file_size - 1024 * 10, 0))  # Read the last 10 KB of the log file
 
             lines = log_file.readlines()
-            logger.info(f"Successfully read log file: {log_file_path}")
+            loggerdestroy.info(f"Successfully read log file: {log_file_path}")
             return JsonResponse({"status": "success", "log": ''.join(lines)}, status=200)
     except Exception as e:
-        logger.error(f"Error reading log file {log_file_path}: {str(e)}")
+        loggerdestroy.error(f"Error reading log file {log_file_path}: {str(e)}")
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
     
@@ -465,7 +476,8 @@ def create_vm(request):
             centrify_zone = data['centrify_zone']
             centrify_role = data['centrify_role']
             install_patches = data['install_patches']
-            deployment_date = timezone.now()
+            date = timezone.now()
+            deployment_date = date.strftime('%Y-%m-%dT%H:%M')
             #deployment_date = datetime.now().strftime('%Y-%m-%dT%H:%M') 
             #deployment_name = f"{deployment_date}-{owner}-{hostname}-{deployment_count}"
             deployment_name = f"{datacenter}{server_type}{hostname}-{owner}-{deployment_date}" 
@@ -544,6 +556,7 @@ def create_vm(request):
 
             # Save the deployment to the database
             deployment.save()
+            logger.info(f"Deployment {deployment_name} created.")
             
         # Create a new Node instance using the already defined variables, looping through the nodes
             
@@ -609,15 +622,17 @@ def create_vm(request):
                 for hostname in full_hostnames_list
             ]
             Node.objects.bulk_create(nodes)
+            logger.info(f"Nodes for Deployment {deployment_name} created.")
 
                 
             # Flash message
             from django.contrib import messages
             nodes_url = reverse('node_list')
-            deployments_url = reverse('deployment_list')
-            messages.success(request, mark_safe(f'VM creation request submitted:<br>{vm_details_str} <br><a href="{nodes_url}">View Nodes</a><br><a href="{deployments_url}">View Deployments</a>'))
-            return redirect('create_vm')
-            #return redirect('deployment_list')
+            #deployments_url = reverse('deployment_list')
+            messages.success(request, mark_safe(f'Deployment request submitted:<br></br><br>{vm_details_str} <br><a href="{nodes_url}">View Nodes</a>'))
+            
+            #return redirect('create_vm')
+            return redirect('deployment_list')
         
 
         if not form.is_valid():

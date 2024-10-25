@@ -5,6 +5,7 @@
 <head>
     <title>Nodes</title>
     <link rel="stylesheet" href="{% static 'css/shared.css' %}">
+<!--     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"> -->
     <link rel="icon" href="{% static 'favicon.ico' %}">
     <style>
     /* Container for sidebar and main content */
@@ -49,6 +50,7 @@
 
 
     </style>
+    
 </head>
 {% include 'head.html' %}
     <!-- END Header -->
@@ -134,7 +136,35 @@
                                                             {% elif node.status.name == 'retired' %}status-retired
                                                             {% elif node.status.name == 'destroyed' %}status-destroyed
                                                             {% endif %}">
-                                                    {{ node.status.name }}</td>   
+                                                    
+                                                    {% if node.status.name == 'building' %}
+                                                        
+                                                        {{ node.status.name }}
+                                                        <div class="loader"></div>
+                                                        
+
+                                                        <style>
+                                                        .loader {
+                                                            display: inline-block;
+                                                            margin-left: 3px;
+                                                            vertical-align: middle; 
+                                                            border: 3px solid #f3f3f3;
+                                                            border-top: 3px solid #3498db;
+                                                            border-radius: 50%;
+                                                            width: 12px;
+                                                            height: 12px;
+                                                            animation: spin 3s linear infinite;
+                                                        }
+
+                                                        @keyframes spin {
+                                                          0% { transform: rotate(0deg); }
+                                                          100% { transform: rotate(360deg); }
+                                                        }
+                                                        </style>
+                                                    {% else %}
+                                                        {{ node.status.name }}
+                                                    {% endif %}
+                                                    </td>
                                                     <td>{{ node.hardware_profile }}</td>
                                                     <td>{{ node.processor_count }}</td>
                                                     <td>{{ node.physical_memory }}</td>

@@ -15,6 +15,11 @@ import warnings
 from cryptography.utils import CryptographyDeprecationWarning
 warnings.filterwarnings("ignore", category=CryptographyDeprecationWarning)
 
+# Get the logger for the deployment tasks
+import logging
+logger = logging.getLogger('deployment')
+
+
 # This script is called from deploy.py, to do the deployment
 # deploy.py is called by the scheduler
 
@@ -41,7 +46,7 @@ args = parser.parse_args()
 file_path = args.file
 
 print(f"Deploying using file: {file_path}", flush=True)
-
+logger.info(f"Deploying using file: {file_path}")
 
 # Dictionary to store the parsed values
 data = {}
@@ -92,21 +97,26 @@ def get_datastorecluster(cluster_name):
     try:
         result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         #print(f"result - {result}")
+        #logger.info(f"result - {result}")
         
         for line in result.stdout.splitlines():
             #print(f"Line - {line}")
+            #logger.info(f"Line - {line}")
             if "Name" in line and normalized_cluster in line:
                 # Split line to get the second field (assuming it’s space-separated)
                 datastorecluster_name = line.split()[1]
                 #print(f"Using datastorecluster - {datastorecluster_name}")
+                #logger.info(f"Using datastorecluster - {datastorecluster_name}")
                 return datastorecluster_name
             
         #in case there is no datasource cluster, use the datastore directly
         rawdatastore_name = f"rawev3ds_{normalized_cluster}_01"
         #print(f"No Datastore Cluster found, using datastore {rawdatastore_name} directly")
+        #logger.info(f"No Datastore Cluster found, using datastore {rawdatastore_name} directly")
         return rawdatastore_name
     except subprocess.CalledProcessError as e:
         print(f"An error occurred: {e.stderr}", flush=True)
+        logger.info(f"An error occurred: {e.stderr}")
         return None
 
 # set status to "building for the VM"
@@ -202,6 +212,7 @@ if DC == "st1":
         NETMASK = "255.255.252.0"
     else:
         print(f"{VLAN} is not a valid VLAN", flush=True)
+        logger.info(f"{VLAN} is not a valid VLAN")
         
         node.status = statusf_instance
         node.save(update_fields=['status'])
@@ -234,6 +245,7 @@ else:
         NETMASK = "255.255.252.0"
     else:
         print(f"{VLAN} is not a valid VLAN", flush=True)
+        logger.info(f"{VLAN} is not a valid VLAN")
         
         node.status = statusf_instance
         node.save(update_fields=['status'])
@@ -257,43 +269,73 @@ bold = '\033[1m'
 _bold = '\033[0m'
 # Print deployment information
 #print("Getting Datastore Cluster - ", end="", flush=True)
+#logger.info("Getting Datastore Cluster - ", end="")
 
 DATASTORECLUSTER = get_datastorecluster(CLUSTER)
 if DATASTORECLUSTER.startswith("raw"):
     DATASTORE = DATASTORECLUSTER[3:]
-    print(f"No Datastore Cluster found, using datastore {DATASTORE} directly", flush=True)    
+    print(f"No Datastore Cluster found, using datastore {DATASTORE} directly", flush=True)
+    logger.info(f"No Datastore Cluster found, using datastore {DATASTORE} directly")
 else:    
     print(f"Using datastorecluster - {DATASTORECLUSTER}", flush=True)
+    logger.info(f"Using datastorecluster - {DATASTORECLUSTER}")
+    
 print(f"{bold}Deploying {VM} to {CLUSTER}{_bold}", flush=True)
+logger.info(f"{bold}Deploying {VM} to {CLUSTER}{_bold}")
 
 
 
 #Deployment details
 print(f"{bold}Details:{_bold}", flush=True)
+logger.info(f"{bold}Details:{_bold}")
 print(f"OS - {OS}", flush=True)
+logger.info(f"OS - {OS}")
 print(f"VERSION - {VERSION}", flush=True)
+logger.info(f"VERSION - {VERSION}")
 print(f"CPU - {CPU}", flush=True)
+logger.info(f"CPU - {CPU}")
 print(f"MEM - {MEM} MB", flush=True)
+logger.info(f"MEM - {MEM} MB")
 print(f"Disk - {DISK} GB", flush=True)
+logger.info(f"Disk - {DISK} GB")
 print(f"Datacenter - {DC}", flush=True)
+logger.info(f"Datacenter - {DC}")
 print(f"Domain - {DOMAIN}", flush=True)
+logger.info(f"Domain - {DOMAIN}")
 print(f"VLAN - {VLAN}", flush=True)
+logger.info(f"VLAN - {VLAN}")
 print(f"CLUSTER - {CLUSTER}", flush=True)
+logger.info(f"CLUSTER - {CLUSTER}")
 print(f"DNS - {DNS}", flush=True)
+logger.info(f"DNS - {DNS}")
 print(f"Domains - {DOMAINS}", flush=True)
+logger.info(f"Domains - {DOMAINS}")
 print(f"Network - {NETWORK}", flush=True)
+logger.info(f"Network - {NETWORK}")
 print(f"Netmask - {NETMASK}", flush=True)
+logger.info(f"Netmask - {NETMASK}")
 print(f"Type - {TYPE}", flush=True)
+logger.info(f"Type - {TYPE}")
 print(f"Built by - {BUILTBY}", flush=True)
+logger.info(f"Built by - {BUILTBY}")
 print(f"Ticket - {TICKET}", flush=True)
+logger.info(f"Ticket - {TICKET}")
 print(f"App Name - {APPNAME}", flush=True)
+logger.info(f"App Name - {APPNAME}")
 print(f"Owner - {OWNER}", flush=True)
+logger.info(f"Owner - {OWNER}")
 print(f"Automount - {NFS}", flush=True)
+logger.info(f"Automount - {NFS}")
 print(f"Patches - {PATCH}", flush=True)
+logger.info(f"Patches - {PATCH}")
 print(f"Centrify Join - {CENTRIFY}", flush=True)
+logger.info(f"Centrify Join - {CENTRIFY}")
 print(f"centrify_zone - {centrify_zone}", flush=True)
+logger.info(f"centrify_zone - {centrify_zone}")
 print(f"centrify_role - {centrify_role}", flush=True)
+logger.info(f"centrify_role - {centrify_role}")
 print(f"Add_disk - {ADDDISK}", flush=True)
+logger.info(f"Add_disk - {ADDDISK}")
 print()
 
 # CLONE TEMPLATE
@@ -306,14 +348,19 @@ if "yellowpages" in DOMAIN:
         govc_command = ["govc", "vm.change", "-name", VM, "-vm", f"{VM}.{DOMAIN}"]
         result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         if result.returncode == 0:
-            print(f"Renamed {VM}.{DOMAIN} to {VM}")
+            print(f"Renamed {VM}.{DOMAIN} to {VM}", flush=True)
+            logger.info(f"Renamed {VM}.{DOMAIN} to {VM}")
         else:
-            print(f"Failed to rename {VM}")
-            print("Error:", set_result.stderr)    
+            print(f"Failed to rename {VM}", flush=True)
+            logger.error(f"Failed to rename {VM}")
+            print("Error:", set_result.stderr)
+            logger.error("Error:", set_result.stderr)
             
              
 print(f"{bold}Begin clone for deployment: {deployment_name}{_bold}", flush=True)
+logger.info(f"{bold}Begin clone for deployment: {deployment_name}{_bold}")
 print()
+
 try:
     govc_command = ["govc", "vm.info", VM]
     result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
@@ -321,26 +368,33 @@ try:
 
     # Check if the output contains the VM name and deployment_name
     print(f"{bold}Checking to see if a VM already exists with the name {VM}{_bold}", flush=True)
+    logger.info(f"{bold}Checking to see if a VM already exists with the name {VM}{_bold}")
     if VM in vmstat:
         govc_command2 = ["govc", "vm.info", "-json", VM]
         result2 = subprocess.run(govc_command2, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         vmstat2 = result2.stdout
         
         if deployment_name in vmstat2:
-            print(f"{bold}{VM} exists with the same deploment_id, using current VM.  I'll use this for triggering a rebuild eventually.  Right now, all build operations will run, just skipping the clone operation{_bold}", flush=True)
+            print(f"{bold}{VM} exists with the same deploment_id, using current VM. All build operations will run, just skipping the clone operation{_bold}", flush=True)
+            logger.info(f"{bold}{VM} exists with the same deploment_id, using current VM. All build operations will run, just skipping the clone operation{_bold}")
             vm_rebuild='True'
         else:
             print(f"{bold}A VM with the name {VM} already exists, bailing out!{_bold}", flush=True)
+            logger.error(f"{bold}A VM with the name {VM} already exists, bailing out!{_bold}")
             print(vmstat, flush=True)
+            logger.error(vmstat)
             print(f"{bold}A VM with the name {VM} already exists, bailing out!{_bold}", flush=True)
+            logger.error(f"{bold}A VM with the name {VM} already exists, bailing out!{_bold}")
             node.status = statusf_instance
             node.save(update_fields=['status'])
             sys.exit(1)
     else:
         print(f"{VM} does not exist", flush=True)
+        logger.info(f"{VM} does not exist")
 
         # VM does not exist, proceed with clone
         print(f"{bold}Cloning template{_bold}", flush=True)
+        logger.info(f"{bold}Cloning template{_bold}")
         if DATASTORECLUSTER.startswith("raw"):
             DATASTORE = DATASTORECLUSTER[3:]
             clone_command = [
@@ -357,41 +411,65 @@ try:
                 "-folder", folder, VM
             ]
         
-        try:
-            # Run the command with both stdout and stderr being captured in real-time LOGGING 
-            with subprocess.Popen(clone_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True) as process:
-                last_logged_percentage = -10  # Start with a negative to ensure 0% logs initially if needed
-                
-                for line in process.stdout:
-                    line = line.strip()  
-                    # Use a regular expression to find the percentage
-                    match = re.search(r"...(\d+)%\)", line)
-                    if match:
-                        current_percentage = int(match.group(1))
+        
+        retries = 3  # Number of retries
+        delay = 30  # Delay between retries in seconds
 
-                        # Log progress only for every 10% increment
-                        if current_percentage >= last_logged_percentage + 10:
-                            last_logged_percentage = current_percentage
-                            print(f"Progress: {line}")
-                
-                process.wait()  # Wait for the clone to complete
+        attempt = 0
+        while attempt < retries:
 
-                # Check the return code and raise an error if the command failed
-                if process.returncode != 0:
-                    raise subprocess.CalledProcessError(process.returncode, clone_command)
+            try:
+                attempt += 1
+                print(f"Attempt {attempt} of {retries} to clone VM...", flush=True)
+                logger.info(f"Attempt {attempt} of {retries} to clone VM...")
 
-            # subprocess.run(clone_command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=True)
-            print(f"{bold}Cloning completed for {VM}{_bold}", flush=True)
-            
-        except subprocess.CalledProcessError as e:
-            print(f"An error occurred while cloning the VM: {e.stderr}", flush=True)
-            
-            node.status = statusf_instance
-            node.save(update_fields=['status'])
-            sys.exit(1)
+                # Run the command with both stdout and stderr being captured in real-time LOGGING 
+                with subprocess.Popen(clone_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True) as process:
+                    last_logged_percentage = -10  # Start with a negative to ensure 0% logs initially if needed
+
+                    for line in process.stdout:
+                        line = line.strip()
+                        # Use a regular expression to find the percentage
+                        match = re.search(r"...(\d+)%\)", line)
+                        if match:
+                            current_percentage = int(match.group(1))
+
+                            # Log progress only for every 10% increment
+                            if current_percentage >= last_logged_percentage + 10:
+                                last_logged_percentage = current_percentage
+                                print(f"Progress: {line}")
+                                logger.info(f"Progress: {line}")
+
+                    process.wait()  # Wait for the clone to complete
+
+                    # Check the return code and raise an error if the command failed
+                    if process.returncode != 0:
+                        raise subprocess.CalledProcessError(process.returncode, clone_command)
+
+                # If the clone is successful, print a success message and break the loop
+                print(f"Cloning completed for {VM}", flush=True)
+                logger.info(f"Cloning completed for {VM}")
+                break  # Exit the retry loop since the operation was successful
+
+            except subprocess.CalledProcessError as e:
+                print(f"An error occurred while cloning the VM on attempt {attempt}: {e.stderr}", flush=True)
+                logger.error(f"An error occurred while cloning the VM on attempt {attempt}: {e.stderr}")
+
+                if attempt < retries:
+                    print(f"Retrying in {delay} seconds...", flush=True)
+                    logger.info(f"Retrying in {delay} seconds...")
+                    time.sleep(delay)  # Wait for 30 seconds before retrying
+                else:
+                    print("Maximum retries reached. Exiting.", flush=True)
+                    logger.error("Maximum retries reached. Exiting.")
+                    node.status = statusf_instance
+                    node.save(update_fields=['status'])
+                    sys.exit(1)  # Exit after exhausting retries
+
             
 except subprocess.CalledProcessError as e:
     print(f"An error occurred while checking the VM (govc): {e.stderr}", flush=True)
+    logger.error(f"An error occurred while checking the VM (govc): {e.stderr}")
     
     node.status = statusf_instance
     node.save(update_fields=['status'])
@@ -399,6 +477,7 @@ except subprocess.CalledProcessError as e:
 
     
 # print("Exiting early for testing")
+# logger.info("Exiting early for testing")
 # exit()
 
     
@@ -406,9 +485,11 @@ except subprocess.CalledProcessError as e:
 if DISK > 100 and OS != "SSVM-OEL7":
     boot_disk_size=(str(DISK) + "G")
     print(f"{bold}Resizing boot disk to {boot_disk_size}{_bold}", flush=True)
+    logger.info(f"{bold}Resizing boot disk to {boot_disk_size}{_bold}")
     subprocess.run(["govc", "vm.disk.change", "-vm", VM, "-disk.name", "disk-1000-0", "-size", str(boot_disk_size)], check=True)
 else:
     print(f"{bold}Disk size is 100G (default), no resize needed{_bold}", flush=True)
+    logger.info(f"{bold}Disk size is 100G (default), no resize needed{_bold}")
 
 
 # govc vm.info -json st1lndmike04 | jq '.virtualMachines[].config.hardware.device[] | select(.deviceInfo.label | test("Hard disk"))'
@@ -420,6 +501,7 @@ if ADDDISK == 'True':
     disk_name = (VM + "/" + VM + "_z")
     disk_size = (disk_size + "G")
     print(f"{bold}Adding 2nd disk - {disk_size}{_bold}", flush=True)
+    logger.info(f"{bold}Adding 2nd disk - {disk_size}{_bold}")
 
     datastore_result = subprocess.run(
         ["govc", "vm.info", "-json", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True
@@ -440,16 +522,20 @@ if ADDDISK == 'True':
         try:
             subprocess.run(command, check=True)
             print(f"Added a {disk_size} disk to {VM}", flush=True)
+            logger.info(f"Added a {disk_size} disk to {VM}")
         except subprocess.CalledProcessError as e:
             print(f"Failed to add disk to {VM}: {e}", flush=True)
+            logger.error(f"Failed to add disk to {VM}: {e}")
     else:
         print("No valid datastore found for the VM.", flush=True)
+        logger.error("No valid datastore found for the VM.")
 else:
     ADDDISK="False"
 
 
 # Get MAC address of VM
 print(f"{bold}Getting MAC address from vCenter, needed for adding to eIP{_bold}", flush=True)
+logger.info(f"{bold}Getting MAC address from vCenter, needed for adding to eIP{_bold}")
 mac_result = subprocess.run(
     ["govc", "vm.info", "-json", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True
 )
@@ -466,8 +552,10 @@ for device in vm_info['virtualMachines'][0]['config']['hardware']['device']:
 # Check if MAC address was found
 if mac_address:
     print("MAC -", mac_address, flush=True)
+    logger.info(f"MAC - {mac_address}")
 else:
     print("No MAC address found for VM:", VM, flush=True)
+    logger.error(f"No MAC address found for VM: {VM}")
     
     node.status = statusf_instance
     node.save(update_fields=['status'])
@@ -476,14 +564,16 @@ else:
 
 # Add VM to DNS and attempt resolution
 def add_to_dns():
-    sleep_delay=int(random.uniform(5, 30))
-    time.sleep(sleep_delay)
-    print(f"{bold}Sleeping for {sleep_delay} seconds{_bold}", flush=True)
-    print(f"{bold}Adding {VM}.{DOMAIN} to DNS{_bold}", flush=True)
-
     from SOLIDserverRest import SOLIDserverRest
     import logging, math, ipaddress, pprint
 
+    sleep_delay=int(random.uniform(5, 30))
+
+    print(f"{bold}Sleeping for {sleep_delay} seconds{_bold}", flush=True)
+    logger.info(f"{bold}Sleeping for {sleep_delay} seconds{_bold}")
+    time.sleep(sleep_delay)
+    print(f"{bold}Adding {VM}.{DOMAIN} to DNS{_bold}", flush=True)
+    logger.info(f"{bold}Adding {VM}.{DOMAIN} to DNS{_bold}")
 
     # Generate dc_to_dc from config
     def generate_dc_to_dc(config):
@@ -614,18 +704,22 @@ def add_to_dns():
 
     subnet = get_subnet_v4(vlan)
     #print(subnet)
+    #logger.info(subnet)
 
     # get next free address (pick 5 free IPs, skip the first 20)
     ipstart = ipaddress.IPv4Address(subnet['addr']) + 50
     free_address = get_next_free_address(subnet['id'], 5, ipstart)
     #pprint.pprint(free_address)
+    #pprint.plogger.info(free_address)
 
     # add ip to IPAM
     hostname = f"{VM}.{DOMAIN}"
     mac_addr = mac_address
     node = add_ip_address(free_address['address'][2],hostname,space['id'],mac_addr)
     #print(node)
+    #logger.info(node)
     #print(free_address['address'][2])
+    #logger.info(free_address['address'][2])
 
     del(SDS_CON)
 
@@ -637,6 +731,7 @@ def resolve_dns():
         try:
             ip_address = socket.gethostbyname(f"{VM}.{DOMAIN}")
             print(f"{VM}.{DOMAIN} resolves to {ip_address}", flush=True)
+            logger.info(f"{VM}.{DOMAIN} resolves to {ip_address}")
             return ip_address
         except socket.gaierror:
             if attempt == 0:
@@ -646,6 +741,7 @@ def resolve_dns():
     
     # If all attempts fail, exit with error
     print(f"{bold}Failed to resolve {VM}.{DOMAIN} after {max_retries} attempts!{_bold}", flush=True)
+    logger.error(f"{bold}Failed to resolve {VM}.{DOMAIN} after {max_retries} attempts!{_bold}")
     
     node.status = statusf_instance
     node.save(update_fields=['status'])
@@ -658,6 +754,7 @@ IP = resolve_dns()
 
 # Power off VM if necessary
 print(f"{bold}Powering off {VM} in case it's on{_bold}", flush=True)
+logger.info(f"{bold}Powering off {VM} in case it's on{_bold}")
 power_status = subprocess.run(["govc", "vm.info", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True)
 if "poweredOn" in power_status.stdout:
     subprocess.run(["govc", "vm.power", "-off", "-force", VM], check=True)
@@ -667,6 +764,7 @@ if "poweredOn" in power_status.stdout:
 # Customize hostname and IP
 # (cpu, memory, disk are set during clone)
 print(f"{bold}Customizing hostname, and IP (these settings are stored in vcenter and applied at first boot){_bold}", flush=True)
+logger.info(f"{bold}Customizing hostname, and IP (these settings are stored in vcenter and applied at first boot){_bold}")
 customize_command = [
     "govc", "vm.customize", "-vm", VM, "-type", "Linux", "-name", VM, "-domain", DOMAIN,
     "-mac", mac_address, "-ip", IP, "-netmask", NETMASK, "-gateway", GATEWAY, "-dns-server", DNS,
@@ -678,15 +776,22 @@ result = subprocess.run(customize_command, stdout=subprocess.PIPE, stderr=subpro
 if result.returncode != 0:
     if "Guest Customization is already pending" in result.stderr:
         print("Customization is already pending for this VM.", flush=True)
+        logger.info("Customization is already pending for this VM.")
     else:
         print("An error occurred while executing the command:", flush=True)
+        logger.error("An error occurred while executing the command:")
         print("Command:", result.args, flush=True)
+        logger.error("Command:", result.args)
         print("Return Code:", result.returncode, flush=True)
+        logger.error("Return Code:", result.returncode)
         print("Standard Output:", result.stdout, flush=True)
+        logger.error("Standard Output:", result.stdout)
         print("Standard Error:", result.stderr, flush=True)
+        logger.error("Standard Error:", result.stderr)
 else:
     # Success case
     print("Customization successful.", flush=True)
+    logger.info("Customization successful.")
 
 
 
@@ -702,23 +807,30 @@ fields_set_command = ["govc", "fields.set", "deployment", deployment_name, f"{fo
 set_result = subprocess.run(fields_set_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
 if set_result.returncode == 0:
-    print("Custom field 'deployment' successfully set to {deployment_name}")
+    print(f"Custom field 'deployment' successfully set to {deployment_name}", flush=True)
+    logger.info(f"Custom field 'deployment' successfully set to {deployment_name}")
 else:
-    print("Failed to set custom field 'deployment'.")
+    print(f"Failed to set custom field 'deployment'.", flush=True)
+    logger.error(f"Failed to set custom field 'deployment'.")
     print("Error:", set_result.stderr)
+    logger.error("Error:", set_result.stderr)
 
 fields_set_command = ["govc", "fields.set", "Created_by", f"SSVM ({BUILTBY})", f"{folder}/{VM}"]
 #fields_set_command = ["govc", "fields.set", "Created_by", "Michael Kuriger", f"{folder}/{VM}"]
 set_result = subprocess.run(fields_set_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                       
 if set_result.returncode == 0:
-    print("Custom field 'createdby' successfully set to {BUILTBY}")
+    print(f"Custom field 'createdby' successfully set to {BUILTBY}")
+    logger.info(f"Custom field 'createdby' successfully set to {BUILTBY}")
 else:
     print("Failed to set custom field 'createdby'.")
+    logger.error("Failed to set custom field 'createdby'.")
     print("Error:", set_result.stderr)
+    logger.error("Error:", set_result.stderr)
 
 # grab cmdb_uuid_value to put into the database at end of build
 print("Fetching cmdb_uuid and UUID from Vcenter")
+logger.info("Fetching cmdb_uuid and UUID from Vcenter")
 govc_command = ["govc", "vm.info", "-json", VM]
 uuid_result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 if uuid_result.returncode == 0:
@@ -731,9 +843,11 @@ if uuid_result.returncode == 0:
             break
                       
     if cmdb_uuid_value:
-        print("cmdb_uuid value:", cmdb_uuid_value)
+        print(f"cmdb_uuid value: {cmdb_uuid_value}", flush=True)
+        logger.info(f"cmdb_uuid value: {cmdb_uuid_value}")
     else:
         print("cmdb_uuid value not found.")
+        logger.error("cmdb_uuid value not found.")
                       
     vm_values = vm_info.get("virtualMachines", [{}])[0] 
     config = vm_values.get("config", {})
@@ -742,17 +856,22 @@ if uuid_result.returncode == 0:
     #name = config.get("name")
                       
     if uuid_value:
-        print("uuid value:", uuid_value)
+        print(f"uuid value: {uuid_value}")
+        logger.info(f"uuid value: {uuid_value}")
     else:
         print("uuid value not found.")
+        logger.error("uuid value not found.")
 else:
     print("Failed to retrieve VM info.")
+    logger.error("Failed to retrieve VM info.")
     print("Error:", uuid_result.stderr)                    
+    logger.error("Error:", uuid_result.stderr)                    
     
 # Generate ISO files for cloud-init
 from jinja2 import Environment, FileSystemLoader
 
 print(f"{bold}Generating ISO files for cloud-init{_bold}", flush=True)
+logger.info(f"{bold}Generating ISO files for cloud-init{_bold}")
 
 if ADDDISK:
     mountdisks = f"/vra_automation/installs/mount_extra_disks.sh"
@@ -844,8 +963,10 @@ iso_command = [
     "-o", iso_file, "-volid", "cidata", "-joliet", "-rock", user_data_file, meta_data_file
 ]
 #print(os_type)
+#logger.info(os_type)
 
 print(f"{bold}Creating ISO image for cloud-init{_bold}", flush=True)
+logger.info(f"{bold}Creating ISO image for cloud-init{_bold}")
 
 if os_type == "Linux":
     subprocess.run(
@@ -864,6 +985,7 @@ else:
 
 # Copy the ISO image to the VM's datastore
 print(f"{bold}Copying the ISO to the VM's datastore{_bold}", flush=True)
+logger.info(f"{bold}Copying the ISO to the VM's datastore{_bold}")
 datastore_result = subprocess.run(
     ["govc", "vm.info", "-json", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True
 )
@@ -888,20 +1010,25 @@ if datastore:
     )
 else:
     print("No valid datastore found for the VM.", flush=True)
+    logger.error("No valid datastore found for the VM.")
 
 
 
 # Mount the ISO to the VM and power it on
 print(f"{bold}Attach the ISO to the VM{_bold}", flush=True)
+logger.info(f"{bold}Attach the ISO to the VM{_bold}")
 cd_device = subprocess.run(["govc", "device.ls", "-vm", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True).stdout.splitlines()
 cdrom_device = [line.split()[0] for line in cd_device if "cdrom" in line][0]
 subprocess.run(["govc", "device.cdrom.insert", "-vm", VM, "-device", cdrom_device, "-ds", datastore, f"{VM}/seed.iso"], check=True)
 #print(f"ISO has been inserted into the CDROM", flush=True)
+#logger.info(f"ISO has been inserted into the CDROM")
 time.sleep(int(random.uniform(1, 3)))
 subprocess.run(["govc", "device.connect", "-vm", VM, cdrom_device], check=True)
 #print(f"ISO has been inserted and attached to {VM}", flush=True)
+#logger.info(f"ISO has been inserted and attached to {VM}")
 
 print(f"{bold}Power on the VM, then check status{_bold}", flush=True)
+logger.info(f"{bold}Power on the VM, then check status{_bold}")
 time.sleep(int(random.uniform(1, 3)))
 subprocess.run(["govc", "vm.power", "-on", VM], check=True)
 
@@ -921,22 +1048,29 @@ if "yellowpages" in DOMAIN:
     govc_command = ["govc", "vm.change", "-name", f"{VM}.{DOMAIN}", "-vm", VM]
     result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     if result.returncode == 0:
-        print(f"{VM} has been renamed to {VM}.{DOMAIN}")
+        print(f"{VM} has been renamed to {VM}.{DOMAIN}", flush=True)
+        logger.info(f"{VM} has been renamed to {VM}.{DOMAIN}")
     else:
-        print(f"Failed to rename {VM}")
+        print(f"Failed to rename {VM}", flush=True)
+        logger.error(f"Failed to rename {VM}")
         print("Error:", set_result.stderr)
+        logger.error("Error:", set_result.stderr)
 
                             
 if "poweredOn" in power_status.stdout:
     print(f"{VM} is powered up and booting.", flush=True)
+    logger.info(f"{VM} is powered up and booting.")
     print(f"Cloud-init will now perform post-deployment operations.  Please be patient, this can take a while.", flush=True)
+    logger.info(f"Cloud-init will now perform post-deployment operations.  Please be patient, this can take a while.")
     print(f"Build is complete.", flush=True)
+    logger.info(f"Build is complete.")
 
     # Update the specific fields
     node.status = statuss_instance
 
 else:
     print(f"{VM} did not power on after the build.  Please check with the Unix team for assistance.", flush=True)
+    logger.warning(f"{VM} did not power on after the build.  Please check with the Unix team for assistance.")
     node = Node.objects.get(name=f"{VM}.{DOMAIN}")
 
     # Update the specific fields

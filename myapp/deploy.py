@@ -4,6 +4,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from django.conf import settings
 
+import logging
+logger = logging.getLogger('deployment')
+
 # This program deploys the jobs that the user has requested, and is run by the task scheduler
 
 # for updating status in database

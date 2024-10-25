@@ -173,10 +173,16 @@ LOGGING = {
             'filename': os.path.join(BASE_DIR, 'django.log'),
             'formatter': 'verbose',
         },
-        'file': {
+        'deployfile': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
             'filename': os.path.join(BASE_DIR, 'deployment.log'),
+            'formatter': 'verbose',
+        },
+        'destroyfile': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'destroy.log'),
             'formatter': 'verbose',
         },
         'quiet_file': {  # New handler for less frequent logging
@@ -193,7 +199,12 @@ LOGGING = {
             'propagate': True,
         },
         'deployment': {
-            'handlers': ['file'],
+            'handlers': ['deployfile'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'destroy': {
+            'handlers': ['destroyfile'],
             'level': 'DEBUG',
             'propagate': False,
         },
