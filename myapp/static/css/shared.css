@@ -1096,7 +1096,8 @@ table#change-history tbody th {
     font-weight: lighter;
 }
 
-.status-retired {
+.status-screamtest {
     color: grey;
     font-weight: lighter;
+    font-style: italic;
 }

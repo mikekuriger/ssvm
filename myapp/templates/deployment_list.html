@@ -116,7 +116,7 @@
                                         </thead>
                                         <tbody>
                                         {% for deployment in deployments %}
-                                            {% if deployment.status != 'destroyed' %}
+                                            {% if deployment.status not in 'destroyed screamtest' %}
                                             <tr>
                                                 <td><a href="{% url 'deployment_detail' deployment.id %}">{{ deployment.deployment_name }}</a></td>
                                                 <td>{{ deployment.builtby }}</td>
@@ -165,6 +165,8 @@
                                                         {% else %}
                                                             <span style="color: gray; cursor: not-allowed;">Screamtest</span>
                                                         {% endif %}
+                                                    
+                                                
                                                     {% elif deployment.status == 'building' %}
                                                         <div class="loader"></div>
 
@@ -212,10 +214,7 @@
                                                         <span style="color: gray; cursor: not-allowed;">Re-Deploy</span> / 
                                                         <span style="color: gray; cursor: not-allowed;">Destroy Forever</span>
                                                     {% endif %}
-                                                   
-                                                
                                                 </td>
-
                                             </tr>
                                             {% endif %}
                                             
@@ -241,15 +240,10 @@
                                                         <span style="color: gray; cursor: not-allowed;">Re-Deploy</span> / 
                                                         <span style="color: gray; cursor: not-allowed;">Destroy Forever</span>
                                                     {% endif %}
-                                                   
-                                                
                                                 </td>
-
                                             </tr>
                                             {% endif %}
-                                            
                                         {% endfor %}
-
                                     </table>
                                 </div>
                             </div>
@@ -259,14 +253,30 @@
             </div>
         </div>
     
-<!-- Modal HTML for Confirmation -->
+<!-- Modal HTML for Destroy Confirmation -->
     <div id="confirmModal" class="modal" style="display: none;">
         <div class="modal-content">
             <h2>Are you sure you want to destroy this deployment?</h2>
-            <form id="confirmForm" method="post" action="{% url 'destroy_deployment' 0 %}">
+            <form id="confirmFormDestroy" method="post" action="{% url 'destroy_deployment' 0 %}">
                 {% csrf_token %}
                 <button type="submit">Yes, destroy</button>
-                <button type="button" id="cancelButton">Cancel</button>
+                <button type="button" id="cancelDestroyButton">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+<!-- Modal HTML for Screamtest Confirmation -->
+    <div id="confirmscreamModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Are you sure you want to screamtest this deployment?</h2>
+            <h4>All VMs in this deployment will be shut down and renamed.</h4>
+            <form id="confirmFormScream" method="post" action="{% url 'screamtest_deployment' 0 %}">
+                {% csrf_token %}
+                <label for="jira_ticket">Jira Ticket Number:</label>
+                <input type="text" name="jira_ticket" id="jira_ticket" required>
+                <h5>Please wait after hitting Yes</h5>
+                <button type="submit">Yes, screamtest</button>
+                <button type="button" id="cancelScreamButton">Cancel</button>
             </form>
         </div>
     </div>
@@ -278,77 +288,27 @@
                 e.preventDefault();
                 var deploymentId = $(this).data('id');
                 var deploymentStatus = $(this).data('status');
-                
-                if (deploymentStatus === 'needsapproval' || deploymentStatus === 'queued' || deploymentStatus === 'failed' || deploymentStatus === 'deployed' || deploymentStatus === 'destroyed') {
+
+                if (deploymentStatus === 'needsapproval' || deploymentStatus === 'queued' || deploymentStatus === 'failed' || deploymentStatus === 'destroyed') {
                     $('#confirmModal').show();
-                    
-                    $('#confirmForm').attr('action', `/destroy_deployment/${deploymentId}/`);
+                    $('#confirmFormDestroy').attr('action', `/destroy_deployment/${deploymentId}/`);
+                }
+
+                if (deploymentStatus === 'deployed') {
+                    $('#confirmscreamModal').show();
+                    $('#confirmFormScream').attr('action', `/screamtest_deployment/${deploymentId}/`);
                 }
             });
 
-            // Close modal on cancel button click
-            $('#cancelButton').click(function() {
+            // Close modals on cancel button click
+            $('#cancelDestroyButton').click(function() {
                 $('#confirmModal').hide();
             });
+
+            $('#cancelScreamButton').click(function() {
+                $('#confirmscreamModal').hide();
+            });
         });
-        
-//         // this updates the status automagically
-//         function updateStatus(deploymentId) {
-//             fetch(`/deployment-status/${deploymentId}/`)
-//                 .then(response => response.json())
-//                 .then(data => {
-//                     const statusElement = document.getElementById(`deployment-status-${deploymentId}`);
-//                     const actionsElement = document.getElementById(`deployment-actions-${deploymentId}`);
-
-//                     if (statusElement) {
-//                         // Update the text content
-//                         statusElement.textContent = data.status;
-
-//                         // Remove any existing status class
-//                         statusElement.classList.remove('status-queued', 'status-failed', 'status-building', 'status-deployed', 'status-needsapproval');
-
-//                         // Add the new class based on the status
-//                         if (data.status === 'queued') {
-//                             statusElement.classList.add('status-queued');
-//                             actionsElement.innerHTML = `<a href="#" class="destroy-button" data-id="${deploymentId}" data-status="queued">Destroy</a>`;
-//                         } else if (data.status === 'failed') {
-//                             statusElement.classList.add('status-failed');
-//                             actionsElement.innerHTML = `<a href="/approve_deployment/${deploymentId}" class="btn btn-primary">Re-Deploy</a> / 
-//                                                         <a href="#" class="destroy-button" data-id="${deploymentId}" data-status="failed">Destroy</a>`;
-//                         } else if (data.status === 'building') {
-//                             statusElement.classList.add('status-building');
-//                             actionsElement.innerHTML = `<a href="/cancel_deployment/${deploymentId}" class="btn btn-primary">Cancel</a>`;
-//                         } else if (data.status === 'deployed') {
-//                             } if (data.protected === True) {
-//                                 statusElement.classList.add('status-deployed');
-//                                 actionsElement.innerHTML = `<span style="color: gray; cursor: not-allowed;">Protected</span>`;
-//                             } else {
-//                                 statusElement.classList.add('status-deployed');
-//                                 actionsElement.innerHTML = `<a href="#" class="destroy-button" data-id="${deploymentId}" data-status="deployed">Destroy</a>`;
-//                             }
-//                         } else if (data.status === 'needsapproval') {
-//                             statusElement.classList.add('status-needsapproval');
-//                             actionsElement.innerHTML = `<a href="/approve_deployment/${deploymentId}" class="btn btn-primary">Approve</a> / 
-//                                                         <a href="#" class="destroy-button" data-id="${deploymentId}" data-status="needsapproval">Destroy</a>`;
-//                         }
-//                     }
-//                 })
-//                 .catch(error => console.error('Error:', error));
-//         }
-
-
-//         function startPollingStatus() {
-//             // Loop over all deployments and update their status
-//             {% for deployment in deployments %}
-//                 setInterval(() => {
-//                     updateStatus({{ deployment.id }});
-//                 }, 5000); // Every 5 seconds
-//             {% endfor %}
-//         }
-
-//         // Call the function to start polling
-//         startPollingStatus();
-
     </script>
 
     <style>

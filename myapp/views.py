@@ -133,7 +133,6 @@ def destroy_vm(node, deployment):
     # If both VM names were not found, return True since no deletion is needed
     #loggerdestroy.info(f"VM {vm_short_name} not found in Vcenter. No need to delete.")
     return False
-
     
 
 # function to remove node from DNS
@@ -281,6 +280,139 @@ def destroy_deployment_logic(deployment_id):
             return False
     else:
         loggerdestroy.info(f"Deployment {deployment.deployment_name} is not in 'queued_for_destroy' status.")
+
+# screamtest function
+def screamtest_deployment(request, deployment_id):
+    if request.method == 'POST':
+        deployment = get_object_or_404(Deployment, id=deployment_id)
+        decom_ticket = request.POST.get('jira_ticket')  # Retrieve the Jira ticket from the form data
+        decom_date = datetime.now().strftime("%m-%d-%y")
+        
+        if deployment.status == 'deployed':
+            
+        # Implement the screamtest logic here, ie shutting down VMs and renaming them
+            try:
+                deployment.status = 'screamtest'
+                deployment.decom_ticket = decom_ticket
+                deployment.save()
+                logger.info(f"Deployment {deployment.deployment_name} is now in 'screamtest' status.")
+
+                nodes_in_deployment = Node.objects.filter(deployment=deployment)
+                vm_screamtest = True
+
+                for node in nodes_in_deployment:
+                    # Screamtest VMs in the deployment
+                    vm_screamtest = screamtest_vm(node, deployment, decom_ticket, decom_date)
+                    if vm_screamtest == True:
+                        logger.info(f"VM {node.name} has been screamtested successfully.")
+                        # update node.name ?  maybe not...
+                        # update node.status
+                        node.status = Status.objects.get(name='screamtest')
+                        node.save()
+                
+                    elif vm_screamtest == False:  
+                        logger.info(f"Failed to screamtest VM {node.name} - operation failed.")
+
+                
+                # update deployment.decom_date and deployment.status
+                deployment.status = 'screamtest'
+                deployment.decom_date = decom_date
+                deployment.save(update_fields=['status'])
+                
+            
+                messages.success(request, f"Deployment {deployment_id} has been screamtested successfully.")
+                logger.info(request, f"Deployment {deployment_id} has been screamtested successfully.")
+
+            except Exception as e:
+                messages.error(request, f"Failed to screamtest deployment {deployment_id}. Error: {e}")
+
+            return redirect('deployment_list')
+        
+        else:
+            messages.error(request, f"Failed to screamtest deployment {deployment_id}. Not in 'deployed' status")
+            return redirect('deployment_list')
+
+    # If not a POST request, deny access or return an error
+    return HttpResponse("Invalid request method.", status=405)
+
+# screamtest VM function
+def screamtest_vm(node, deployment, decom_ticket, decom_date):
+    datacenter_name = deployment.datacenter
+    config = load_config()
+    datacenter = config['datacenters'].get(datacenter_name)
+    vcenter = datacenter['vcenter']
+    username = datacenter['credentials']['username']
+    password = datacenter['credentials']['password']
+
+    # Log the vCenter credentials being used
+    logger.info(f"Using vCenter {vcenter} to poweroff and rename {node.name}")
+
+    # Set environment variables for govc
+    _os.environ["GOVC_URL"] = f"https://{vcenter}"
+    _os.environ["GOVC_USERNAME"] = username
+    _os.environ["GOVC_PASSWORD"] = password
+    
+    # make sure vcenter is responding
+    logger.info(f"Testing vCenter {vcenter}")
+    govc_command = ["govc", "about"]
+    result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    if result.returncode != 0 or "503 Service Unavailable" in result.stderr:
+        logger.error(f"vCenter {vcenter} is not responding (503 error), setting deployment back to 'deployed'.")
+        deployment.status = 'deployed'  
+        deployment.save(update_fields=['status'])
+        return False
+    
+    else:
+        logger.info(f"vCenter {vcenter} is responding successfully.")
+        
+        # Proceed with VM naming
+        vm_short_name = node.name.split('.')[0]
+        vm_fqdn = node.name
+        vm_uuid = node.serial_number  # Get UUID from serial_number
+
+        if "yellowpages" in vm_fqdn:
+            vm_name = vm_fqdn
+        else:
+            vm_name = vm_short_name
+            
+        # Construct new VM name for screamtest
+        newname = f"{vm_name}-Screamtest_{decom_ticket}_{decom_date}"
+        
+        # Check if VM exists in vCenter
+        govc_command = ["govc", "vm.info", "-vm.uuid", vm_uuid]  
+        result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+
+        if result.returncode == 0:
+            # Power off the VM
+            power_off_command = ["govc", "vm.power", "-off", "-force", "-vm.uuid", vm_uuid]
+            subprocess.run(power_off_command, check=True)
+            
+            # Confirm powered off status
+            power_status_command = ["govc", "vm.info", "-vm.uuid", vm_uuid]
+            power_status = subprocess.run(power_status_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True)
+
+            if "poweredOff" in power_status.stdout:
+                logger.info(f"{vm_name} has been powered off")
+
+                # Rename VM to {vm_name}-Screamtest_{ticket}_{date}
+                rename_command = ["govc", "vm.change", "-vm.uuid", vm_uuid, "-name", newname]
+                rename_result = subprocess.run(rename_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+ 
+                if rename_result.returncode == 0:
+                    logger.info(f"Renamed {vm_name} to {newname}")
+                    return True
+
+                else:
+                    logger.error(f"Failed to rename {vm_name} with UUID {vm_uuid}. Error: {rename_result.stderr}")
+                    return False
+
+            else:
+                logger.error(f"Failed to power off {vm_name} with UUID {vm_uuid}. Error: {power_status.stderr}")
+                return False
+            
+        else:
+            logger.error(f"VM {vm_name} with UUID {vm_uuid} not found in vCenter")
+            return False
 
         
 # functions to view system logs

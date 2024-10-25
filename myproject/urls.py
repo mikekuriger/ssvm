@@ -20,6 +20,7 @@ urlpatterns = [
     path('approve_deployment/<int:deployment_id>/', views.approve_deployment, name='approve_deployment'),
     path('destroy_deployment/<int:deployment_id>/', views.destroy_deployment, name='destroy_deployment'),
     path('cancel_deployment/<int:deployment_id>/', views.cancel_deployment, name='cancel_deployment'),
+    path('screamtest_deployment/<int:deployment_id>/', views.screamtest_deployment, name='screamtest_deployment'),
     path('login/', LoginView.as_view(template_name='login.html'), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('deployment-status/<int:deployment_id>/', get_deployment_status, name='get_deployment_status'),

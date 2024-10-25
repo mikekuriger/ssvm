@@ -18,6 +18,8 @@ class Deployment(models.Model):
     domain = models.CharField(max_length=255, default='corp.pvt')
     full_hostnames = models.CharField(max_length=255)
     ticket = models.CharField(max_length=50)
+    decom_ticket = models.CharField(max_length=50, null=True, blank=True)
+    decom_date = models.CharField(max_length=255, null=True, blank=True)
     appname = models.CharField(max_length=255)
     owner = models.CharField(max_length=255)             # used for deployment name - uid
     owner_value = models.CharField(max_length=255)       # used for display - first last (uid)
