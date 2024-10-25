@@ -128,14 +128,7 @@
                                                             None
                                                         {% endif %}
                                                     </td>
-                                                    <td class="
-                                                            {% if node.status.name == 'inservice' %}status-inservice
-                                                            {% elif node.status.name == 'setup' %}status-setup
-                                                            {% elif node.status.name == 'failed' %}status-failed
-                                                            {% elif node.status.name == 'building' %}status-building
-                                                            {% elif node.status.name == 'retired' %}status-retired
-                                                            {% elif node.status.name == 'destroyed' %}status-destroyed
-                                                            {% endif %}">
+                                                    <td class="status-{{ node.status.name }}">
                                                     
                                                     {% if node.status.name == 'building' %}
                                                         

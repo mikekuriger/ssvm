@@ -1082,6 +1082,11 @@ table#change-history tbody th {
     font-weight: bold;
 }
 
+.status-error {
+    color: red;
+    font-weight: normal;
+}
+
 .status-inservice {
     color: green;
     font-weight: normal;

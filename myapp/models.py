@@ -49,7 +49,11 @@ class Deployment(models.Model):
     
     def __str__(self):
         return f"{self.deployment_name}"
-        # return f"{self.deployment_name} - {self.status}"
+    
+    class Meta:
+        permissions = [
+            ("can_cancel_screamtest", "Can cancel screamtest"),
+        ]
 
     
 # added to build a basic node page, similar to OPSDB

@@ -209,10 +209,11 @@
                                                    
                                                     {% if user.is_staff %}
                                                         <a href="{% url 'approve_deployment' deployment.id %}" class="btn btn-primary">Re-Deploy</a> / 
-                                                        <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy Forever</a>
+                                                        <a href="{% url 'destroy_deployment' deployment.id %}" class="btn btn-primary">Discard</a>
+                                                        
                                                     {% else %}
                                                         <span style="color: gray; cursor: not-allowed;">Re-Deploy</span> / 
-                                                        <span style="color: gray; cursor: not-allowed;">Destroy Forever</span>
+                                                       
                                                     {% endif %}
                                                 </td>
                                             </tr>
@@ -234,10 +235,10 @@
                                                 <td id="deployment-actions-{{ deployment.id }}">
                                                    
                                                     {% if user.is_staff %}
-                                                        <a href="{% url 'approve_deployment' deployment.id %}" class="btn btn-primary">Re-Deploy</a> / 
+                                                        <a href="{% url 'cancel_screamtest' deployment.id %}" class="btn btn-primary">Cancel</a> / 
                                                         <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy Forever</a>
                                                     {% else %}
-                                                        <span style="color: gray; cursor: not-allowed;">Re-Deploy</span> / 
+                                                        <span style="color: gray; cursor: not-allowed;">Cancel</span> / 
                                                         <span style="color: gray; cursor: not-allowed;">Destroy Forever</span>
                                                     {% endif %}
                                                 </td>
@@ -289,7 +290,7 @@
                 var deploymentId = $(this).data('id');
                 var deploymentStatus = $(this).data('status');
 
-                if (deploymentStatus === 'needsapproval' || deploymentStatus === 'queued' || deploymentStatus === 'failed' || deploymentStatus === 'destroyed') {
+                if (deploymentStatus === 'needsapproval' || deploymentStatus === 'queued' || deploymentStatus === 'failed' || deploymentStatus === 'screamtest') {
                     $('#confirmModal').show();
                     $('#confirmFormDestroy').attr('action', `/destroy_deployment/${deploymentId}/`);
                 }

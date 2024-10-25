@@ -1,6 +1,7 @@
 from datetime import datetime
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import JsonResponse, HttpResponse, FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -15,6 +16,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from time import sleep
+import glob
 import json
 import os as _os
 import socket
@@ -71,6 +73,9 @@ from SOLIDserverRest import SOLIDserverRest
 loggerdestroy = logging.getLogger('destroy')
 logger = logging.getLogger('deployment')
 
+
+
+
 # function to remove VM from vcenter
 def destroy_vm(node, deployment):
     datacenter_name = deployment.datacenter
@@ -81,7 +86,7 @@ def destroy_vm(node, deployment):
     password = datacenter['credentials']['password']
 
     # Log the vCenter credentials being used
-    loggerdestroy.info(f"Using vCenter {vcenter} to destroy VM {node.name}")
+    loggerdestroy.info(f"Using vCenter {vcenter} to destroy VM {node.name} with UUID {node.serial_number}")
 
     # Set environment variables for govc
     _os.environ["GOVC_URL"] = f"https://{vcenter}"
@@ -100,41 +105,40 @@ def destroy_vm(node, deployment):
     
     else:
         loggerdestroy.info(f"vCenter {vcenter} is responding successfully.")
-        
-        
-    vm_short_name = node.name.split('.')[0]
-    domain = deployment.domain or 'corp.pvt'
-    vm_fqdn = f"{vm_short_name}.{domain}"
 
-    for vm_name in [vm_short_name, vm_fqdn]:
-        # Try destroying by name and FQDN
-        loggerdestroy.info(f"Attempting to destroy VM: {vm_name}")
-        destroy_vm_command = ["govc", "vm.destroy", vm_name]
-        result = subprocess.run(destroy_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-        
-        if result.returncode == 0:
-            # If the command succeeded, the VM was destroyed
-            loggerdestroy.info(f"VM {vm_name} successfully destroyed from Vcenter.")
-            node.status = Status.objects.get(name='destroyed')
-            node.save(update_fields=['status'])
-            return True  
-        
-        elif 'not found' in result.stderr.lower():
-            # If the VM was not found, log and continue to try the next VM name
-            loggerdestroy.info(f"VM {vm_name} not found.")
-        
-        else:
-            # If there was any other error, log it and exit with an error
-            loggerdestroy.error(f"Error executing govc vm.destroy command for {vm_name}: {result.stderr}")
-            deployment.status = 'error'
-            deployment.save(update_fields=['status'])
-            return 'Error'  # Exit if there was any unexpected error
+    # vm_short_name = node.name.split('.')[0]
+    # domain = deployment.domain or 'corp.pvt'
+    # vm_fqdn = f"{vm_short_name}.{domain}"
+    vm_uuid = node.serial_number
     
-    # If both VM names were not found, return True since no deletion is needed
-    #loggerdestroy.info(f"VM {vm_short_name} not found in Vcenter. No need to delete.")
-    return False
+    loggerdestroy.info(f"Attempting to destroy VM: {node.name} by UUID {vm_uuid}")
+    destroy_vm_command = ["govc", "vm.destroy", "-vm.uuid", vm_uuid]
+    result = subprocess.run(destroy_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    
+    if result.returncode == 0:
+        # If the command succeeded, the VM was destroyed
+        loggerdestroy.info(f"VM {node.name} with UUID {vm_uuid} successfully destroyed from vCenter.")
+        node.status = Status.objects.get(name='destroyed')
+        node.save(update_fields=['status'])
+        return True  
+
+    elif 'no such' in result.stderr.lower() or 'not found' in result.stderr.lower():
+        loggerdestroy.info(f"VM {node.name} with UUID {vm_uuid} not found in vCenter.")
+        node.status = Status.objects.get(name='destroyed')
+        node.save(update_fields=['status'])
+        return False # this is OK, it was likely already deleted
+    
+    else:
+        # If there was any other error, log it and exit with an error
+        loggerdestroy.error(f"Error executing govc vm.destroy command for VM {node.name} with UUID {vm_uuid}: {result.stderr}")
+        deployment.status = 'error'
+        deployment.save(update_fields=['status'])
+        node.status = Status.objects.get(name='error')
+        node.save(update_fields=['status'])
+        return 'Error'  # Exit if there was any unexpected error
     
 
+    
 # function to remove node from DNS
 def remove_dns_entry(node, deployment):
     datacenter_name = deployment.datacenter
@@ -170,7 +174,10 @@ def remove_dns_entry(node, deployment):
         #loggerdestroy.info(f"{dns_name}.{dns_zone} was not found in DNS: {response.content.decode()}")
         return False
 
+    
+
 # Main Destroy Deployment logic
+@login_required
 def destroy_deployment(request, deployment_id):
     deployment = get_object_or_404(Deployment, id=deployment_id)
     
@@ -198,7 +205,7 @@ def destroy_deployment(request, deployment_id):
             messages.success(request, f"Deployment {deployment.deployment_name} has been successfully destroyed.")
             return redirect('deployment_list')
 
-        elif deployment.status == 'deployed':
+        elif deployment.status == 'screamtest':
             if request.method == 'POST':
                 deployment.status = 'queued_for_destroy'
                 deployment.save()
@@ -209,8 +216,8 @@ def destroy_deployment(request, deployment_id):
                 return redirect('deployment_list')
 
             else:
-                loggerdestroy.warning(f"Confirmation required to destroy running deployment: {deployment.deployment_name}")
-                messages.warning(request, "Confirmation required to destroy running deployments.")
+                loggerdestroy.warning(f"Confirmation required to destroy deployment: {deployment.deployment_name}")
+                messages.warning(request, "Confirmation required to destroy deployment.")
                 return render(request, 'confirm_destroy.html', {'deployment': deployment})
         
         messages.error(request, "Invalid deployment status for destruction.")
@@ -220,7 +227,10 @@ def destroy_deployment(request, deployment_id):
         loggerdestroy.error(f"Error queueing deployment destruction: {str(e)}")
         messages.error(request, f"An error occurred while queueing deployment destruction {deployment.deployment_name}: {str(e)}")
         return redirect('deployment_list')
-                
+
+
+
+
 def destroy_deployment_logic(deployment_id):
     deployment = get_object_or_404(Deployment, id=deployment_id)
     if deployment.status == 'queued_for_destroy':
@@ -244,11 +254,11 @@ def destroy_deployment_logic(deployment_id):
                 vm_destroyed = True # all is good
                 
             elif vm_destroyed == 'Error':  
-                loggerdestroy.error(f"Error deleting {vm_short_name} or {vm_fqdn} in Vcenter")
+                loggerdestroy.error(f"Error deleting {node.name} ({node.serial_number}) in vCenter")
                 return 'Error'
             else:
                 # loggerdestroy.info(f"Node {node.name} not in vCenter, no need to destroy.")
-                loggerdestroy.error(f"Failed to find {vm_short_name} or {vm_fqdn} in Vcenter, skipping VM delete operation")
+                loggerdestroy.error(f"Failed to find {node.name} ({node.serial_number}) in vCenter, skipping VM delete operation")
                 return 'Error'
             
         
@@ -281,7 +291,10 @@ def destroy_deployment_logic(deployment_id):
     else:
         loggerdestroy.info(f"Deployment {deployment.deployment_name} is not in 'queued_for_destroy' status.")
 
-# screamtest function
+        
+        
+# screamtest deployment function (calls screamtest vm function)
+@login_required
 def screamtest_deployment(request, deployment_id):
     if request.method == 'POST':
         deployment = get_object_or_404(Deployment, id=deployment_id)
@@ -334,6 +347,8 @@ def screamtest_deployment(request, deployment_id):
 
     # If not a POST request, deny access or return an error
     return HttpResponse("Invalid request method.", status=405)
+
+
 
 # screamtest VM function
 def screamtest_vm(node, deployment, decom_ticket, decom_date):
@@ -414,9 +429,77 @@ def screamtest_vm(node, deployment, decom_ticket, decom_date):
             logger.error(f"VM {vm_name} with UUID {vm_uuid} not found in vCenter")
             return False
 
+from django.contrib.auth.decorators import login_required, permission_required
+
+
+
+# Cancel screamtest
+@login_required
+@permission_required('myapp.can_cancel_screamtest', raise_exception=True)       
+def cancel_screamtest(request, deployment_id):
+    # Retrieve the deployment object
+    deployment = get_object_or_404(Deployment, id=deployment_id)
+    
+    # Check if the deployment is in a screamtest status before canceling
+    if deployment.status == 'screamtest':
         
+        # bring VMs back online and rename them back to their original name
+        nodes_in_deployment = Node.objects.filter(deployment=deployment)
+        all_restored = True  # Track if all VMs are restored successfully
+        
+        for node in nodes_in_deployment:
+            if deployment.domain == 'corp.pvt':
+                original_name = node.name.split('.')[0]
+            else:
+                original_name = node.name
+            vm_uuid = node.serial_number  # UUID for more reliable identification
+
+            # Step 1: Rename the VM back to its original name
+            rename_command = ["govc", "vm.change", "-vm.uuid", vm_uuid, "-name", original_name]
+            rename_result = subprocess.run(rename_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+
+            if rename_result.returncode == 0:
+                logger.info(f"VM {original_name} renamed in Vcenter")
+            else:
+                logger.error(f"Failed to rename VM {vm_uuid}. Error: {rename_result.stderr}")
+                all_restored = False
+                
+            # Step 2: Power on the VM
+            power_on_command = ["govc", "vm.power", "-on", "-vm.uuid", vm_uuid]
+            power_on_result = subprocess.run(power_on_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+
+            if power_on_result.returncode == 0:
+                logger.info(f"VM {original_name} powered on successfully.")
+            else:
+                logger.error(f"Failed to power on VM {original_name}. Error: {power_on_result.stderr}")
+                all_restored = False
+                continue  # Move to next VM in case of error
+
+            # Step 3: Update the VM status to "inservice"
+            node.status = Status.objects.get(name='inservice')
+            node.save(update_fields=['status'])
+            
+
+        # Update deployment status based on restoration success
+        if all_restored:
+            deployment.status = 'deployed'
+            deployment.save()
+            logger.info(f"Screamtest for Deployment {deployment_id} has been canceled.")
+            messages.success(request, f"Screamtest for Deployment {deployment.deployment_name} has been successfully canceled.")
+        else:
+            deployment.status = 'error'
+            deployment.save()
+            messages.error(request, f"Failed to fully cancel screamtest for Deployment {deployment.deployment_name}. Check logs for details.")
+    
+    else:
+        messages.error(request, f"Deployment {deployment.deployment_name} is not in screamtesting status.")
+    
+    return redirect('deployment_list')
+
+
+
 # functions to view system logs
-import glob
+@login_required
 def view_system_logs(request, log_type):
     log_files = {
         'destroy': [ _os.path.join(settings.BASE_DIR, 'destroy.log')],
@@ -477,6 +560,10 @@ def view_system_logs(request, log_type):
         return HttpResponse(response_content, content_type='text/plain')
 
     return HttpResponse(f"Log type '{log_type}' not found.", status=404)
+
+
+
+@login_required
 def view_log(request, node_id):
     node = get_object_or_404(Node, id=node_id)
     vm_short_name = node.name.split('.')[0]
@@ -494,8 +581,9 @@ def view_log(request, node_id):
     return render(request, 'view_log.html', {'node': node, 'vm_short_name': vm_short_name})
 
 
-# logger = logging.getLogger(__name__)
 
+
+@login_required
 def tail_log(request, node_name):
     vm_short_name = node_name.split('.')[0]
     log_file_path = _os.path.join(settings.MEDIA_ROOT, f"{vm_short_name}.log")
@@ -522,34 +610,8 @@ def tail_log(request, node_name):
 
     
 
-def node_list(request):
-    #nodes = Node.objects.all().order_by('name')
-    query = request.GET.get('q')
-    if query:
-        nodes = Node.objects.filter(name__icontains=query).order_by('name') 
-    else:
-        nodes = Node.objects.all().order_by('name')
-    
-    paginator = Paginator(nodes, 20)  # Show 10 nodes per page
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number) 
-    return render(request, 'nodes.html', {'page_obj': page_obj})
 
-# for listing node status
-def node_detail(request, node_id):
-    node = get_object_or_404(Node, id=node_id)
-    return render(request, 'node_detail.html', {'node': node})
-
-# lists all deployments
-def deployment_list(request):
-    deployments = Deployment.objects.all().order_by('-created_at')
-    return render(request, 'deployment_list.html', {'deployments': deployments})
-
-# for listing deployment status
-def deployment_detail(request, deployment_id):
-    deployment = get_object_or_404(Deployment, id=deployment_id)
-    return render(request, 'deployment_detail.html', {'deployment': deployment})
-
+@login_required
 def create_vm(request):
     # Load the configuration and prepare the datacenter choices
     config = load_config()
@@ -808,3 +870,35 @@ def check_dns(request):
             return JsonResponse({'error': 'Invalid JSON format'}, status=400)
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=405)
+    
+
+# List all nodes
+def node_list(request):
+    #nodes = Node.objects.all().order_by('name')
+    query = request.GET.get('q')
+    if query:
+        nodes = Node.objects.filter(name__icontains=query).order_by('name') 
+    else:
+        nodes = Node.objects.all().order_by('name')
+    
+    paginator = Paginator(nodes, 20)  # Show 10 nodes per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number) 
+    return render(request, 'nodes.html', {'page_obj': page_obj})
+
+# for listing node status
+def node_detail(request, node_id):
+    node = get_object_or_404(Node, id=node_id)
+    return render(request, 'node_detail.html', {'node': node})
+
+# lists all deployments
+def deployment_list(request):
+    deployments = Deployment.objects.all().order_by('-created_at')
+    return render(request, 'deployment_list.html', {'deployments': deployments})
+
+# for listing deployment status
+def deployment_detail(request, deployment_id):
+    deployment = get_object_or_404(Deployment, id=deployment_id)
+    return render(request, 'deployment_detail.html', {'deployment': deployment})
+
+
