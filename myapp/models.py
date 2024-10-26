@@ -9,9 +9,11 @@ class Item(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField()
     
+
 class Deployment(models.Model):
     id = models.AutoField(primary_key=True)
     builtby = models.CharField(max_length=255, null=True, blank=True)
+    description = models.CharField(max_length=255, null=True, blank=True) 
     deployment_date = models.CharField(max_length=255)
     deployment_name = models.CharField(max_length=255)
     hostname = models.CharField(max_length=255)

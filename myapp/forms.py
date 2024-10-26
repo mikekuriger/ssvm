@@ -75,9 +75,15 @@ class VMCreationForm(forms.Form):
     )
 
     appname = forms.CharField(
-         label="App",
+        label="App",
         required=True,
         widget=forms.TextInput(attrs={'id': 'appname', 'class': 'form-control', 'placeholder': 'My App'})
+    )
+    
+    description = forms.CharField(
+        label="Description",
+        required=False,
+        widget=forms.TextInput(attrs={'id': 'description', 'class': 'form-control', 'placeholder': 'Description'})
     )
     
     domain = forms.ChoiceField(

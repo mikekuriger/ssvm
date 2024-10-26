@@ -30,6 +30,13 @@
             width: 85%;
             box-sizing: border-box;
         }
+        .my-desc-field {
+            font-size: 11px;
+            height: 30px;
+            padding: 0px 10px;
+            width: 85%;
+            box-sizing: border-box;
+        }
         #hostname_hint {
             font-size: 10px;
         }
@@ -100,12 +107,21 @@
                             </div>
                         </div>
                         <div id="appnameError" style="color:red; display:none;"></div>
+                        
+                        <div class="mb-3 row move-right">
+                            <label for="description" class="col-sm-3 col-form-label small-label">{{ form.description.label_tag }}</label>
+                            <div class="col-sm-9">
+                            {{ form.description|add_class:"form-control my-desc-field" }}
+                            </div>
+                        </div>
+                        
                         <div class="mb-3 row move-right">
                             <label for="domain" class="col-sm-3 col-form-label small-label">{{ form.domain.label_tag }}</label>
                             <div class="col-sm-9">
                                 {{ form.domain|add_class:"form-control my-smaller-field" }}
                             </div>
                         </div>
+                        
                        
                     </div>
 
@@ -254,7 +270,9 @@
                     </div>     
                     {% endif %}
                     </div>
+                    
                     <!-- Right Column: Additional User Input Fields -->
+                    
                     <div class="col-md-3">
                         <input type="hidden" id="full_hostnames" name="full_hostnames" value="">
                         <div class="mb-3 row d-flex align-items-center">
