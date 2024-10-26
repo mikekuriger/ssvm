@@ -220,7 +220,8 @@ if DC == "st1":
     
     # Set the GOVC_URL environment variables for ST1 Vcenter
     pool = f"/st1dccomp01/host/{CLUSTER}/Resources"
-    folder = "/st1dccomp01/vm/vRA - Thryv Cloud/TESTING"
+    #folder = "/st1dccomp01/vm/vRA - Thryv Cloud/TESTING"
+    folder = "/st1dccomp01/vm/vRA - Thryv Cloud/SSVM"
     datacenter = config['datacenters'][DC]
     vcenter = datacenter['vcenter']
     username = datacenter['credentials']['username']
@@ -253,7 +254,8 @@ else:
 
     # Set the GOVC_URL environment variables
     pool = f"/ev3dccomp01/host/{CLUSTER}/Resources"
-    folder = "/ev3dccomp01/vm/vRA - Thryv Cloud/TESTING"
+    #folder = "/ev3dccomp01/vm/vRA - Thryv Cloud/TESTING"
+    folder = "/ev3dccomp01/vm/vRA - Thryv Cloud/SSVM"
     datacenter = config['datacenters'][DC]
     vcenter = datacenter['vcenter']
     username = datacenter['credentials']['username']
@@ -482,7 +484,7 @@ except subprocess.CalledProcessError as e:
 
     
 # Resize boot disk if needed
-if DISK > 100 and OS != "SSVM-OEL7":
+if DISK > 100:
     boot_disk_size=(str(DISK) + "G")
     print(f"{bold}Resizing boot disk to {boot_disk_size}{_bold}", flush=True)
     logger.info(f"{bold}Resizing boot disk to {boot_disk_size}{_bold}")
@@ -490,9 +492,6 @@ if DISK > 100 and OS != "SSVM-OEL7":
 else:
     print(f"{bold}Disk size is 100G (default), no resize needed{_bold}", flush=True)
     logger.info(f"{bold}Disk size is 100G (default), no resize needed{_bold}")
-
-
-# govc vm.info -json st1lndmike04 | jq '.virtualMachines[].config.hardware.device[] | select(.deviceInfo.label | test("Hard disk"))'
 
 
 # if requested, add 2nd disk 
@@ -820,11 +819,11 @@ fields_set_command = ["govc", "fields.set", "Created_by", f"SSVM ({BUILTBY})", f
 set_result = subprocess.run(fields_set_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                       
 if set_result.returncode == 0:
-    print(f"Custom field 'createdby' successfully set to {BUILTBY}")
-    logger.info(f"Custom field 'createdby' successfully set to {BUILTBY}")
+    print(f"Custom field 'Created_by' successfully set to {BUILTBY}")
+    logger.info(f"Custom field 'Created_by' successfully set to {BUILTBY}")
 else:
-    print("Failed to set custom field 'createdby'.")
-    logger.error("Failed to set custom field 'createdby'.")
+    print("Failed to set custom field 'Created_by'.")
+    logger.error("Failed to set custom field 'Createdby'.")
     print("Error:", set_result.stderr)
     logger.error("Error:", set_result.stderr)
 

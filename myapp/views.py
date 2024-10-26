@@ -106,36 +106,45 @@ def destroy_vm(node, deployment):
     else:
         loggerdestroy.info(f"vCenter {vcenter} is responding successfully.")
 
-    # vm_short_name = node.name.split('.')[0]
-    # domain = deployment.domain or 'corp.pvt'
-    # vm_fqdn = f"{vm_short_name}.{domain}"
-    vm_uuid = node.serial_number
-    
-    loggerdestroy.info(f"Attempting to destroy VM: {node.name} by UUID {vm_uuid}")
-    destroy_vm_command = ["govc", "vm.destroy", "-vm.uuid", vm_uuid]
-    result = subprocess.run(destroy_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-    
-    if result.returncode == 0:
-        # If the command succeeded, the VM was destroyed
-        loggerdestroy.info(f"VM {node.name} with UUID {vm_uuid} successfully destroyed from vCenter.")
-        node.status = Status.objects.get(name='destroyed')
-        node.save(update_fields=['status'])
-        return True  
+        vm_uuid = node.serial_number
+        vm_short_name = node.name.split('.')[0]
+        vm_fqdn = node.name
+        
+        if "yellowpages" in vm_fqdn:
+            vm_name = vm_fqdn
+        else:
+            vm_name = vm_short_name
 
-    elif 'no such' in result.stderr.lower() or 'not found' in result.stderr.lower():
-        loggerdestroy.info(f"VM {node.name} with UUID {vm_uuid} not found in vCenter.")
-        node.status = Status.objects.get(name='destroyed')
-        node.save(update_fields=['status'])
-        return False # this is OK, it was likely already deleted
-    
-    else:
-        # If there was any other error, log it and exit with an error
-        loggerdestroy.error(f"Error executing govc vm.destroy command for VM {node.name} with UUID {vm_uuid}: {result.stderr}")
-        deployment.status = 'error'
-        deployment.save(update_fields=['status'])
-        node.status = Status.objects.get(name='error')
-        node.save(update_fields=['status'])
-        return 'Error'  # Exit if there was any unexpected error
+        if vm_uuid is not None:
+            destroy_vm_command = ["govc", "vm.destroy", "-vm.uuid", vm_uuid]
+            loggerdestroy.info(f"Attempting to destroy VM: {vm_name} by UUID {vm_uuid}")
+        else:
+            destroy_vm_command = ["govc", "vm.destroy", vm_name]
+            loggerdestroy.info(f"Attempting to destroy VM: {vm_name}")
+
+        result = subprocess.run(destroy_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+
+        if result.returncode == 0:
+            # If the command succeeded, the VM was destroyed
+            loggerdestroy.info(f"VM {vm_name} successfully destroyed from vCenter.")
+            node.status = Status.objects.get(name='destroyed')
+            node.save(update_fields=['status'])
+            return True  
+
+        elif 'no such' in result.stderr.lower() or 'not found' in result.stderr.lower():
+            loggerdestroy.info(f"VM {vm_name} not found in vCenter.")
+            node.status = Status.objects.get(name='destroyed')
+            node.save(update_fields=['status'])
+            return False # this is OK, it was likely already deleted
+
+        else:
+            # If there was any other error, log it and exit with an error
+            loggerdestroy.error(f"Error executing govc vm.destroy command for VM {vm_name}: {result.stderr}")
+            deployment.status = 'error'
+            deployment.save(update_fields=['status'])
+            node.status = Status.objects.get(name='error')
+            node.save(update_fields=['status'])
+            return 'Error'  # Exit if there was any unexpected error
     
 
     
@@ -188,6 +197,7 @@ def destroy_deployment(request, deployment_id):
         return redirect('deployment_list')
     
     try:
+        # these statuses do not have VMs already built so we will delete the deployment right away and not try to delete VMs (get confirmation)
         if deployment.status == 'queued':
             if request.method == 'POST':
                 deployment.delete()
@@ -199,20 +209,20 @@ def destroy_deployment(request, deployment_id):
                 messages.warning(request, "Confirmation required to destroy queued deployments.")
                 return render(request, 'confirm_destroy.html', {'deployment': deployment})
 
-        elif deployment.status in ['needsapproval', 'failed', 'destroyed']:
+        # these statuses do not have VMs already built so we will delete the deployment right away and not try to delete VMs
+        elif deployment.status in ['needsapproval', 'destroyed']:
             deployment.delete()
             loggerdestroy.info(f"Deployment {deployment.deployment_name} deleted (needsapproval/failed/destroyed).")
             messages.success(request, f"Deployment {deployment.deployment_name} has been successfully destroyed.")
             return redirect('deployment_list')
 
-        elif deployment.status == 'screamtest':
+        # these statuses may or may not have VMs already built so we will try to delete the VMs and DNS (get confirmation)
+        elif deployment.status in ['screamtest', 'failed', 'deployed']:
             if request.method == 'POST':
                 deployment.status = 'queued_for_destroy'
                 deployment.save()
                 loggerdestroy.info(f"Deployment {deployment.deployment_name} is now in 'queued_for_destroy' status.")
                 messages.success(request, f"Deployment {deployment.deployment_name} has been successfully queued for destroy.")
-                # Queue the destroy operation as a background task
-                #destroy_deployment_task(deployment_id)
                 return redirect('deployment_list')
 
             else:
@@ -384,7 +394,7 @@ def screamtest_vm(node, deployment, decom_ticket, decom_date):
         vm_short_name = node.name.split('.')[0]
         vm_fqdn = node.name
         vm_uuid = node.serial_number  # Get UUID from serial_number
-
+        
         if "yellowpages" in vm_fqdn:
             vm_name = vm_fqdn
         else:
@@ -394,23 +404,32 @@ def screamtest_vm(node, deployment, decom_ticket, decom_date):
         newname = f"{vm_name}-Screamtest_{decom_ticket}_{decom_date}"
         
         # Check if VM exists in vCenter
-        govc_command = ["govc", "vm.info", "-vm.uuid", vm_uuid]  
+        if vm_uuid is not None and vm_uuid != '':
+            govc_command = ["govc", "vm.info", "-vm.uuid", vm_uuid]
+            power_off_command = ["govc", "vm.power", "-off", "-force", "-vm.uuid", vm_uuid]
+            power_status_command = ["govc", "vm.info", "-vm.uuid", vm_uuid]
+            rename_command = ["govc", "vm.change", "-vm.uuid", vm_uuid, "-name", newname]
+            logger.info(f"using UUID {vm_uuid}")
+        else:
+            govc_command = ["govc", "vm.info", vm_name]
+            power_off_command = ["govc", "vm.power", "-off", "-force", vm_name]
+            power_status_command = ["govc", "vm.info", vm_name]
+            rename_command = ["govc", "vm.change", "-vm", vm_name, "-name", newname]
+            logger.info(f"using NAME {vm_name}")
+            
         result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
         if result.returncode == 0:
             # Power off the VM
-            power_off_command = ["govc", "vm.power", "-off", "-force", "-vm.uuid", vm_uuid]
             subprocess.run(power_off_command, check=True)
             
             # Confirm powered off status
-            power_status_command = ["govc", "vm.info", "-vm.uuid", vm_uuid]
             power_status = subprocess.run(power_status_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True)
 
             if "poweredOff" in power_status.stdout:
                 logger.info(f"{vm_name} has been powered off")
 
                 # Rename VM to {vm_name}-Screamtest_{ticket}_{date}
-                rename_command = ["govc", "vm.change", "-vm.uuid", vm_uuid, "-name", newname]
                 rename_result = subprocess.run(rename_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
  
                 if rename_result.returncode == 0:
@@ -418,15 +437,15 @@ def screamtest_vm(node, deployment, decom_ticket, decom_date):
                     return True
 
                 else:
-                    logger.error(f"Failed to rename {vm_name} with UUID {vm_uuid}. Error: {rename_result.stderr}")
+                    logger.error(f"Failed to rename {vm_name}. Error: {rename_result.stderr}")
                     return False
 
             else:
-                logger.error(f"Failed to power off {vm_name} with UUID {vm_uuid}. Error: {power_status.stderr}")
+                logger.error(f"Failed to power off {vm_name}. Error: {power_status.stderr}")
                 return False
             
         else:
-            logger.error(f"VM {vm_name} with UUID {vm_uuid} not found in vCenter")
+            logger.error(f"VM {vm_name} not found in vCenter")
             return False
 
 from django.contrib.auth.decorators import login_required, permission_required

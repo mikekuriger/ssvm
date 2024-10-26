@@ -160,7 +160,8 @@
                                                             {% if deployment.protected %}
                                                                 <span style="color: gray; cursor: not-allowed;">Protected</span>
                                                             {% else %}
-                                                                <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Screamtest</a>
+                                                                <a href="#" class="screamtest-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Screamtest</a> / 
+                                                                <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy</a>
                                                             {% endif %}
                                                         {% else %}
                                                             <span style="color: gray; cursor: not-allowed;">Screamtest</span>
@@ -290,10 +291,16 @@
                 var deploymentId = $(this).data('id');
                 var deploymentStatus = $(this).data('status');
 
-                if (deploymentStatus === 'needsapproval' || deploymentStatus === 'queued' || deploymentStatus === 'failed' || deploymentStatus === 'screamtest') {
+                if (deploymentStatus === 'needsapproval' || deploymentStatus === 'queued' || deploymentStatus === 'failed' || deploymentStatus === 'deployed' || deploymentStatus === 'screamtest') {
                     $('#confirmModal').show();
                     $('#confirmFormDestroy').attr('action', `/destroy_deployment/${deploymentId}/`);
                 }
+            });
+            
+            $('.screamtest-button').click(function(e) {
+                e.preventDefault();
+                var deploymentId = $(this).data('id');
+                var deploymentStatus = $(this).data('status');
 
                 if (deploymentStatus === 'deployed') {
                     $('#confirmscreamModal').show();
