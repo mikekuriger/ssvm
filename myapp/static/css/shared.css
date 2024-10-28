@@ -1099,6 +1099,7 @@ table#change-history tbody th {
 .status-destroyed {
     color: grey;
     font-weight: lighter;
+    text-decoration: line-through;
 }
 
 .status-screamtest {
@@ -1106,3 +1107,5 @@ table#change-history tbody th {
     font-weight: lighter;
     font-style: italic;
 }
+
+

@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 from myapp.config_helper import load_config
 from myapp.forms import VMCreationForm
-from myapp.models import Deployment, Node, HardwareProfile, OperatingSystem, Status
+from myapp.models import Deployment, Node, HardwareProfile, OperatingSystem, Status, VRA_Deployment, VRA_Node
 from myapp.serializers import NodeSerializer
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -630,7 +630,6 @@ def tail_log(request, node_name):
     
 
 
-@login_required
 def create_vm(request):
     # Load the configuration and prepare the datacenter choices
     config = load_config()
@@ -893,31 +892,64 @@ def check_dns(request):
 
 # List all nodes
 def node_list(request):
-    #nodes = Node.objects.all().order_by('name')
-    query = request.GET.get('q')
-    if query:
-        nodes = Node.objects.filter(name__icontains=query).order_by('name') 
-    else:
-        nodes = Node.objects.all().order_by('name')
+    model_type = request.GET.get('model', 'node')  # Get the model type from the URL parameter
+    query = request.GET.get('q', '')
+    page_size = int(request.GET.get('page_size', 20))
     
-    paginator = Paginator(nodes, 20)  # Show 10 nodes per page
+    if model_type == 'vra':
+        # query = request.GET.get('q')
+        vranodes = VRA_Node.objects.filter(name__icontains=query).order_by('name') if query else VRA_Node.objects.all().order_by('name')
+        paginator = Paginator(vranodes, page_size)
+    else:
+        # query = request.GET.get('q')
+        nodes = Node.objects.filter(name__icontains=query).order_by('name') if query else Node.objects.all().order_by('name')
+        paginator = Paginator(nodes, page_size)
+    
     page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number) 
-    return render(request, 'nodes.html', {'page_obj': page_obj})
+    page_obj = paginator.get_page(page_number)
+
+    # Pass the model type to the template
+    return render(request, 'nodes.html', {
+        'page_obj': page_obj,
+        'model_type': model_type,
+        'query': query,
+    })
+
 
 # for listing node status
-def node_detail(request, node_id):
-    node = get_object_or_404(Node, id=node_id)
+#def node_detail(request, node_id):
+def node_detail(request, node_id, model_type):
+    if model_type == 'vra':
+        node = get_object_or_404(VRA_Node, id=node_id)
+    else:
+        node = get_object_or_404(Node, id=node_id)
+        
+    #node = get_object_or_404(Node, id=node_id)
     return render(request, 'node_detail.html', {'node': node})
+
 
 # lists all deployments
 def deployment_list(request):
     deployments = Deployment.objects.all().order_by('-created_at')
-    return render(request, 'deployment_list.html', {'deployments': deployments})
+    show_vra_deployments = request.GET.get('show_vra', 'false') == 'true'
+    vra_deployments = VRA_Deployment.objects.all().order_by('-created_at') if show_vra_deployments else None
+    
+    return render(request, 'deployment_list.html', {
+        'deployments': deployments,
+        'vra_deployments': vra_deployments,
+        'show_vra_deployments': show_vra_deployments
+    })
 
 # for listing deployment status
 def deployment_detail(request, deployment_id):
-    deployment = get_object_or_404(Deployment, id=deployment_id)
+    # Try to retrieve the deployment from `Deployment`
+    try:
+        deployment = Deployment.objects.get(id=deployment_id)
+    except Deployment.DoesNotExist:
+        # If not found, try `VRA_Deployment`
+        deployment = get_object_or_404(VRA_Deployment, id=deployment_id)
+        
+    #deployment = get_object_or_404(Deployment, id=deployment_id)
     return render(request, 'deployment_detail.html', {'deployment': deployment})
 
 

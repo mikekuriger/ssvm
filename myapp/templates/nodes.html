@@ -8,57 +8,79 @@
 <!--     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"> -->
     <link rel="icon" href="{% static 'favicon.ico' %}">
     <style>
-    /* Container for sidebar and main content */
-    .container {
-        display: flex;
-    }
+        /* Container for sidebar and main content */
+        .container {
+            display: flex;
+        }
 
-    /* Sidebar styles */
-    .side-panel {
-        width: 50px;  /* Set the width of the sidebar */
-    }
+        /* Sidebar styles */
+        .side-panel {
+            width: 50px;  /* Set the width of the sidebar */
+        }
 
-    /* Main content styles (shifted to the right) */
-    .content-right {
-        flex-grow: 1;  /* Takes up remaining space */
-        margin-left: 10px;  /* Space between sidebar and content */
-    }
+        /* Main content styles (shifted to the right) */
+        .content-right {
+            flex-grow: 1;  /* Takes up remaining space */
+            margin-left: 10px;  /* Space between sidebar and content */
+        }
 
-    /* Ensure table takes full width of content-right */
-    .content-right table {
-        width: 100%;
-    }
-        /* This centers the search container and moves it to the right side */
-    .search-container {
-        display: flex;
-/*         justify-content: flex-end; /* Moves the search box to the right */ */
-        margin-left: 0px;
-    }
-    button {
-        margin-left: 10px;
-        padding: 8px 12px;
-        background-color: #007BFF;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-    }
+        /* Ensure table takes full width of content-right */
+        .content-right table {
+            width: 100%;
+        }
+            /* This centers the search container and moves it to the right side */
+        .search-container {
+            display: flex;
+            margin-left: 0px;
+        }
+        button {
+            margin-left: 10px;
+            padding: 8px 12px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
 
-    button:hover {
-        background-color: #0056b3;
-    }
-
-
+        button:hover {
+            background-color: #0056b3;
+        }
     </style>
     
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (!urlParams.has('page_size')) {  // Only set page size if it's not already in the URL
+            const windowHeight = window.innerHeight;
+
+            // Define lines per page based on screen height
+            //let pageSize;
+            let pageSize = (Math.floor(windowHeight / 30 - 15)) ;
+            console.log(pageSize);
+            console.log(windowHeight);
+            // if (windowHeight > 1024) {
+            //     pageSize = 25;   // Large screens
+            // } else if (windowHeight > 768) {
+            //     pageSize = 18;   // Medium screens
+            // } else {
+            //     pageSize = 10;   // Small screens
+            // }
+
+            // Append page_size to URL and reload
+            urlParams.set('page_size', pageSize);
+            window.location.search = urlParams.toString();
+        }
+    });
+    </script>
+
 </head>
 {% include 'head.html' %}
-    <!-- END Header -->
         <div class="main shifted" id="main">
             <div class="content">
                 <!-- Content -->
                 <div id="content">
-                    <h1>Nodes</h1><a href="/nodes">
+                    <h1>Nodes</h1><a href="/nodes"></a>
                 </div>
                 <div class="table-container">
                     <div id="content-main">
@@ -71,6 +93,9 @@
                                 <!-- Main content area where the table is shifted to the right -->
                                 <div class="content-right">
                                     <table>
+                                        <!-- Links to switch between Node and VRA_Node -->
+                                        <a href="{% url 'node_list' %}?model=node">View SSVM Nodes</a> |
+                                        <a href="{% url 'node_list' %}?model=vra">View VRA Nodes</a>
                                         <colgroup>
                                             <col style="width: 150px;">  <!-- view/edit -->
                                             <col style="width: 260px;"> <!-- name -->
@@ -100,30 +125,69 @@
                                             </tr>
                                         </thead>
                                         <tbody>
+                                            
                                             <div class="search-container">
                                                 <form method="GET" action="{% url 'node_list' %}">
                                                     <input type="text" name="q" placeholder="Search by name" value="{{ query }}">
+                                                    <input type="hidden" name="model" value="{{ model_type }}">  <!-- Include model type in form -->
 <!--                                                     <button type="submit">Search</button> -->
                                                 </form>
                                             </div>
+
+                                            
+                                            <div class="pagination">
+                                                {% if page_obj.has_previous %}
+                                                    <a href="?model={{ model_type }}&page={{ page_obj.previous_page_number }}">« Previous</a>
+                                                {% else %}
+                                                    « Previous
+                                                {% endif %}
+
+                                                {% for num in page_obj.paginator.page_range %}
+                                                    {% if num == 1 or num == page_obj.paginator.num_pages %}
+                                                        {% if num == page_obj.number %}
+                                                            <span><strong>{{ num }}</strong></span>  <!-- Current page, highlighted -->
+                                                        {% else %}
+                                                            <a href="?model={{ model_type }}&page={{ num }}">{{ num }}</a>
+                                                        {% endif %}
+
+                                                    {% elif num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}
+                                                        {% if num == page_obj.number %}
+                                                            <span><strong>{{ num }}</strong></span>  <!-- Current page, highlighted -->
+                                                        {% else %}
+                                                            <a href="?model={{ model_type }}&page={{ num }}">{{ num }}</a>
+                                                        {% endif %}
+
+                                                    {% elif num == page_obj.number|add:"-4" or num == page_obj.number|add:"4" %}
+                                                        <span>…</span>
+                                                    {% endif %}
+                                                {% endfor %}
+
+                                                {% if page_obj.has_next %}
+                                                    <a href="?model={{ model_type }}&page={{ page_obj.next_page_number }}">Next »</a>
+                                                {% else %}
+                                                    Next »
+                                                {% endif %}
+                                            </div>
+
+
                                             {% for node in page_obj %}
                                                 {% if node.status.name not in 'destroyed screamtest' %}
                                                 <tr>
-                                                    <td><a href="{% url 'node_detail' node.id %}" style="display: inline;">View</a> /
+                                                    <td><a href="{% url 'node_detail' model_type node.id %}" style="display: inline;">View</a> /
 
-                                                    {% if user.is_staff %} 
+                                                    {% if user.is_staff and model_type != 'vra' %} 
                                                         <a href="{% url 'admin:myapp_node_change' node.id %}"style="display: inline;">Edit</a> /
                                                         <a href="{% url 'view_log' node.id %}"style="display: inline;">Log</a>
                                                     {% else %}
                                                         <span style="color: gray; cursor: not-allowed;">Edit</span>
                                                     {% endif %}</td>
 
-                                                    <td><a href="{% url 'node_detail' node.id %}">{{ node.name }}</a></td>
+                                                    <td><a href="{% url 'node_detail' model_type node.id %}">{{ node.name }}</a></td>
                                                     <td>{{ node.contact }}</td>
                                                     <td>{{ node.centrify_zone }}</td>
                                                     <td>
                                                         {% if node.deployment %}
-                                                            <a href="{% url 'deployment_detail' node.deployment.id %}">{{ node.deployment }}</a>
+                                                            <a href="{% url 'deployment_detail' node.deployment.id %}">{{ node.deployment.deployment_name|trim_after_self_serve }}</a>
                                                         {% else %}
                                                             None
                                                         {% endif %}
@@ -170,12 +234,12 @@
                                                 <tr class=status-destroyed>
                                                     <td><span style="color: gray; cursor: not-allowed;">View</span> /
 
-                                                    {% if user.is_staff %} 
+                                                    {% if user.is_staff and model_type != 'vra' %} 
                                                         <span style="color: gray; cursor: not-allowed;">Edit</span> /
                                                         <span style="color: gray; cursor: not-allowed;">Log</span>
                                                     {% endif %}</td>
 
-                                                    <td><a href="{% url 'node_detail' node.id %}">{{ node.name }}</a></td>
+                                                    <td><a href="{% url 'node_detail' model_type node.id %}">{{ node.name }}</a></td>
                                                     <td>{{ node.contact }}</td>
                                                     <td>{{ node.centrify_zone }}</td>
                                                     <td>
@@ -204,7 +268,7 @@
                                                         <span style="color: gray; cursor: not-allowed;">Log</span>
                                                     {% endif %}</td>
 
-                                                    <td><a href="{% url 'node_detail' node.id %}">{{ node.name }}</a></td>
+                                                    <td><a href="{% url 'node_detail' model_type node.id %}">{{ node.name }}</a></td>
                                                     <td>{{ node.contact }}</td>
                                                     <td>{{ node.centrify_zone }}</td>
                                                     <td>
@@ -225,23 +289,8 @@
                                                 {% endif %}
                                             
                                             {% endfor %}
-                                            <div class="pagination">
-                                                <span class="step-links">
-                                                {% if page_obj.has_previous %}
-                                                    <a href="?q={{ query }}&page=1">&laquo; first</a>
-                                                    <a href="?q={{ query }}&page={{ page_obj.previous_page_number }}">previous</a>
-                                                {% endif %}
-
-                                                <span class="current">
-                                                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
-                                                </span>
-
-                                                {% if page_obj.has_next %}
-                                                    <a href="?q={{ query }}&page={{ page_obj.next_page_number }}">next</a>
-                                                    <a href="?q={{ query }}&page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
-                                                {% endif %}
-                                            </span>
-                                            </div>
+                                            
+                                        </tbody>
                                     </table>
                                 </div>
                             </div>
