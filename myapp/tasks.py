@@ -1,43 +1,60 @@
 # myapp/tasks.py
 from background_task import background
 from myapp.models import Deployment
-from myapp.views import destroy_deployment_logic
+from myapp.utils import destroy_deployment_logic
 from django.conf import settings
 from django.core.mail import send_mail
 from django.urls import reverse
+from django.utils import timezone
+from myapp.models import Node, VRA_Node
+import socket
 import subprocess
 import os, sys
-import logging
+# import logging
 
-logger = logging.getLogger('frequent_tasks')
+# logger = logging.getLogger('monitoring')
 
 sys.path.append("/home/ssvm/ssvm")
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')
 
 
-#@background(schedule=300)  # delay 5 minutes before running (first time)
-# this task looks for 'queued' deployments and triggers the build script
-# @background
-# def check_queued_deployments():
-#     queued_deployments = Deployment.objects.filter(status='queued')
-#     #source_path = settings.MEDIA_ROOT
-#     base_path = settings.BASE_DIR
-#     python_executable = f"{base_path}/ssvm_env/bin/python"
-#     #python_executable = "python"
-    
-#     # Loop through each deployment and run the deploy script
-#     for deployment in queued_deployments:
-#         deployment_name = deployment.deployment_name
-#         print(deployment_name)
-#         deploy_command = [python_executable, f"{base_path}/myapp/deploy.py", deployment_name]
-#         print(deploy_command)
 
-#         try:
-#             # Run the deploy script and wait for it to finish
-#             subprocess.run(deploy_command, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-            
-#         except subprocess.CalledProcessError as e:
-#             print(f"Error deploying {deployment_name}: {e.stderr.decode('utf-8')}")
+# for displaying node status on node page
+@background
+def check_dns_ping_status():
+    # Iterate over Node and VRA_Node models
+    all_nodes = list(Node.objects.all()) + list(VRA_Node.objects.all())
+
+    for node in all_nodes:
+        # Check DNS
+        try:
+            socket.gethostbyname(node.name)
+            dns_status = True
+            # logger.info(f"{node.name} is in DNS.")
+        except socket.error:
+            dns_status = False
+            ping_status = False
+            # logger.warning(f"{node.name} is NOT in DNS.")
+
+        # Check Ping
+        if dns_status:
+            ping_result = subprocess.run(
+                ["ping", "-c", "1", node.name],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            ping_status = ping_result.returncode == 0
+            # if not ping_status:
+                # logger.warning(f"{node.name} is Down.")
+            # else:
+                # logger.info(f"{node.name} is OK.")
+
+        # Update the Node model
+        node.dns_status = dns_status
+        node.ping_status = ping_status
+        node.last_checked = timezone.now()
+        node.save()
+        
 
 
 

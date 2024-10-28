@@ -9,7 +9,7 @@ class MyappConfig(AppConfig):
 
     def ready(self):
         # Import tasks to avoid circular imports
-        from myapp.tasks import check_queued_deployments, send_failure_alert, send_approval_alert, check_destroy_deployments
+        from myapp.tasks import check_queued_deployments, send_failure_alert, send_approval_alert, check_destroy_deployments, check_dns_ping_status
         from background_task.models import Task
         from django.utils import timezone
         import datetime
@@ -46,6 +46,9 @@ class MyappConfig(AppConfig):
             
             if not Task.objects.filter(task_name='myapp.tasks.check_destroy_deployments').exists():
                 check_destroy_deployments(repeat=60*60*24)
+                
+            if not Task.objects.filter(task_name='myapp.tasks.check_dns_ping_status').exists():
+                check_dns_ping_status(repeat=60)
         
             
             

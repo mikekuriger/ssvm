@@ -1092,8 +1092,19 @@ table#change-history tbody th {
     font-weight: normal;
 }
 
-.status-setup {
+.status-Alive {
+    color: green;
+    font-weight: normal;
+}
+
+.status-Dead {
     color: red;
+    font-weight: normal;
+}
+
+.status-setup {
+    color: green;
+    font-weight: lighter;
 }
 
 .status-destroyed {
@@ -1107,5 +1118,3 @@ table#change-history tbody th {
     font-weight: lighter;
     font-style: italic;
 }
-
-

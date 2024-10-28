@@ -20,7 +20,8 @@ class Deployment(models.Model):
     deployment_name = models.CharField(max_length=255)
     hostname = models.CharField(max_length=255)
     domain = models.CharField(max_length=255, default='corp.pvt')
-    full_hostnames = models.CharField(max_length=255)
+    #full_hostnames = models.CharField(max_length=255)
+    full_hostnames = models.TextField()
     ticket = models.CharField(max_length=50)
     decom_ticket = models.CharField(max_length=50, null=True, blank=True)
     decom_date = models.CharField(max_length=255, null=True, blank=True)
@@ -54,11 +55,6 @@ class Deployment(models.Model):
     def __str__(self):
         return f"{self.deployment_name} - {self.status} - {self.full_hostnames}"
     
-    class Meta:
-        permissions = [
-            ("can_cancel_screamtest", "Can cancel screamtest"),
-        ]
-
     
 # added to build a basic node page, similar to OPSDB
 class OperatingSystem(models.Model):
@@ -152,6 +148,9 @@ class Node(models.Model):
     os_virtual_processor_count = models.IntegerField(null=True, blank=True)
     # Link to the Deployment model
     deployment = models.ForeignKey(Deployment, on_delete=models.CASCADE, related_name="nodes", null=True, blank=True)
+    dns_status = models.BooleanField(default=False)
+    ping_status = models.BooleanField(default=False)
+    last_checked = models.DateTimeField(null=True, blank=True)
     # config_mgmt_tag = models.CharField(max_length=255, null=True, blank=True)
     # cage = models.CharField(max_length=255, null=True, blank=True)
     # rack_row = models.CharField(max_length=255, null=True, blank=True)
@@ -171,7 +170,8 @@ class VRA_Deployment(models.Model):
     deployment_name = models.CharField(max_length=255)
     hostname = models.CharField(max_length=255)
     domain = models.CharField(max_length=255, default='corp.pvt')
-    full_hostnames = models.CharField(max_length=255)
+    #full_hostnames = models.CharField(max_length=255)
+    full_hostnames = models.TextField()
     ticket = models.CharField(max_length=50)
     decom_ticket = models.CharField(max_length=50, null=True, blank=True)
     decom_date = models.CharField(max_length=255, null=True, blank=True)
@@ -246,6 +246,9 @@ class VRA_Node(models.Model):
     os_virtual_processor_count = models.IntegerField(null=True, blank=True)
     # Link to the Deployment model
     deployment = models.ForeignKey(VRA_Deployment, on_delete=models.CASCADE, related_name="vranodes", null=True, blank=True)
+    dns_status = models.BooleanField(default=False)
+    ping_status = models.BooleanField(default=False)
+    last_checked = models.DateTimeField(null=True, blank=True)
     
     def __str__(self):
         return f"{self.name} - {self.status}"

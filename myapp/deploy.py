@@ -1,29 +1,23 @@
 import argparse
 import subprocess
+import os
+import django
+import logging
+import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from django.conf import settings
-
-import logging
-logger = logging.getLogger('deployment')
-
-# This program deploys the jobs that the user has requested, and is run by the task scheduler
-
-# for updating status in database
-import os
-import django
-import sys
 from datetime import datetime
+from myapp.models import Deployment
+from myapp.config_helper import load_config
 
-# Adjust this to the path of your Django project
+
 sys.path.append("/home/ssvm/ssvm")
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')
 django.setup()
 
-from myapp.models import Deployment
-
-from myapp.config_helper import load_config 
 config = load_config()
+logger = logging.getLogger('deployment')
 
 # this file reads the deployment output, and creates
 # individual deployment files for each VM in the deployment.

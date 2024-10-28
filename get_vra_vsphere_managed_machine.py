@@ -23,18 +23,29 @@ def create_vm(deployment_data):
     deployment_name = deployment_data['deployment_name']
     hostname = deployment_data['hostname']
     domain = deployment_data['domain']
-    full_hostname = f"{hostname}.{domain}"
+    #full_hostname = f"{hostname}.{domain}"
+    full_hostname = f"{hostname}"
     deployment_date = deployment_data['deployment_date']
     
     # Check if the deployment already exists
     deployment = VRA_Deployment.objects.filter(deployment_name=deployment_name).first()
 
     if deployment:
-        # Deployment exists; update `full_hostnames` with the new hostname if it's not already included
-        if full_hostname not in deployment.full_hostnames.split(','):
-            deployment.full_hostnames += f", {full_hostname}" if deployment.full_hostnames else full_hostname
+        # Get the current list of hostnames by splitting the `full_hostnames` string
+        current_hostnames = deployment.full_hostnames.split(', ') if deployment.full_hostnames else []
+
+        # Check if the new hostname is already in the list
+        if full_hostname not in current_hostnames:
+            # If not, add the new hostname
+            current_hostnames.append(full_hostname)
+            # Join the list back into a string and update `full_hostnames`, handling initial empty cases
+            deployment.full_hostnames = ', '.join(current_hostnames).lstrip(', ')
             deployment.save()
-            print(f"VRA_Deployment {deployment_name} exists, updated full_hostnames.")
+        #     print(f"VRA_Deployment {deployment_name} exists, updated full_hostnames.")
+        # else:
+        #     print(f"Hostname {full_hostname} already exists in full_hostnames for {deployment_name}.")
+
+
     else:
         
         deployment = VRA_Deployment(
@@ -76,39 +87,43 @@ def create_vm(deployment_data):
         print(f"VRA_Deployment {deployment_name} created.")
 
 
-    # Proceed with creating a VRA_Node regardless of whether the deployment was new or existing
-    os_instance, _ = OperatingSystem.objects.get_or_create(name=deployment_data['os_value'])
-    status_instance, _ = Status.objects.get_or_create(name='setup', defaults={'description': 'VM is in setup status'})
-    hwprofile_instance, _ = HardwareProfile.objects.get_or_create(name='Vmware Virtual Platform', defaults={'description': 'Vmware Virtual Platform'})
-    
-    # Convert RAM to MB
-    rammb = int(deployment_data['ram'] * 1024)
+    # Check if a VRA_Node with the same name and deployment already exists
+    existing_node = VRA_Node.objects.filter(name=full_hostname, deployment=deployment).first()
 
-    # Create and save the node
-    node = VRA_Node(
-        name=full_hostname,
-        contact=deployment_data['owner'],
-        created_at=deployment_date,
-        operating_system=os_instance,
-        status=status_instance,
-        disk_size=deployment_data['disk_size'],
-        hardware_profile=hwprofile_instance,
-        deployment=deployment,
-        #ticket=deployment_data['ticket'],
-        #appname=deployment_data['appname'],
-        #datacenter=deployment_data['datacenter'],
-        #server_type_value=deployment_data['server_type_value'],
-        #deployment_count=deployment_data['deployment_count'],
-        processor_count=deployment_data['cpu'],
-        physical_memory=deployment_data['ram'],
-        #cluster=deployment_data['cluster'],
-        centrify_zone=deployment_data['centrify_zone'],
-        #centrify_role=deployment_data['centrify_role']
-        
-    )
+    if not existing_node:
+        # Proceed with creating a VRA_Node regardless of whether the deployment was new or existing
+        os_instance, _ = OperatingSystem.objects.get_or_create(name=deployment_data['os_value'])
+        status_instance, _ = Status.objects.get_or_create(name='setup', defaults={'description': 'VM is in setup status'})
+        hwprofile_instance, _ = HardwareProfile.objects.get_or_create(name='Vmware Virtual Platform', defaults={'description': 'Vmware Virtual Platform'})
 
-    node.save()
-    print(f"VRA_Node {hostname} for VRA_Deployment {deployment_name} created.")
+        # Convert RAM to MB
+        rammb = int(deployment_data['ram'] * 1024)
+
+        # Create and save the node
+        node = VRA_Node(
+            name=full_hostname,
+            contact=deployment_data['owner'],
+            created_at=deployment_date,
+            operating_system=os_instance,
+            status=status_instance,
+            disk_size=deployment_data['disk_size'],
+            hardware_profile=hwprofile_instance,
+            deployment=deployment,
+            #ticket=deployment_data['ticket'],
+            #appname=deployment_data['appname'],
+            #datacenter=deployment_data['datacenter'],
+            #server_type_value=deployment_data['server_type_value'],
+            #deployment_count=deployment_data['deployment_count'],
+            processor_count=deployment_data['cpu'],
+            physical_memory=deployment_data['ram'],
+            #cluster=deployment_data['cluster'],
+            centrify_zone=deployment_data['centrify_zone'],
+            #centrify_role=deployment_data['centrify_role']
+
+        )
+
+        node.save()
+        print(f"VRA_Node {hostname} for VRA_Deployment {deployment_name} created.")
 
                 
 
@@ -199,7 +214,7 @@ def get_Managed_vSphere_VMs(url, token):
             builtby = api_output3.get('createdBy', 'Unknown')
             description = api_output3.get('description', 'No Description')
             deployment_name = api_output3.get('name', 'No Name')
-            domain = 'corp.pvt'
+            #domain = 'corp.pvt'
             ticket = api_output3['inputs']['jira']
             appname = api_output3['inputs']['app']
             owner = api_output3.get('ownedBy', 'No Owner')
@@ -216,7 +231,10 @@ def get_Managed_vSphere_VMs(url, token):
                 if 'datastoreName' not in s['properties'].keys():
                     s['properties']['datastoreName'] = ''
                 
-                hostname = s['properties']['resourceName']
+                resourceName = s['properties']['resourceName']
+                domain = resourceName.split('.', 1)[1] if '.' in resourceName else 'corp.pvt'
+                nodename = resourceName.split('.', 1)[0]
+                hostname = (nodename + "." + domain)
                 uuid = s['id']
                 deployment_count = s['properties']['count']
                 cpu = s['properties']['cpuCount']
@@ -225,7 +243,7 @@ def get_Managed_vSphere_VMs(url, token):
                 os_value = s['properties']['softwareName']
                 cluster = s['properties']['zone']
                 
-                print(uuid)
+                #print(uuid)
                 
                 # Bundle all data into a dictionary
                 try:
@@ -243,7 +261,8 @@ def get_Managed_vSphere_VMs(url, token):
                         'builtby': builtby,
                         'hostname': hostname,
                         'domain': domain,
-                        'full_hostnames': [hostname + '.' + domain],  # assuming full hostname is needed
+                        #'full_hostnames': [hostname + '.' + domain],
+                        'full_hostnames': hostname,
                         'ticket': ticket,
                         'appname': appname,
                         'owner': owner,

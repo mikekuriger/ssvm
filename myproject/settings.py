@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
+import ldap
+from django_auth_ldap.config import LDAPSearch, GroupOfNamesType
 
 # uncomment to import your scheduled tasks, then re-comment it out
 SCHEDULER_AUTOSTART = True
@@ -113,20 +115,38 @@ DATABASES = {
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
+# AUTH_PASSWORD_VALIDATORS = [
+#     {
+#         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+#     },
+#     {
+#         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+#     },
+#     {
+#         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+#     },
+#     {
+#         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+#     },
+# ]
+
+# LDAP for now, will use OKTA if desired
+AUTH_LDAP_SERVER_URI = "ldap://ca01-ldap.corp.yp.com"
+AUTH_LDAP_BIND_DN = "CN=s98866,OU=Service Accounts,OU=System Accounts,DC=corp,DC=yp,DC=com"
+AUTH_LDAP_BIND_PASSWORD = "P@win-12771"
+AUTH_LDAP_USER_SEARCH = LDAPSearch(
+    "OU=Employees,OU=People,DC=corp,DC=yp,DC=com",
+    ldap.SCOPE_SUBTREE,
+    "(objectCategory=person)"
+)
+
+# OU=Employees,OU=People,DC=corp,DC=yp,DC=com?sAMAccountName?sub?(objectCategory=person)"
+
+AUTHENTICATION_BACKENDS = [
+    'django_auth_ldap.backend.LDAPBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
+
 
 
 # Internationalization
@@ -174,22 +194,16 @@ LOGGING = {
             'formatter': 'verbose',
         },
         'deployfile': {
-            'level': 'INFO',
+            'level': 'DEBUG',  # Adjusted to capture DEBUG logs
             'class': 'logging.FileHandler',
             'filename': os.path.join(BASE_DIR, 'deployment.log'),
             'formatter': 'verbose',
         },
         'destroyfile': {
-            'level': 'INFO',
+            'level': 'DEBUG',  # Adjusted to capture DEBUG logs
             'class': 'logging.FileHandler',
             'filename': os.path.join(BASE_DIR, 'destroy.log'),
             'formatter': 'verbose',
-        },
-        'quiet_file': {  # New handler for less frequent logging
-            'level': 'ERROR',  
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'quiet_tasks.log'),
-            'formatter': 'simple',
         },
     },
     'loggers': {
@@ -208,11 +222,7 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
-        'myapp': {  # Logger for frequent tasks with reduced logging
-            'handlers': ['quiet_file'],
-            'level': 'DEBUG',  
-            'propagate': False,
-        },
     },
 }
+
 

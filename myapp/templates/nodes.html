@@ -177,7 +177,8 @@
 
                                                     {% if user.is_staff and model_type != 'vra' %} 
                                                         <a href="{% url 'admin:myapp_node_change' node.id %}"style="display: inline;">Edit</a> /
-                                                        <a href="{% url 'view_log' node.id %}"style="display: inline;">Log</a>
+<!--                                                         <a href="{% url 'view_log' node.id %}"style="display: inline;">Log</a> -->
+                                                        <a href="{% url 'view_log' node_id=node.id %}?model={{ model_type }}">View Log</a>
                                                     {% else %}
                                                         <span style="color: gray; cursor: not-allowed;">Edit</span>
                                                     {% endif %}</td>
@@ -196,7 +197,7 @@
                                                     
                                                     {% if node.status.name == 'building' %}
                                                         
-                                                        {{ node.status.name }}
+                                                        {{ node.status.name }} / {{ node.ping_status }}
                                                         <div class="loader"></div>
                                                         
 
@@ -219,7 +220,7 @@
                                                         }
                                                         </style>
                                                     {% else %}
-                                                        {{ node.status.name }}
+                                                        {{ node.status.name }} / {% if node.ping_status == 1 %}Alive{% else %}Dead{% endif %}
                                                     {% endif %}
                                                     </td>
                                                     <td>{{ node.hardware_profile }}</td>

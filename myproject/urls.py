@@ -21,6 +21,7 @@ urlpatterns = [
     path('deployment-status/<uuid:deployment_id>/', get_deployment_status, name='get_deployment_status'),
     path('destroy_deployment/<uuid:deployment_id>/', views.destroy_deployment, name='destroy_deployment'),
     path('login/', LoginView.as_view(template_name='login.html'), name='login'),
+    path('accounts/login/', LoginView.as_view(template_name='login.html'), name='accounts_login'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('logs/<str:node_name>/', views.tail_log, name='tail_log'),
     path('nodes/', views.node_list, name='node_list'),

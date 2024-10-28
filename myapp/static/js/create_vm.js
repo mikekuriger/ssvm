@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (exists) {
                     dnsConflict = true;
                     dnsResult.classList.remove('d-none');
-                    dnsResult.textContent = `Host already exists: ${hostname}`;
+                    dnsResult.textContent = `Host already exists in DNS: ${hostname}`;
                     break;
                 }
             }

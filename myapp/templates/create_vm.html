@@ -68,6 +68,15 @@
             border-color: green;
             background-color: #e6ffe6 !important;
         }
+        
+        .readonly {
+            font-size: 12px;
+            height: 25px;
+            padding: 0px 18px;
+            width: 85%;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
     </style>
 </head>
 {% include 'head.html' %}
@@ -118,11 +127,20 @@
                         <div class="mb-3 row move-right">
                             <label for="domain" class="col-sm-3 col-form-label small-label">{{ form.domain.label_tag }}</label>
                             <div class="col-sm-9">
-                                {{ form.domain|add_class:"form-control my-smaller-field" }}
+                                
+                                {% if not user.is_superuser %}
+                                    <select id="domain" name="domain" class="form-control readonly" tabindex="-1">
+                                        {% for choice in form.domain.field.choices %}
+                                            <option value="{{ choice.0 }}" {% if choice.0 == form.domain.value %}selected{% endif %}>{{ choice.1 }}</option>
+                                        {% endfor %}
+                                    </select>
+                                {% else %}
+                                    {{ form.domain|add_class:"form-control my-smaller-field" }}
+                                {% endif %}
+                                
                             </div>
                         </div>
-                        
-                       
+                                               
                     </div>
 
                     <!-- Middle Column: User Input Fields -->

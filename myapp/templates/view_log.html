@@ -54,7 +54,7 @@
         // Polling the log every 5 seconds
         setInterval(fetchLogs, 5000);
         </script>
-    <a href="{% url 'node_detail' node.id %}">View Node</a> / 
+    <a href="{% url 'node_detail' model_type node.id %}">View Node</a> / 
     <a href="{% url 'node_list' %}">Back to Nodes</a>
 </body>
 </html>

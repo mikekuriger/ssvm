@@ -15,6 +15,14 @@
                     <h1 style="text-align: left;">Node Details</h1>
                     <table style="width: 100%; text-align: left; border-collapse: collapse;">
                     <tr>
+                        <th>Deployment</th>
+                        <td>{% if deployment %}
+                                <a href="{% url 'deployment_detail' deployment.id %}">{{ deployment.deployment_name }}</a>
+                            {% else %}
+                                No Deployment Available
+                            {% endif %}</td>
+                    </tr>
+                    <tr>
                         <th>Hostname</th>
                         <td>{{ node.name }}</td>
                     </tr>
