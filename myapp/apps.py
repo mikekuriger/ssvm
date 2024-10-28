@@ -20,6 +20,7 @@ class MyappConfig(AppConfig):
             choices = list(Task._meta.get_field('repeat').choices)
             choices.append((10, 'Every 10 Seconds'))
             choices.append((60, 'Every Minute'))
+            choices.append((3000, 'Every 5 Minutes'))
             Task._meta.get_field('repeat').choices = tuple(choices)
         except ImportError:
             # If background_task is not available, handle the error or log as needed
@@ -48,7 +49,7 @@ class MyappConfig(AppConfig):
                 check_destroy_deployments(repeat=60*60*24)
                 
             if not Task.objects.filter(task_name='myapp.tasks.check_dns_ping_status').exists():
-                check_dns_ping_status(repeat=60)
+                check_dns_ping_status(repeat=300)
         
             
             
