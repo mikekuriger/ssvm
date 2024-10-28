@@ -1100,6 +1100,13 @@ table#change-history tbody th {
 .status-Dead {
     color: red;
     font-weight: normal;
+    animation: blink 1s step-start infinite;
+}
+
+@keyframes blink {
+    50% {
+        opacity: 0;
+    }
 }
 
 .status-setup {

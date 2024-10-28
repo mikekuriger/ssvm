@@ -193,7 +193,7 @@
                                                             None
                                                         {% endif %}
                                                     </td>
-                                                    <td class="status-{{ node.status.name }}">
+                                                    <td class="status-{% if node.ping_status == 1 %}Alive{% else %}Dead{% endif %}">
                                                     
                                                     {% if node.status.name == 'building' %}
                                                         
