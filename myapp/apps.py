@@ -20,7 +20,7 @@ class MyappConfig(AppConfig):
             choices = list(Task._meta.get_field('repeat').choices)
             choices.append((10, 'Every 10 Seconds'))
             choices.append((60, 'Every Minute'))
-            choices.append((3000, 'Every 5 Minutes'))
+            choices.append((300, 'Every 5 Minutes'))
             Task._meta.get_field('repeat').choices = tuple(choices)
         except ImportError:
             # If background_task is not available, handle the error or log as needed

@@ -1,18 +1,19 @@
 # myapp/tasks.py
 from background_task import background
-from myapp.models import Deployment
+from myapp.models import Deployment, Node, VRA_Node
 from myapp.utils import destroy_deployment_logic
 from django.conf import settings
 from django.core.mail import send_mail
 from django.urls import reverse
 from django.utils import timezone
-from myapp.models import Node, VRA_Node
 import socket
 import subprocess
 import os, sys
-# import logging
+import logging
 
-# logger = logging.getLogger('monitoring')
+
+logger = logging.getLogger('destroy')
+logger2 = logging.getLogger('monitoring')
 
 sys.path.append("/home/ssvm/ssvm")
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')
@@ -57,6 +58,7 @@ def check_dns_ping_status():
         
 
 
+            
 
 # this task looks for 'queued' deployments and triggers the build script
 @background
@@ -67,29 +69,17 @@ def check_queued_deployments():
         deployment_name = deployment.deployment_name
         print(f"Dispatching deploy task for {deployment_name}")
         
-        # Schedule deploy_task for each deployment individually
-        deploy_task(deployment_name)
-        
-        # Optionally update deployment status to "processing"
-        # deployment.status = 'building'
-        # deployment.save(update_fields=['status'])
+        base_path = settings.BASE_DIR
+        python_executable = os.path.join(base_path, "ssvm_env", "bin", "python")
+        deploy_command = [python_executable, os.path.join(base_path, "myapp", "deploy.py"), deployment_name]
 
-        
+        try:
+            # Run the deploy script as a separate process
+            result = subprocess.run(deploy_command, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+            print(f"Deployment {deployment_name} completed successfully: {result.stdout.decode('utf-8')}")
 
-# this is called from the check_queued_deployments function, to allow multiple deployments to run
-@background
-def deploy_task(deployment_name):
-    base_path = settings.BASE_DIR
-    python_executable = os.path.join(base_path, "ssvm_env", "bin", "python")
-    deploy_command = [python_executable, os.path.join(base_path, "myapp", "deploy.py"), deployment_name]
-    
-    try:
-        # Run the deploy script as a separate process
-        result = subprocess.run(deploy_command, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-        print(f"Deployment {deployment_name} completed successfully: {result.stdout.decode('utf-8')}")
-        
-    except subprocess.CalledProcessError as e:
-        print(f"Error deploying {deployment_name}: {e.stderr.decode('utf-8')}")
+        except subprocess.CalledProcessError as e:
+            print(f"Error deploying {deployment_name}: {e.stderr.decode('utf-8')}")
         
             
 # Background task to check and destroy deployments stuck in "queued for destruction"

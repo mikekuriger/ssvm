@@ -258,11 +258,11 @@ def cancel_screamtest(request, deployment_id):
 @login_required
 def view_system_logs(request, log_type):
     log_files = {
-        'destroy': [ _os.path.join(settings.BASE_DIR, 'destroy.log')],
-        'deployment': [ _os.path.join(settings.BASE_DIR, 'deployment.log')],
-        'task': [ _os.path.join(settings.BASE_DIR, 'django-background-tasks.log') ],
+        'destroy': [ _os.path.join(settings.BASE_DIR, 'logs', 'destroy.log')],
+        'deployment': [ _os.path.join(settings.BASE_DIR, 'logs', 'deployment.log')],
+        'task': [ _os.path.join(settings.BASE_DIR, 'logs', 'django-background-tasks.log') ],
         'application': [
-            _os.path.join(settings.BASE_DIR, 'django.log'),
+            _os.path.join(settings.BASE_DIR, 'logs', 'django.log'),
             _os.path.join(settings.BASE_DIR, 'django_output.log')
         ],
     }

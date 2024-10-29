@@ -146,8 +146,7 @@ class Node(models.Model):
     used_space = models.IntegerField(null=True, blank=True)
     avail_space = models.IntegerField(null=True, blank=True)
     os_virtual_processor_count = models.IntegerField(null=True, blank=True)
-    # Link to the Deployment model
-    deployment = models.ForeignKey(Deployment, on_delete=models.CASCADE, related_name="nodes", null=True, blank=True)
+    deployment = models.ForeignKey(Deployment, on_delete=models.CASCADE, related_name="nodes", null=True, blank=True)    # Link to the Deployment model
     dns_status = models.BooleanField(default=False)
     ping_status = models.BooleanField(default=False)
     last_checked = models.DateTimeField(null=True, blank=True)

@@ -1073,6 +1073,10 @@ table#change-history tbody th {
     color: orange;
 }
 
+.status-prebuild {
+    color: orange;
+}
+
 .status-building {
     color: blue;
 }

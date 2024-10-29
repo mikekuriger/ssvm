@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import os
 import ldap
-from django_auth_ldap.config import LDAPSearch, GroupOfNamesType
+from django_auth_ldap.config import LDAPSearch, LDAPSearchUnion, GroupOfNamesType, ActiveDirectoryGroupType
 
 # uncomment to import your scheduled tasks, then re-comment it out
 SCHEDULER_AUTOSTART = True
@@ -115,31 +115,84 @@ DATABASES = {
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
-# AUTH_PASSWORD_VALIDATORS = [
-#     {
-#         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-#     },
-#     {
-#         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-#     },
-#     {
-#         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-#     },
-#     {
-#         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-#     },
-# ]
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {'min_length': 8},
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
+]
 
-# LDAP for now, will use OKTA if desired
-AUTH_LDAP_SERVER_URI = "ldap://ca01-ldap.corp.yp.com"
+# YP AD for now, will use OKTA or thryv AD if available
+AUTH_LDAP_SERVER_URI = "ldap://ca01-ldap.corp.yp.com:389"
 AUTH_LDAP_BIND_DN = "CN=s98866,OU=Service Accounts,OU=System Accounts,DC=corp,DC=yp,DC=com"
 AUTH_LDAP_BIND_PASSWORD = "P@win-12771"
+
+AUTH_LDAP_USER_SEARCH = LDAPSearchUnion(
+    LDAPSearch("OU=Employees,OU=People,DC=corp,DC=yp,DC=com", ldap.SCOPE_SUBTREE, "(sAMAccountName=%(user)s)"),
+    LDAPSearch("OU=Dex,OU=People,DC=corp,DC=yp,DC=com", ldap.SCOPE_SUBTREE, "(sAMAccountName=%(user)s)"),
+    LDAPSearch("OU=Dex,OU=Contractors,DC=corp,DC=yp,DC=com", ldap.SCOPE_SUBTREE, "(sAMAccountName=%(user)s)"),
+)
+
 AUTH_LDAP_USER_SEARCH = LDAPSearch(
     "OU=Employees,OU=People,DC=corp,DC=yp,DC=com",
     ldap.SCOPE_SUBTREE,
-    "(objectCategory=person)"
+    #"(objectCategory=person)"
+    "(sAMAccountName=%(user)s)"
 )
 
+# Use the `sAMAccountName` attribute as the username
+AUTH_LDAP_USER_ATTR_MAP = {
+    "username": "sAMAccountName",
+    "first_name": "givenName",
+    "last_name": "sn",
+    "email": "mail",
+}
+
+# Optional: to set default staff/superuser status
+AUTH_LDAP_USER_FLAGS_BY_GROUP = {
+    "is_staff": "CN=UnixSysAdmins,OU=Roles,OU=Groups,DC=corp,DC=yp,DC=com",
+    #"is_superuser": "CN=UnixSysAdmins,OU=Roles,OU=Groups,DC=corp,DC=yp,DC=com",
+}
+
+AUTH_LDAP_GROUP_SEARCH = LDAPSearch(
+    "OU=Groups,DC=corp,DC=yp,DC=com",
+    ldap.SCOPE_SUBTREE,
+    "(objectClass=group)"
+)
+
+
+
+# AUTH_LDAP_SERVER_URI = "ldap://dfw2w2sdc04.corp.pvt:3268"
+# AUTH_LDAP_BIND_DN = "%(user)s"
+# AUTH_LDAP_BIND_PASSWORD = ""
+
+# AUTH_LDAP_USER_DN_TEMPLATE = 'corp\%(user)s'
+# AUTH_LDAP_BIND_AS_AUTHENTICATING_USER = True
+# AUTH_LDAP_REFRESH_DN_ON_BIND = True              # ... the authenticated user dn can be refreshed using ...
+
+
+# AUTH_LDAP_USER_SEARCH = LDAPSearch(              # ... an ldap search in the users base DN
+#     "OU=Groups,OU=Administration,DC=corp,DC=pvt",
+#     ldap.SCOPE_SUBTREE,
+#     "(sAMAccountName=%(user)s)"
+# )
+
+
+AUTH_LDAP_GROUP_TYPE = ActiveDirectoryGroupType()
+AUTH_LDAP_REQUIRE_GROUP = None
+
+
+# Cache groups for performance
+AUTH_LDAP_CACHE_TIMEOUT = 3600
 # OU=Employees,OU=People,DC=corp,DC=yp,DC=com?sAMAccountName?sub?(objectCategory=person)"
 
 AUTHENTICATION_BACKENDS = [
@@ -188,21 +241,27 @@ LOGGING = {
     },
     'handlers': {
         'djangofile': {
-            'level': 'INFO',
+            'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'django.log'),
+            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
+            'formatter': 'verbose',
+        },
+        'ldapfile': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'ldap.log'),
             'formatter': 'verbose',
         },
         'deployfile': {
             'level': 'DEBUG',  # Adjusted to capture DEBUG logs
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'deployment.log'),
+            'filename': os.path.join(BASE_DIR, 'logs', 'deployment.log'),
             'formatter': 'verbose',
         },
         'destroyfile': {
             'level': 'DEBUG',  # Adjusted to capture DEBUG logs
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'destroy.log'),
+            'filename': os.path.join(BASE_DIR, 'logs', 'destroy.log'),
             'formatter': 'verbose',
         },
     },
@@ -210,6 +269,21 @@ LOGGING = {
         'django': {
             'handlers': ['djangofile'],
             'level': 'INFO',
+            'propagate': True,
+        },
+        'django.security.Authentication': {
+            'handlers': ['ldapfile'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'django_auth_ldap': {
+            'handlers': ['ldapfile'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['djangofile'],
+            'level': 'ERROR',
             'propagate': True,
         },
         'deployment': {

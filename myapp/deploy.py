@@ -8,13 +8,13 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from django.conf import settings
 from datetime import datetime
-from myapp.models import Deployment
-from myapp.config_helper import load_config
-
 
 sys.path.append("/home/ssvm/ssvm")
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')
 django.setup()
+
+from myapp.models import Deployment
+from myapp.config_helper import load_config
 
 config = load_config()
 logger = logging.getLogger('deployment')

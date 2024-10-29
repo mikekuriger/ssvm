@@ -8,5 +8,5 @@ fi
 nohup python manage.py runserver 127.0.0.1:8000 > django_output.log 2>&1 &
 echo started pid $! 
 echo $! > django_pid.txt
-tail -f django_output.log
+tail -f django_output.log logs/django.log
 

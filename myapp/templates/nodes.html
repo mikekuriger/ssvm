@@ -177,7 +177,6 @@
 
                                                     {% if user.is_staff and model_type != 'vra' %} 
                                                         <a href="{% url 'admin:myapp_node_change' node.id %}"style="display: inline;">Edit</a> /
-<!--                                                         <a href="{% url 'view_log' node.id %}"style="display: inline;">Log</a> -->
                                                         <a href="{% url 'view_log' node_id=node.id %}?model={{ model_type }}">View Log</a>
                                                     {% else %}
                                                         <span style="color: gray; cursor: not-allowed;">Edit</span>
@@ -193,11 +192,9 @@
                                                             None
                                                         {% endif %}
                                                     </td>
-                                                    <td class="status-{% if node.ping_status == 1 %}Alive{% else %}Dead{% endif %}">
-                                                    
-                                                    {% if node.status.name == 'building' %}
-                                                        
-                                                        {{ node.status.name }} / {{ node.ping_status }}
+                                                    <td class="status-{% if node.status.name in 'inservice setup' %}{% if node.ping_status == 1 %}Alive{% else %}Dead{% endif %}{% else %}{{ node.status.name }}{% endif %}">
+                                                    {% if node.status.name in 'building' %}
+                                                        {{ node.status.name }}
                                                         <div class="loader"></div>
                                                         
 
@@ -219,6 +216,8 @@
                                                           100% { transform: rotate(360deg); }
                                                         }
                                                         </style>
+                                                    {% elif node.status.name in 'prebuild' %}
+                                                        {{ node.status.name }}
                                                     {% else %}
                                                         {{ node.status.name }} / {% if node.ping_status == 1 %}Alive{% else %}Dead{% endif %}
                                                     {% endif %}
@@ -288,9 +287,7 @@
                                                     <td>{{ node.operating_system }}</td>
                                                 </tr>
                                                 {% endif %}
-                                            
                                             {% endfor %}
-                                            
                                         </tbody>
                                     </table>
                                 </div>
