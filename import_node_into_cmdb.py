@@ -22,6 +22,7 @@ import django
 django.setup()
 
 from myapp.models import Node, OperatingSystem, Status, HardwareProfile
+from django.utils import timezone
 
 
 def get_dmidecode_output():
@@ -355,7 +356,7 @@ def import_node(hw_name, hw_model, owner, serial, processor_manufacturer, proces
     
     #Only set 'created_at' if the node was just created
     if created:
-        node.created_at = datetime.now().date()
+        node.created_at = timezone.now().date()
         node.save(update_fields=['created_at'])
 
     action = "created" if created else "updated"

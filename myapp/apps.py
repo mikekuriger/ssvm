@@ -37,7 +37,7 @@ class MyappConfig(AppConfig):
                 next_run += datetime.timedelta(days=1)
             
             if not Task.objects.filter(task_name='myapp.tasks.check_queued_deployments').exists():
-                check_queued_deployments(repeat=60)
+                check_queued_deployments(repeat=10)
                 
             if not Task.objects.filter(task_name='myapp.tasks.send_approval_alert').exists():
                 send_approval_alert(repeat=60)
@@ -46,7 +46,7 @@ class MyappConfig(AppConfig):
                 send_failure_alert(repeat=60*60*24)
             
             if not Task.objects.filter(task_name='myapp.tasks.check_destroy_deployments').exists():
-                check_destroy_deployments(repeat=60*60*24)
+                check_destroy_deployments(repeat=10)
                 
             if not Task.objects.filter(task_name='myapp.tasks.check_dns_ping_status').exists():
                 check_dns_ping_status(repeat=300)

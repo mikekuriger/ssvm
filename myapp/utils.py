@@ -4,6 +4,7 @@ import json
 import logging
 from myapp.config_helper import load_config
 from SOLIDserverRest import SOLIDserverRest
+from django.contrib import messages
 from django.shortcuts import get_object_or_404
 from myapp.models import Deployment, Node, HardwareProfile, OperatingSystem, Status
 import os as _os

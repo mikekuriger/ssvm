@@ -1129,3 +1129,53 @@ table#change-history tbody th {
     font-weight: lighter;
     font-style: italic;
 }
+
+/* Ensures text color is black across all text input fields */
+input[type="text"], 
+input[type="number"], 
+input[type="email"], 
+input[type="url"], 
+input[type="tel"], 
+textarea {
+    color: #000;
+    background-color: lightgrey; /* Ensures the background is always light */
+/*     border: 1px solid #ccc; */
+}
+
+.progress-bar {
+    width: 50px;             /* Full width of the container */
+    height: 8px;             /* Line height */
+    background-color: #ddd;  /* Background color of the line */
+    overflow: hidden;
+    border-radius: 3px;      /* Rounded edges for the line */
+    position: relative;
+}
+
+/* Animated line */
+.progress {
+    width: 100%;             /* Full width of progress bar */
+    height: 100%;            /* Same height as container */
+    background-color: #3498db;  /* Color of the progressing line */
+    animation: loading 1.5s linear infinite; /* Animation speed and repeat */
+    position: absolute;
+}
+
+/* Animation keyframes */
+@keyframes loading {
+    0% { transform: translateX(-100%); } /* Start off-screen to the left */
+    100% { transform: translateX(0%); } /* Move across to off-screen right */
+}
+
+.loader {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    width: 12px;
+    height: 12px;
+    animation: spin 3s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

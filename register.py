@@ -22,6 +22,7 @@ import django
 django.setup()
 
 from myapp.models import Node, OperatingSystem, Status, HardwareProfile
+from django.utils import timezone
 
 
 def get_dmidecode_output():
@@ -317,7 +318,7 @@ def import_node(hw_name, hw_model, owner, serial, processor_manufacturer, proces
         defaults={'description': hw_model}
     )
 
-    updated_at = datetime.now().date()
+    updated_at = timezone.now().date()
     
     import socket
     hostname = socket.gethostname()

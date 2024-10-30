@@ -83,7 +83,7 @@ class VMCreationForm(forms.Form):
     description = forms.CharField(
         label="Description",
         required=False,
-        widget=forms.TextInput(attrs={'id': 'description', 'class': 'form-control', 'placeholder': 'Description'})
+        widget=forms.TextInput(attrs={'id': 'description', 'class': 'form-control', 'placeholder': 'Optional'})
     )
     
     domain = forms.ChoiceField(

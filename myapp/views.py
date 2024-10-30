@@ -320,6 +320,33 @@ def view_system_logs(request, log_type):
 
 
 @login_required
+def tail_system_logs(request, node_name):
+    vm_short_name = node_name.split('.')[0]
+    log_file_path = _os.path.join(settings.MEDIA_ROOT, f"{vm_short_name}.log")
+    
+    # loggerdestroy.info(f"Looking for log file at: {log_file_path}")
+    
+    if not _os.path.exists(log_file_path):
+        # loggerdestroy.error(f"Log file {log_file_path} not found")
+        return JsonResponse({"status": "error", "message": "Log file {vm_short_name}.log not found"}, status=404)
+
+    try:
+        with open(log_file_path, 'r') as log_file:
+            # Get the last N lines of the file
+            log_file.seek(0, _os.SEEK_END)
+            file_size = log_file.tell()
+            log_file.seek(max(file_size - 1024 * 10, 0))  # Read the last 10 KB of the log file
+
+            lines = log_file.readlines()
+            # loggerdestroy.info(f"Successfully read log file: {log_file_path}")
+            return JsonResponse({"status": "success", "log": ''.join(lines)}, status=200)
+    except Exception as e:
+        # loggerdestroy.error(f"Error reading log file {log_file_path}: {str(e)}")
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+
+    
+    
+@login_required
 def view_log(request, node_id):
     node = get_object_or_404(Node, id=node_id)
     vm_short_name = node.name.split('.')[0]
@@ -343,10 +370,10 @@ def tail_log(request, node_name):
     vm_short_name = node_name.split('.')[0]
     log_file_path = _os.path.join(settings.MEDIA_ROOT, f"{vm_short_name}.log")
     
-    loggerdestroy.info(f"Looking for log file at: {log_file_path}")
+    # loggerdestroy.info(f"Looking for log file at: {log_file_path}")
     
     if not _os.path.exists(log_file_path):
-        loggerdestroy.error(f"Log file {log_file_path} not found")
+        # loggerdestroy.error(f"Log file {log_file_path} not found")
         return JsonResponse({"status": "error", "message": "Log file {vm_short_name}.log not found"}, status=404)
 
     try:
@@ -357,10 +384,10 @@ def tail_log(request, node_name):
             log_file.seek(max(file_size - 1024 * 10, 0))  # Read the last 10 KB of the log file
 
             lines = log_file.readlines()
-            loggerdestroy.info(f"Successfully read log file: {log_file_path}")
+            # loggerdestroy.info(f"Successfully read log file: {log_file_path}")
             return JsonResponse({"status": "success", "log": ''.join(lines)}, status=200)
     except Exception as e:
-        loggerdestroy.error(f"Error reading log file {log_file_path}: {str(e)}")
+        # loggerdestroy.error(f"Error reading log file {log_file_path}: {str(e)}")
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
     

@@ -770,6 +770,7 @@ customize_command = [
     "-dns-suffix", DOMAINS
 ]
 
+print(customize_command, flush=True)
 result = subprocess.run(customize_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
 if result.returncode != 0:
@@ -1018,11 +1019,41 @@ print(f"{bold}Attach the ISO to the VM{_bold}", flush=True)
 logger.info(f"{bold}Attach the ISO to the VM{_bold}")
 cd_device = subprocess.run(["govc", "device.ls", "-vm", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True).stdout.splitlines()
 cdrom_device = [line.split()[0] for line in cd_device if "cdrom" in line][0]
-subprocess.run(["govc", "device.cdrom.insert", "-vm", VM, "-device", cdrom_device, "-ds", datastore, f"{VM}/seed.iso"], check=True)
+# added eject in case template or image being cloned has a cd incerted
+result = subprocess.run(["govc", "device.cdrom.eject", "-vm", VM], check=True)
+if result.returncode == 0:
+    print(f"CDROM ejected from {VM}", flush=True)
+else:
+    print(f"Failed to eject CDROM from {VM}", flush=True)
+    logger.error(f"Failed to eject CDROM from {VM}")
+    print("Error:", set_result.stderr)
+    logger.error("Error:", set_result.stderr)
+    node.status = statusf_instance
+    node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
+
+result = subprocess.run(["govc", "device.cdrom.insert", "-vm", VM, "-device", cdrom_device, "-ds", datastore, f"{VM}/seed.iso"], check=True)
+if result.returncode == 0:
+    print(f"CDROM inserted into {VM}", flush=True)
+else:
+    print(f"Failed to insert CDROM into {VM}", flush=True)
+    logger.error(f"Failed to insert CDROM into {VM}")
+    print("Error:", set_result.stderr)
+    logger.error("Error:", set_result.stderr)
+    node.status = statusf_instance
+    node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
+
 #print(f"ISO has been inserted into the CDROM", flush=True)
 #logger.info(f"ISO has been inserted into the CDROM")
 time.sleep(int(random.uniform(1, 3)))
-subprocess.run(["govc", "device.connect", "-vm", VM, cdrom_device], check=True)
+result = subprocess.run(["govc", "device.connect", "-vm", VM, cdrom_device], check=True)
+if result.returncode != 0:
+    print(f"Failed to connect CDROM to {VM}", flush=True)
+    logger.error(f"Failed to connect CDROM to {VM}")
+    print("Error:", set_result.stderr)
+    logger.error("Error:", set_result.stderr)
+    node.status = statusf_instance
+    node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
+
 #print(f"ISO has been inserted and attached to {VM}", flush=True)
 #logger.info(f"ISO has been inserted and attached to {VM}")
 
@@ -1054,7 +1085,8 @@ if "yellowpages" in DOMAIN:
         logger.error(f"Failed to rename {VM}")
         print("Error:", set_result.stderr)
         logger.error("Error:", set_result.stderr)
-
+        node.status = statusf_instance
+        node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
                             
 if "poweredOn" in power_status.stdout:
     print(f"{VM} is powered up and booting.", flush=True)

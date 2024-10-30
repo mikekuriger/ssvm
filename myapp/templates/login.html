@@ -10,6 +10,8 @@
     <link rel="icon" href="{% static 'favicon.ico' %}">
     <link rel="stylesheet" href="{% static 'css/shared.css' %}">
     {% block content %}
+    
+
     <style>   
         .fixed-width-left {
             width: 500px;
@@ -75,7 +77,17 @@
           padding: 20px;
           box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
           border-radius: 5px;
-          background-color: #fff;
+          background-color: #eef;
+          color: #000;
+        }
+        
+        .login-box input[type="text"],
+        .login-box input[type="password"],
+        .login-box input[type="email"],
+        .login-box input[type="number"],
+        .login-box textarea {
+          color: #000;  /* Set your preferred text color here */
+          background-color: #fff;  /* Set background color for the input field */
         }
 
         .login-box h2 {
@@ -87,6 +99,7 @@
           padding: 10px;
           margin-top: 10px;
         }
+
       </style>
 
   <div class="login-container">
