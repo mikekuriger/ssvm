@@ -6,8 +6,7 @@ This started off as some shell scripts to set up VMs in Vcenter, and has evolved
 ```
 curl -L -o - "https://github.com/vmware/govmomi/releases/latest/download/govc_$(uname -s)_$(uname -m).tar.gz" | tar -C /usr/local/bin -xvzf - govc
 
-yum install -y python3-devel git mariadb-server mariadb-devel npm conda genisoimage
- nginx certbot python3-certbot-nginx openssl
+yum install -y python3-devel git npm conda genisoimage nginx certbot python3-certbot-nginx openssl
 ```
 ## nginx ssl:
 ```
