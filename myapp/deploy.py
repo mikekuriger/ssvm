@@ -164,7 +164,9 @@ def deploy_vm(file_name, deployment_name):
                 stdout=log_file, stderr=log_file, check=True
             )
             # Update status to 'deployed'
-            deployment.status = 'deployed' 
+            deployment.status = 'deployed'
+            if deployment.server_type_value == 'Production':
+                deployment.protected = True
             deployment.save()
             building_path.rename(deployed_path)
             return f"Deployment completed successfully for {file_name}"

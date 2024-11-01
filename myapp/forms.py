@@ -95,13 +95,36 @@ class VMCreationForm(forms.Form):
         widget=forms.Select(attrs={'id': 'domain', 'class': 'form-control'})
     )
 
-    owner = forms.ChoiceField(
+    # owner = forms.ChoiceField(
+    #     label="Owner",
+    #     #choices=load_users_from_csv(),
+    #     choices=[('', '--- Select Owner ---')] + load_users_from_csv(),
+    #     widget=forms.Select(attrs={'id': 'owner', 'class': 'form-control'}),
+    #     required=True
+    # )
+    
+    owner_display = forms.CharField(
         label="Owner",
-        #choices=load_users_from_csv(),
-        choices=[('', '--- Select Owner ---')] + load_users_from_csv(),
-        widget=forms.Select(attrs={'id': 'owner', 'class': 'form-control'}),
-        required=True
+        required=False,
+        widget=forms.TextInput(attrs={
+            'list': 'owner_choices', 
+            'id': 'owner_display', 
+            'class': 'form-control'
+        })
     )
+    
+    # Hidden field for actual UID value
+    owner = forms.CharField(widget=forms.HiddenInput(), required=True)
+    
+    # Choices for the Owner field
+    #owner_choices = load_users_from_csv()
+
+    # Add a datalist with owner choices for the dropdown options
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['owner'].widget.attrs['autocomplete'] = 'off'
+        self.owner_datalist = self.owner_choices
+        self.fields['owner'].choices = load_users_from_csv()
 
     datacenter = forms.ChoiceField(
         label="Datacenter",

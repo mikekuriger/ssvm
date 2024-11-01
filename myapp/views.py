@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from myapp.config_helper import load_config
-from myapp.forms import VMCreationForm
+from myapp.forms import VMCreationForm, load_users_from_csv
 from myapp.models import Deployment, Node, HardwareProfile, OperatingSystem, Status, VRA_Deployment, VRA_Node
 from myapp.serializers import NodeSerializer
 from myapp.utils import destroy_vm, remove_dns_entry, screamtest_vm
@@ -396,6 +396,7 @@ def tail_log(request, node_name):
 def create_vm(request):
     # Load the configuration and prepare the datacenter choices
     config = load_config()
+    owner_choices = load_users_from_csv()  # Load choices from CSV
     
     # find who built it
     if request.user.is_authenticated:
@@ -624,7 +625,8 @@ def create_vm(request):
     return render(request, 'create_vm.html', {
         'form': form,
         'datacenters': datacenters,
-        'deployments': deployments
+        'deployments': deployments,
+        'owner_choices': owner_choices  # Pass to the template context
     })
 
 

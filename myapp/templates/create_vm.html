@@ -94,7 +94,9 @@
             <form method="POST">
                 {% csrf_token %}
                 <div class="row">
-                    <!-- Left Column: Useful Data or Instructions -->
+                    
+<!-- Left Column: Useful Data or Instructions -->
+                    
                     <div class="col-md-3 fixed-width-left">
                         <div class="mb-3 row move-right">
                             <label for="ticket" class="col-sm-3 col-form-label small-label">{{ form.ticket.label_tag }}</label>
@@ -143,153 +145,173 @@
                                                
                     </div>
 
-                    <!-- Middle Column: User Input Fields -->
+<!-- Middle Column: User Input Fields -->
+                    
                     <div class="col-md-3 fixed-width-center">
                         <div class="mb-3 row d-flex align-items-center">
                             <label for="owner" class="col-sm-3 col-form-label small-label">{{ form.owner.label_tag }}</label>
                             <div class="col-sm-9">
-                                {{ form.owner|add_class:"form-control my-smaller-field" }}
+                                <input type="text" list="owner_choices" id="owner_value" name="owner_value" class="form-control my-smaller-field" placeholder="--- Select or enter Owner ---" required>
+                                <!-- Hidden field to store the UID -->
+                                <input type="hidden" id="owner" name="owner">
+                                
+                                <datalist id="owner_choices">
+                                    {% for uid, display in owner_choices %}
+                                      <option data-uid="{{ uid }}" value="{{ display }}"></option>
+                                    {% endfor %}
+                                </datalist>
+                                <small id="owner_hint" class="form-text text-muted">If adding manually, enter UID</small>
                             </div>
                         </div>
-                    <!-- Hidden input field to hold the selected value -->
-                    <input type="hidden" id="owner_value" name="owner_value" />
+                    
+                        <script>
+                            document.getElementById('owner_value').addEventListener('input', function() {
+                                const datalist = document.getElementById('owner_choices');
+                                const selectedOption = Array.from(datalist.options).find(option => option.value === this.value);
 
-                    <div class="mb-3 row d-flex align-items-center">
-                        <label for="datacenter" class="col-sm-3 col-form-label small-label">{{ form.datacenter.label_tag }}</label>
-                        <div class="col-sm-9">
-                            {{ form.datacenter|add_class:"form-control my-smaller-field" }}
+                                document.getElementById('owner').value = selectedOption ? selectedOption.dataset.uid : this.value;
+                            });
+                        </script>
+                        
+                        <!-- Hidden input field to hold the selected value -->
+<!--                         <input type="hidden" id="owner_value" name="owner_value" /> -->
+                    
+                        <div class="mb-3 row d-flex align-items-center">
+                            <label for="datacenter" class="col-sm-3 col-form-label small-label">{{ form.datacenter.label_tag }}</label>
+                            <div class="col-sm-9">
+                                {{ form.datacenter|add_class:"form-control my-smaller-field" }}
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="mb-3 row d-flex align-items-center">
-                        <label for="server_type" class="col-sm-3 col-form-label small-label">{{ form.server_type.label_tag }}</label>
-                        <div class="col-sm-9">
-                            {{ form.server_type|add_class:"form-control my-smaller-field" }}
+                        <div class="mb-3 row d-flex align-items-center">
+                            <label for="server_type" class="col-sm-3 col-form-label small-label">{{ form.server_type.label_tag }}</label>
+                            <div class="col-sm-9">
+                                {{ form.server_type|add_class:"form-control my-smaller-field" }}
+                            </div>
                         </div>
-                    </div>
-                    <!-- Hidden input field to hold the selected value -->
-                    <input type="hidden" id="server_type_value" name="server_type_value" />
+                        <!-- Hidden input field to hold the selected value -->
+                        <input type="hidden" id="server_type_value" name="server_type_value" />
 
-                    <div class="mb-3 row d-flex align-items-center">
-                        <label for="hostname" class="col-sm-3 col-form-label small-label">{{ form.hostname.label_tag }}</label>
-                        <div class="col-sm-9">
-                            {{ form.hostname|add_class:"form-control my-smaller-field" }}
-                            <small id="hostname_hint" class="form-text text-muted">Max 8 characters for 1 VM, Max 6 characters for multiple VMs.</small>
+                        <div class="mb-3 row d-flex align-items-center">
+                            <label for="hostname" class="col-sm-3 col-form-label small-label">{{ form.hostname.label_tag }}</label>
+                            <div class="col-sm-9">
+                                {{ form.hostname|add_class:"form-control my-smaller-field" }}
+                                <small id="hostname_hint" class="form-text text-muted">Max 8 characters for 1 VM, Max 6 characters for multiple VMs.</small>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="mb-3 row d-flex align-items-center">
-                        <label for="os" class="col-sm-3 col-form-label small-label">{{ form.os.label_tag }}</label>
-                        <div class="col-sm-9">
-                            {{ form.os|add_class:"form-control my-smaller-field" }}
+                        <div class="mb-3 row d-flex align-items-center">
+                            <label for="os" class="col-sm-3 col-form-label small-label">{{ form.os.label_tag }}</label>
+                            <div class="col-sm-9">
+                                {{ form.os|add_class:"form-control my-smaller-field" }}
+                            </div>
                         </div>
-                    </div>
-                    <!-- Hidden input field to hold the selected value -->
-                    <input type="hidden" id="os_value" name="os_value" />
+                        <!-- Hidden input field to hold the selected value -->
+                        <input type="hidden" id="os_value" name="os_value" />
 
-                    <div class="mb-3 row d-flex align-items-center">
-                        <label for="deployment_count" class="col-sm-3 col-form-label small-label">{{ form.deployment_count.label_tag }}</label>
-                        <div class="col-sm-9">
-                            {{ form.deployment_count|add_class:"form-control my-smaller-field" }}
+                        <div class="mb-3 row d-flex align-items-center">
+                            <label for="deployment_count" class="col-sm-3 col-form-label small-label">{{ form.deployment_count.label_tag }}</label>
+                            <div class="col-sm-9">
+                                {{ form.deployment_count|add_class:"form-control my-smaller-field" }}
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="mb-3 row d-flex align-items-center">
-                        <label for="cpu" class="col-sm-3 col-form-label small-label">{{ form.cpu.label_tag }}</label>
-                        <div class="col-sm-9">
-                            {{ form.cpu|add_class:"form-control my-smaller-field" }}
+                        <div class="mb-3 row d-flex align-items-center">
+                            <label for="cpu" class="col-sm-3 col-form-label small-label">{{ form.cpu.label_tag }}</label>
+                            <div class="col-sm-9">
+                                {{ form.cpu|add_class:"form-control my-smaller-field" }}
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="mb-3 row d-flex align-items-center">
-                        <label for="ram" class="col-sm-3 col-form-label small-label">{{ form.ram.label_tag }}</label>
-                        <div class="col-sm-9">
-                            {{ form.ram|add_class:"form-control my-smaller-field" }}
+                        <div class="mb-3 row d-flex align-items-center">
+                            <label for="ram" class="col-sm-3 col-form-label small-label">{{ form.ram.label_tag }}</label>
+                            <div class="col-sm-9">
+                                {{ form.ram|add_class:"form-control my-smaller-field" }}
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="mb-3 row d-flex align-items-center">
-                        <label for="disk_size" class="col-sm-3 col-form-label small-label">{{ form.disk_size.label_tag }}</label>
-                        <div class="col-sm-9">
-                            {{ form.disk_size|add_class:"form-control my-smaller-field" }}
+                        <div class="mb-3 row d-flex align-items-center">
+                            <label for="disk_size" class="col-sm-3 col-form-label small-label">{{ form.disk_size.label_tag }}</label>
+                            <div class="col-sm-9">
+                                {{ form.disk_size|add_class:"form-control my-smaller-field" }}
+                            </div>
                         </div>
+
+                        <div class="mb-3 row d-flex align-items-center">
+                            <label for="cluster" class="col-sm-3 col-form-label small-label">{{ form.cluster.label_tag }}</label>
+                            <div class="col-sm-9">
+                                <select id="cluster" name="cluster" class="form-control my-smaller-field"></select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row d-flex align-items-center">
+                            <label for="network" class="col-sm-3 col-form-label small-label">{{ form.network.label_tag }}</label>
+                            <div class="col-sm-9">
+                                <select id="network" name="network" class="form-control my-smaller-field"></select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row d-flex align-items-center">
+                            <label for="nfs_home" class="col-sm-3 col-form-label small-label">{{ form.nfs_home.label_tag }}</label>
+                            <div class="col-sm-9">
+                                {{ form.nfs_home }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row d-flex align-items-center">
+                            <label for="add_disks" class="col-sm-3 col-form-label small-label">{{ form.add_disks.label_tag }}</label>
+                            <div class="col-sm-9">
+                                {{ form.add_disks }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row d-flex align-items-center hidden" id="additional_disk_field">
+                            <label for="additional_disk_size" class="col-sm-3 col-form-label small-label">{{ form.additional_disk_size.label_tag }}</label>
+                            <div class="col-sm-9" >
+                                {{ form.additional_disk_size|add_class:"form-control my-smaller-field" }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row d-flex align-items-center hidden" id="mount_path_field">
+                            <label for="mount_path" class="col-sm-3 col-form-label small-label">{{ form.mount_path.label_tag }}</label>
+                            <div class="col-sm-9" >
+                                {{ form.mount_path|add_class:"form-control my-smaller-field" }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row d-flex align-items-center">
+                            <label for="join_centrify" class="col-sm-3 col-form-label small-label">{{ form.join_centrify.label_tag }}</label>
+                            <div class="col-sm-9">{{ form.join_centrify }}</div>
+                        </div>
+
+                        <div class="mb-3 row d-flex align-items-center hidden" id="centrify_zone_field">
+                            <label for="centrify_zone" class="col-sm-3 col-form-label small-label" >{{ form.centrify_zone.label_tag }}</label>
+                            <div class="col-sm-9" >
+                                {{ form.centrify_zone|add_class:"form-control my-smaller-field" }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row d-flex align-items-center hidden" id="centrify_role_field">
+                            <label for="centrify_role" class="col-sm-3 col-form-label small-label" >{{ form.centrify_role.label_tag }}</label>
+                            <div class="col-sm-9" >
+                                {{ form.centrify_role|add_class:"form-control my-smaller-field" }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3 row d-flex align-items-center">
+                            <label for="install_patches" class="col-sm-3 col-form-label small-label">{{ form.install_patches.label_tag }}</label>
+                            <div class="col-sm-9">
+                                {{ form.install_patches }}
+                            </div>
+                        </div>
+                        {% if user.is_authenticated %}
+                        <div class="mb-3">
+                            <button type="submit" id="submit_button" class="btn btn-primary">Submit</button>
+                        </div>     
+                        {% endif %}
                     </div>
                     
-                    <div class="mb-3 row d-flex align-items-center">
-                        <label for="cluster" class="col-sm-3 col-form-label small-label">{{ form.cluster.label_tag }}</label>
-                        <div class="col-sm-9">
-                            <select id="cluster" name="cluster" class="form-control my-smaller-field"></select>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3 row d-flex align-items-center">
-                        <label for="network" class="col-sm-3 col-form-label small-label">{{ form.network.label_tag }}</label>
-                        <div class="col-sm-9">
-                            <select id="network" name="network" class="form-control my-smaller-field"></select>
-                        </div>
-                    </div>
-
-                    <div class="mb-3 row d-flex align-items-center">
-                        <label for="nfs_home" class="col-sm-3 col-form-label small-label">{{ form.nfs_home.label_tag }}</label>
-                        <div class="col-sm-9">
-                            {{ form.nfs_home }}
-                        </div>
-                    </div>
-
-                    <div class="mb-3 row d-flex align-items-center">
-                        <label for="add_disks" class="col-sm-3 col-form-label small-label">{{ form.add_disks.label_tag }}</label>
-                        <div class="col-sm-9">
-                            {{ form.add_disks }}
-                        </div>
-                    </div>
-
-                    <div class="mb-3 row d-flex align-items-center hidden" id="additional_disk_field">
-                        <label for="additional_disk_size" class="col-sm-3 col-form-label small-label">{{ form.additional_disk_size.label_tag }}</label>
-                        <div class="col-sm-9" >
-                            {{ form.additional_disk_size|add_class:"form-control my-smaller-field" }}
-                        </div>
-                    </div>
-
-                    <div class="mb-3 row d-flex align-items-center hidden" id="mount_path_field">
-                        <label for="mount_path" class="col-sm-3 col-form-label small-label">{{ form.mount_path.label_tag }}</label>
-                        <div class="col-sm-9" >
-                            {{ form.mount_path|add_class:"form-control my-smaller-field" }}
-                        </div>
-                    </div>
-
-                    <div class="mb-3 row d-flex align-items-center">
-                        <label for="join_centrify" class="col-sm-3 col-form-label small-label">{{ form.join_centrify.label_tag }}</label>
-                        <div class="col-sm-9">{{ form.join_centrify }}</div>
-                    </div>
-
-                    <div class="mb-3 row d-flex align-items-center hidden" id="centrify_zone_field">
-                        <label for="centrify_zone" class="col-sm-3 col-form-label small-label" >{{ form.centrify_zone.label_tag }}</label>
-                        <div class="col-sm-9" >
-                            {{ form.centrify_zone|add_class:"form-control my-smaller-field" }}
-                        </div>
-                    </div>
-
-                    <div class="mb-3 row d-flex align-items-center hidden" id="centrify_role_field">
-                        <label for="centrify_role" class="col-sm-3 col-form-label small-label" >{{ form.centrify_role.label_tag }}</label>
-                        <div class="col-sm-9" >
-                            {{ form.centrify_role|add_class:"form-control my-smaller-field" }}
-                        </div>
-                    </div>
-
-                    <div class="mb-3 row d-flex align-items-center">
-                        <label for="install_patches" class="col-sm-3 col-form-label small-label">{{ form.install_patches.label_tag }}</label>
-                        <div class="col-sm-9">
-                            {{ form.install_patches }}
-                        </div>
-                    </div>
-                    {% if user.is_authenticated %}
-                    <div class="mb-3">
-                        <button type="submit" id="submit_button" class="btn btn-primary">Submit</button>
-                    </div>     
-                    {% endif %}
-                    </div>
-                    
-                    <!-- Right Column: Additional User Input Fields -->
+<!-- Right Column: Additional User Input Fields -->
                     
                     <div class="col-md-3">
                         <input type="hidden" id="full_hostnames" name="full_hostnames" value="">
@@ -320,6 +342,18 @@
 
 <script src="{% static '/js/bootstrap.bundle.min.js' %}"></script>
 <script src="{% static '/js/create_vm.js' %}" defer></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const ownerCombinedInput = document.getElementById('owner_combined');
+        const ownerHiddenInput = document.getElementById('owner_value');
+
+        // Update the hidden input whenever the user selects or types in the combined input
+        ownerCombinedInput.addEventListener('input', function () {
+            ownerHiddenInput.value = ownerCombinedInput.value;
+        });
+    });
+</script>
 
 </body>
 </html>
