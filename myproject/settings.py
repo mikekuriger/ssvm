@@ -19,6 +19,12 @@ from django_auth_ldap.config import LDAPSearch, LDAPSearchUnion, GroupOfNamesTyp
 SCHEDULER_AUTOSTART = True
 MAX_RUN_TIME = 3600
 
+SITE_URL = 'https://st1lndssvm01.corp.pvt'
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://st1lndssvm01.corp.pvt',  # Original server
+    'https://st1lndssvm02.corp.pvt'   # New server
+]
 # ssl stuff (ssl is configured in nginx)
 # SECURE_SSL_REDIRECT = True
 # SESSION_COOKIE_SECURE = True

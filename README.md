@@ -66,6 +66,11 @@ http {
 }
 ```
 ## database setup
+curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash
+yum install MariaDB-server MariaDB-client MariaDB-devel
+systemctl start mariadb
+mysql_secure_installation
+
 create root password for mysql
 ```
 systemctl enable mariadb
