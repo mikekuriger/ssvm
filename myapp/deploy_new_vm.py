@@ -283,13 +283,13 @@ else:
     logger.info(f"Using datastorecluster - {DATASTORECLUSTER}")
     
 print(f"{bold}Deploying {VM} to {CLUSTER}{_bold}", flush=True)
-logger.info(f"{bold}Deploying {VM} to {CLUSTER}{_bold}")
+logger.info(f"Deploying {VM} to {CLUSTER}")
 
 
 
 #Deployment details
 print(f"{bold}Details:{_bold}", flush=True)
-logger.info(f"{bold}Details:{_bold}")
+logger.info(f"Details:")
 print(f"OS - {OS}", flush=True)
 logger.info(f"OS - {OS}")
 print(f"VERSION - {VERSION}", flush=True)
@@ -360,7 +360,7 @@ if "yellowpages" in DOMAIN:
             
              
 print(f"{bold}Begin clone for deployment: {deployment_name}{_bold}", flush=True)
-logger.info(f"{bold}Begin clone for deployment: {deployment_name}{_bold}")
+logger.info(f"Begin clone for deployment: {deployment_name}")
 print()
 
 try:
@@ -370,7 +370,7 @@ try:
 
     # Check if the output contains the VM name and deployment_name
     print(f"{bold}Checking to see if a VM already exists with the name {VM}{_bold}", flush=True)
-    logger.info(f"{bold}Checking to see if a VM already exists with the name {VM}{_bold}")
+    logger.info(f"Checking to see if a VM already exists with the name {VM}{_bold}")
     if VM in vmstat:
         govc_command2 = ["govc", "vm.info", "-json", VM]
         result2 = subprocess.run(govc_command2, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
@@ -378,7 +378,7 @@ try:
         
         if deployment_name in vmstat2:
             print(f"{bold}{VM} exists with the same deploment_id, using current VM. All build operations will run, just skipping the clone operation{_bold}", flush=True)
-            logger.info(f"{bold}{VM} exists with the same deploment_id, using current VM. All build operations will run, just skipping the clone operation{_bold}")
+            logger.info(f"{VM} exists with the same deploment_id, using current VM. All build operations will run, just skipping the clone operation{_bold}")
             vm_rebuild='True'
         else:
             print(f"{bold}A VM with the name {VM} already exists, bailing out!{_bold}", flush=True)
@@ -396,7 +396,7 @@ try:
 
         # VM does not exist, proceed with clone
         print(f"{bold}Cloning template{_bold}", flush=True)
-        logger.info(f"{bold}Cloning template{_bold}")
+        logger.info(f"Cloning template{_bold}")
         if DATASTORECLUSTER.startswith("raw"):
             DATASTORE = DATASTORECLUSTER[3:]
             clone_command = [
@@ -487,11 +487,11 @@ except subprocess.CalledProcessError as e:
 if DISK > 100:
     boot_disk_size=(str(DISK) + "G")
     print(f"{bold}Resizing boot disk to {boot_disk_size}{_bold}", flush=True)
-    logger.info(f"{bold}Resizing boot disk to {boot_disk_size}{_bold}")
+    logger.info(f"Resizing boot disk to {boot_disk_size}{_bold}")
     subprocess.run(["govc", "vm.disk.change", "-vm", VM, "-disk.name", "disk-1000-0", "-size", str(boot_disk_size)], check=True)
 else:
     print(f"{bold}Disk size is 100G (default), no resize needed{_bold}", flush=True)
-    logger.info(f"{bold}Disk size is 100G (default), no resize needed{_bold}")
+    logger.info(f"Disk size is 100G (default), no resize needed{_bold}")
 
 
 # if requested, add 2nd disk 
@@ -500,7 +500,7 @@ if ADDDISK == 'True':
     disk_name = (VM + "/" + VM + "_z")
     disk_size = (disk_size + "G")
     print(f"{bold}Adding 2nd disk - {disk_size}{_bold}", flush=True)
-    logger.info(f"{bold}Adding 2nd disk - {disk_size}{_bold}")
+    logger.info(f"Adding 2nd disk - {disk_size}{_bold}")
 
     datastore_result = subprocess.run(
         ["govc", "vm.info", "-json", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True
@@ -534,7 +534,7 @@ else:
 
 # Get MAC address of VM
 print(f"{bold}Getting MAC address from vCenter, needed for adding to eIP{_bold}", flush=True)
-logger.info(f"{bold}Getting MAC address from vCenter, needed for adding to eIP{_bold}")
+logger.info(f"Getting MAC address from vCenter, needed for adding to eIP")
 mac_result = subprocess.run(
     ["govc", "vm.info", "-json", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True
 )
@@ -569,10 +569,10 @@ def add_to_dns():
     sleep_delay=int(random.uniform(5, 30))
 
     print(f"{bold}Sleeping for {sleep_delay} seconds{_bold}", flush=True)
-    logger.info(f"{bold}Sleeping for {sleep_delay} seconds{_bold}")
+    logger.info(f"Sleeping for {sleep_delay} seconds{_bold}")
     time.sleep(sleep_delay)
     print(f"{bold}Adding {VM}.{DOMAIN} to DNS{_bold}", flush=True)
-    logger.info(f"{bold}Adding {VM}.{DOMAIN} to DNS{_bold}")
+    logger.info(f"Adding {VM}.{DOMAIN} to DNS{_bold}")
 
     # Generate dc_to_dc from config
     def generate_dc_to_dc(config):
@@ -753,7 +753,7 @@ IP = resolve_dns()
 
 # Power off VM if necessary
 print(f"{bold}Powering off {VM} in case it's on{_bold}", flush=True)
-logger.info(f"{bold}Powering off {VM} in case it's on{_bold}")
+logger.info(f"Powering off {VM} in case it's on")
 power_status = subprocess.run(["govc", "vm.info", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True)
 if "poweredOn" in power_status.stdout:
     subprocess.run(["govc", "vm.power", "-off", "-force", VM], check=True)
@@ -763,7 +763,7 @@ if "poweredOn" in power_status.stdout:
 # Customize hostname and IP
 # (cpu, memory, disk are set during clone)
 print(f"{bold}Customizing hostname, and IP (these settings are stored in vcenter and applied at first boot){_bold}", flush=True)
-logger.info(f"{bold}Customizing hostname, and IP (these settings are stored in vcenter and applied at first boot){_bold}")
+logger.info(f"Customizing hostname, and IP (these settings are stored in vcenter and applied at first boot)")
 customize_command = [
     "govc", "vm.customize", "-vm", VM, "-type", "Linux", "-name", VM, "-domain", DOMAIN,
     "-mac", mac_address, "-ip", IP, "-netmask", NETMASK, "-gateway", GATEWAY, "-dns-server", DNS,
@@ -871,7 +871,7 @@ else:
 from jinja2 import Environment, FileSystemLoader
 
 print(f"{bold}Generating ISO files for cloud-init{_bold}", flush=True)
-logger.info(f"{bold}Generating ISO files for cloud-init{_bold}")
+logger.info(f"Generating ISO files for cloud-init")
 
 if ADDDISK:
     mountdisks = f"/vra_automation/installs/mount_extra_disks.sh"
@@ -966,7 +966,7 @@ iso_command = [
 #logger.info(os_type)
 
 print(f"{bold}Creating ISO image for cloud-init{_bold}", flush=True)
-logger.info(f"{bold}Creating ISO image for cloud-init{_bold}")
+logger.info(f"Creating ISO image for cloud-init")
 
 if os_type == "Linux":
     subprocess.run(
@@ -985,7 +985,7 @@ else:
 
 # Copy the ISO image to the VM's datastore
 print(f"{bold}Copying the ISO to the VM's datastore{_bold}", flush=True)
-logger.info(f"{bold}Copying the ISO to the VM's datastore{_bold}")
+logger.info(f"Copying the ISO to the VM's datastore")
 datastore_result = subprocess.run(
     ["govc", "vm.info", "-json", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True
 )
@@ -1016,7 +1016,7 @@ else:
 
 # Mount the ISO to the VM and power it on
 print(f"{bold}Attach the ISO to the VM{_bold}", flush=True)
-logger.info(f"{bold}Attach the ISO to the VM{_bold}")
+logger.info(f"Attach the ISO to the VM")
 cd_device = subprocess.run(["govc", "device.ls", "-vm", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True).stdout.splitlines()
 cdrom_device = [line.split()[0] for line in cd_device if "cdrom" in line][0]
 # added eject in case template or image being cloned has a cd incerted
@@ -1058,7 +1058,7 @@ if result.returncode != 0:
 #logger.info(f"ISO has been inserted and attached to {VM}")
 
 print(f"{bold}Power on the VM, then check status{_bold}", flush=True)
-logger.info(f"{bold}Power on the VM, then check status{_bold}")
+logger.info(f"Power on the VM, then check status")
 time.sleep(int(random.uniform(1, 3)))
 subprocess.run(["govc", "vm.power", "-on", VM], check=True)
 
