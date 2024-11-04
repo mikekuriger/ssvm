@@ -5,7 +5,9 @@
     <!-- Header -->
     <div id="header">
         <div id="branding">
-            <h1 id="site-name"><a href="/admin/">Thryv Self-Serve Virtual Machine</a></h1>
+        <h1 id="site-name"><a href="/admin/">Thryv Self-Serve Virtual Machine</a>
+            <span style="font-size: 0.6em; vertical-align: middle;">v0.1</span>
+        </h1>
         </div>
         <div id="user-tools">
             Welcome,
@@ -26,6 +28,7 @@
             {% else %}
             <a href="{% url 'login' %}">Login</a>
             {% endif %}
+            
         </div>
     </div>
     <!-- END Header -->
