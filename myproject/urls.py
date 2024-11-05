@@ -29,7 +29,9 @@ urlpatterns = [
     path('nodes/<str:model_type>/<int:node_id>/', views.node_detail, name='node_detail'),
     path('nodes/<int:node_id>/view-log/', views.view_log, name='view_log'),
     path('screamtest_deployment/<uuid:deployment_id>/', views.screamtest_deployment, name='screamtest_deployment'),
-    path('system-logs/<str:log_type>/', views.view_system_logs, name='view_system_logs'),
+    #path('system-logs/<str:log_type>/', views.view_system_logs, name='view_system_logs'),
+    path('deployment-log/', views.view_deployment_log, name='view_deployment_log'),
+    path('tail_deployment_log/', views.tail_deployment_log, name='tail_deployment_log'),
 ]
 
 if settings.DEBUG:

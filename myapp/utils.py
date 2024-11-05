@@ -26,6 +26,7 @@ def destroy_vm(node, deployment):
     vcenter = datacenter['vcenter']
     username = datacenter['credentials']['username']
     password = datacenter['credentials']['password']
+    loggerdestroy = logging.getLogger('destroy')
 
     # Log the vCenter credentials being used
     loggerdestroy.info(f"Using vCenter {vcenter} to destroy VM {node.name} with UUID {node.serial_number}")
@@ -106,6 +107,7 @@ def remove_dns_entry(node, deployment):
     dns_name = node.name.split('.')[0]
     dns_zone = deployment.domain or 'corp.pvt'
     parameters = {"WHERE": f"name='{dns_name}.{dns_zone}'"}
+    loggerdestroy = logging.getLogger('destroy')
     
     loggerdestroy.info(f"Attempting to fetch DNS entry for {dns_name}.{dns_zone}")
     response = sds_conn.query("ip_address_list", parameters)
@@ -135,6 +137,7 @@ def screamtest_vm(node, deployment, decom_ticket, decom_date):
     vcenter = datacenter['vcenter']
     username = datacenter['credentials']['username']
     password = datacenter['credentials']['password']
+    logger = logging.getLogger('deployment')
 
     # Log the vCenter credentials being used
     logger.info(f"Using vCenter {vcenter} to poweroff and rename {node.name}")

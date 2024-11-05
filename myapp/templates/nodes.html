@@ -244,7 +244,7 @@
                                                     <td>{{ node.centrify_zone }}</td>
                                                     <td>
                                                         {% if node.deployment %}
-                                                            <a href="{% url 'deployment_detail' node.deployment.id %}">{{ node.deployment }}</a>
+                                                            <a href="{% url 'deployment_detail' node.deployment.id %}">{{ node.deployment.deployment_name|trim_after_self_serve }}</a>
                                                         {% else %}
                                                             None
                                                         {% endif %}
@@ -273,7 +273,7 @@
                                                     <td>{{ node.centrify_zone }}</td>
                                                     <td>
                                                         {% if node.deployment %}
-                                                            <a href="{% url 'deployment_detail' node.deployment.id %}">{{ node.deployment }}</a>
+                                                            <a href="{% url 'deployment_detail' node.deployment.id %}">{{ node.deployment.deployment_name|trim_after_self_serve }}</a>
                                                         {% else %}
                                                             None
                                                         {% endif %}

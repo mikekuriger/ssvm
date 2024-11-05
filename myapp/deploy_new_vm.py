@@ -67,6 +67,11 @@ deployment_count = int(data.get("Deployment_count", 0))
 DOMAIN = data.get("Domain")
 VM = data.get("Hostname")
 OS = data.get("OS")
+
+CLONE=True
+if "SSVM-" in OS:
+    CLONE=False
+
 VERSION = data.get("VERSION")
 CPU = int(data.get("CPU", 0))
 MEM = int(data.get("RAM", 0)) * 1024  # it's in MB
@@ -244,7 +249,7 @@ else:
         NETWORK = "10.2.4-VLAN421-DvS"
         NETMASK = "255.255.252.0"
     else:
-        print(f"{deployment_name} - {VLAN} is not a valid VLAN", flush=True)
+        print(f"{VLAN} is not a valid VLAN", flush=True)
         logger.info(f"{VLAN} is not a valid VLAN")
         
         node.status = statusf_instance
@@ -275,67 +280,67 @@ _bold = '\033[0m'
 DATASTORECLUSTER = get_datastorecluster(CLUSTER)
 if DATASTORECLUSTER.startswith("raw"):
     DATASTORE = DATASTORECLUSTER[3:]
-    print(f"{deployment_name} - No Datastore Cluster found, using datastore {DATASTORE} directly", flush=True)
+    print(f"No Datastore Cluster found, using datastore {DATASTORE} directly", flush=True)
     logger.info(f"No Datastore Cluster found, using datastore {DATASTORE} directly")
 else:    
-    print(f"{deployment_name} - Using datastorecluster - {DATASTORECLUSTER}", flush=True)
+    print(f"Using datastorecluster - {DATASTORECLUSTER}", flush=True)
     logger.info(f"Using datastorecluster - {DATASTORECLUSTER}")
     
-print(f"{deployment_name} - {bold}Deploying {VM} to {CLUSTER}{_bold}", flush=True)
+print(f"{bold}Deploying {VM} to {CLUSTER}{_bold}", flush=True)
 logger.info(f"Deploying {VM} to {CLUSTER}")
 
 
 
 #Deployment details
-print(f"{deployment_name} - {bold}Details:{_bold}", flush=True)
+print(f"{bold}Details:{_bold}", flush=True)
 logger.info(f"Details:")
-print(f"{deployment_name} - OS - {OS}", flush=True)
+print(f"OS - {OS}", flush=True)
 logger.info(f"OS - {OS}")
-print(f"{deployment_name} - VERSION - {VERSION}", flush=True)
+print(f"VERSION - {VERSION}", flush=True)
 logger.info(f"VERSION - {VERSION}")
-print(f"{deployment_name} - CPU - {CPU}", flush=True)
+print(f"CPU - {CPU}", flush=True)
 logger.info(f"CPU - {CPU}")
-print(f"{deployment_name} - MEM - {MEM} MB", flush=True)
+print(f"MEM - {MEM} MB", flush=True)
 logger.info(f"MEM - {MEM} MB")
-print(f"{deployment_name} - Disk - {DISK} GB", flush=True)
+print(f"Disk - {DISK} GB", flush=True)
 logger.info(f"Disk - {DISK} GB")
-print(f"{deployment_name} - Datacenter - {DC}", flush=True)
+print(f"Datacenter - {DC}", flush=True)
 logger.info(f"Datacenter - {DC}")
-print(f"{deployment_name} - Domain - {DOMAIN}", flush=True)
+print(f"Domain - {DOMAIN}", flush=True)
 logger.info(f"Domain - {DOMAIN}")
-print(f"{deployment_name} - VLAN - {VLAN}", flush=True)
+print(f"VLAN - {VLAN}", flush=True)
 logger.info(f"VLAN - {VLAN}")
-print(f"{deployment_name} - CLUSTER - {CLUSTER}", flush=True)
+print(f"CLUSTER - {CLUSTER}", flush=True)
 logger.info(f"CLUSTER - {CLUSTER}")
-print(f"{deployment_name} - DNS - {DNS}", flush=True)
+print(f"DNS - {DNS}", flush=True)
 logger.info(f"DNS - {DNS}")
-print(f"{deployment_name} - Domains - {DOMAINS}", flush=True)
+print(f"Domains - {DOMAINS}", flush=True)
 logger.info(f"Domains - {DOMAINS}")
-print(f"{deployment_name} - Network - {NETWORK}", flush=True)
+print(f"Network - {NETWORK}", flush=True)
 logger.info(f"Network - {NETWORK}")
-print(f"{deployment_name} - Netmask - {NETMASK}", flush=True)
+print(f"Netmask - {NETMASK}", flush=True)
 logger.info(f"Netmask - {NETMASK}")
-print(f"{deployment_name} - Type - {TYPE}", flush=True)
+print(f"Type - {TYPE}", flush=True)
 logger.info(f"Type - {TYPE}")
-print(f"{deployment_name} - Built by - {BUILTBY}", flush=True)
+print(f"Built by - {BUILTBY}", flush=True)
 logger.info(f"Built by - {BUILTBY}")
-print(f"{deployment_name} - Ticket - {TICKET}", flush=True)
+print(f"Ticket - {TICKET}", flush=True)
 logger.info(f"Ticket - {TICKET}")
-print(f"{deployment_name} - App Name - {APPNAME}", flush=True)
+print(f"App Name - {APPNAME}", flush=True)
 logger.info(f"App Name - {APPNAME}")
-print(f"{deployment_name} - Owner - {OWNER}", flush=True)
+print(f"Owner - {OWNER}", flush=True)
 logger.info(f"Owner - {OWNER}")
-print(f"{deployment_name} - Automount - {NFS}", flush=True)
+print(f"Automount - {NFS}", flush=True)
 logger.info(f"Automount - {NFS}")
-print(f"{deployment_name} - Patches - {PATCH}", flush=True)
+print(f"Patches - {PATCH}", flush=True)
 logger.info(f"Patches - {PATCH}")
-print(f"{deployment_name} - Centrify Join - {CENTRIFY}", flush=True)
+print(f"Centrify Join - {CENTRIFY}", flush=True)
 logger.info(f"Centrify Join - {CENTRIFY}")
-print(f"{deployment_name} - centrify_zone - {centrify_zone}", flush=True)
+print(f"centrify_zone - {centrify_zone}", flush=True)
 logger.info(f"centrify_zone - {centrify_zone}")
-print(f"{deployment_name} - centrify_role - {centrify_role}", flush=True)
+print(f"centrify_role - {centrify_role}", flush=True)
 logger.info(f"centrify_role - {centrify_role}")
-print(f"{deployment_name} - Add_disk - {ADDDISK}", flush=True)
+print(f"Add_disk - {ADDDISK}", flush=True)
 logger.info(f"Add_disk - {ADDDISK}")
 print()
 
@@ -349,16 +354,16 @@ if "yellowpages" in DOMAIN:
         govc_command = ["govc", "vm.change", "-name", VM, "-vm", f"{VM}.{DOMAIN}"]
         result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         if result.returncode == 0:
-            print(f"{deployment_name} - Renamed {VM}.{DOMAIN} to {VM}", flush=True)
+            print(f"Renamed {VM}.{DOMAIN} to {VM}", flush=True)
             logger.info(f"Renamed {VM}.{DOMAIN} to {VM}")
         else:
-            print(f"{deployment_name} - Failed to rename {VM}", flush=True)
+            print(f"Failed to rename {VM}", flush=True)
             logger.error(f"Failed to rename {VM}")
             print("Error:", set_result.stderr)
             logger.error("Error:", set_result.stderr)
             
              
-print(f"{deployment_name} - {bold}Begin clone for deployment: {deployment_name}{_bold}", flush=True)
+print(f"{bold}Begin clone for deployment: {deployment_name}{_bold}", flush=True)
 logger.info(f"Begin clone for deployment: {deployment_name}")
 print()
 
@@ -368,7 +373,7 @@ try:
     vmstat = result.stdout
 
     # Check if the output contains the VM name and deployment_name
-    print(f"{deployment_name} - {bold}Checking to see if a VM already exists with the name {VM}{_bold}", flush=True)
+    print(f"{bold}Checking to see if a VM already exists with the name {VM}{_bold}", flush=True)
     logger.info(f"Checking to see if a VM already exists with the name {VM}")
     if VM in vmstat:
         govc_command2 = ["govc", "vm.info", "-json", VM]
@@ -376,25 +381,28 @@ try:
         vmstat2 = result2.stdout
         
         if deployment_name in vmstat2:
-            print(f"{deployment_name} - {bold}{VM} exists with the same deploment_id, using current VM. All build operations will run, just skipping the clone operation{_bold}", flush=True)
+            print(f"{bold}{VM} exists with the same deploment_id, using current VM. All build operations will run, just skipping the clone operation{_bold}", flush=True)
             logger.info(f"{VM} exists with the same deploment_id, using current VM. All build operations will run, just skipping the clone operation")
             vm_rebuild='True'
         else:
-            print(f"{deployment_name} - {bold}A VM with the name {VM} already exists, bailing out!{_bold}", flush=True)
-            logger.error(f"A VM with the name {VM} already exists, bailing out!")
-            print(vmstat, flush=True)
-            logger.error(vmstat)
-            print(f"{deployment_name} - {bold}A VM with the name {VM} already exists, bailing out!{_bold}", flush=True)
-            logger.error(f"A VM with the name {VM} already exists, bailing out!")
-            node.status = statusf_instance
-            node.save(update_fields=['status'])
-            sys.exit(1)
+            print(f"{bold}A VM with the name {VM} already exists, we will use it!{_bold}", flush=True)
+            logger.error(f"A VM with the name {VM} already exists, we will use it!")
+            # print(f"{bold}A VM with the name {VM} already exists, bailing out!{_bold}", flush=True)
+            # logger.error(f"A VM with the name {VM} already exists, bailing out!")
+            # print(vmstat, flush=True)
+            # logger.error(vmstat)
+            # print(f"{bold}A VM with the name {VM} already exists, bailing out!{_bold}", flush=True)
+            # logger.error(f"A VM with the name {VM} already exists, bailing out!")
+            # node.status = statusf_instance
+            # node.save(update_fields=['status'])
+            # sys.exit(1)
+            vm_rebuild='True'
     else:
-        print(f"{deployment_name} - {VM} does not exist", flush=True)
+        print(f"{VM} does not exist", flush=True)
         logger.info(f"{VM} does not exist")
 
         # VM does not exist, proceed with clone
-        print(f"{deployment_name} - {bold}Cloning template{_bold}", flush=True)
+        print(f"{bold}Cloning template{_bold}", flush=True)
         logger.info(f"Cloning template")
         if DATASTORECLUSTER.startswith("raw"):
             DATASTORE = DATASTORECLUSTER[3:]
@@ -421,8 +429,10 @@ try:
 
             try:
                 attempt += 1
-                print(f"{deployment_name} - Attempt {attempt} of {retries} to clone VM...", flush=True)
+                print(f"Attempt {attempt} of {retries} to clone VM...", flush=True)
+                print(" ".join(clone_command))
                 logger.info(f"Attempt {attempt} of {retries} to clone VM...")
+                logger.info(" ".join(clone_command))
 
                 # Run the command with both stdout and stderr being captured in real-time LOGGING 
                 with subprocess.Popen(clone_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True) as process:
@@ -438,7 +448,7 @@ try:
                             # Log progress only for every 10% increment
                             if current_percentage >= last_logged_percentage + 10:
                                 last_logged_percentage = current_percentage
-                                print(f"{deployment_name} - Progress: {line}")
+                                print(f"Progress: {line}")
                                 logger.info(f"Progress: {line}")
 
                     process.wait()  # Wait for the clone to complete
@@ -448,16 +458,16 @@ try:
                         raise subprocess.CalledProcessError(process.returncode, clone_command)
 
                 # If the clone is successful, print a success message and break the loop
-                print(f"{deployment_name} - Cloning completed for {VM}", flush=True)
+                print(f"Cloning completed for {VM}", flush=True)
                 logger.info(f"Cloning completed for {VM}")
                 break  # Exit the retry loop since the operation was successful
 
             except subprocess.CalledProcessError as e:
-                print(f"{deployment_name} - An error occurred while cloning the VM on attempt {attempt}: {e.stderr}", flush=True)
+                print(f"An error occurred while cloning the VM on attempt {attempt}: {e.stderr}", flush=True)
                 logger.error(f"An error occurred while cloning the VM on attempt {attempt}: {e.stderr}")
 
                 if attempt < retries:
-                    print(f"{deployment_name} - Retrying in {delay} seconds...", flush=True)
+                    print(f"Retrying in {delay} seconds...", flush=True)
                     logger.info(f"Retrying in {delay} seconds...")
                     time.sleep(delay)  # Wait for 30 seconds before retrying
                 else:
@@ -469,7 +479,7 @@ try:
 
             
 except subprocess.CalledProcessError as e:
-    print(f"{deployment_name} - An error occurred while checking the VM (govc): {e.stderr}", flush=True)
+    print(f"An error occurred while checking the VM (govc): {e.stderr}", flush=True)
     logger.error(f"An error occurred while checking the VM (govc): {e.stderr}")
     
     node.status = statusf_instance
@@ -485,11 +495,11 @@ except subprocess.CalledProcessError as e:
 # Resize boot disk if needed
 if DISK > 100:
     boot_disk_size=(str(DISK) + "G")
-    print(f"{deployment_name} - {bold}Resizing boot disk to {boot_disk_size}{_bold}", flush=True)
+    print(f"{bold}Resizing boot disk to {boot_disk_size}{_bold}", flush=True)
     logger.info(f"Resizing boot disk to {boot_disk_size}")
     subprocess.run(["govc", "vm.disk.change", "-vm", VM, "-disk.name", "disk-1000-0", "-size", str(boot_disk_size)], check=True)
 else:
-    print(f"{deployment_name} - {bold}Disk size is 100G (default), no resize needed{_bold}", flush=True)
+    print(f"{bold}Disk size is 100G (default), no resize needed{_bold}", flush=True)
     logger.info(f"Disk size is 100G (default), no resize needed")
 
 
@@ -498,7 +508,7 @@ if ADDDISK == 'True':
     disk_size, label = ADDDISK.split(',')
     disk_name = (VM + "/" + VM + "_z")
     disk_size = (disk_size + "G")
-    print(f"{deployment_name} - {bold}Adding 2nd disk - {disk_size}{_bold}", flush=True)
+    print(f"{bold}Adding 2nd disk - {disk_size}{_bold}", flush=True)
     logger.info(f"Adding 2nd disk - {disk_size}")
 
     datastore_result = subprocess.run(
@@ -519,10 +529,10 @@ if ADDDISK == 'True':
         command = ["govc", "vm.disk.create", "-vm", VM, "-thick", "-eager", "-size", disk_size, "-name", disk_name, "-ds", datastore] 
         try:
             subprocess.run(command, check=True)
-            print(f"{deployment_name} - Added a {disk_size} disk to {VM}", flush=True)
+            print(f"Added a {disk_size} disk to {VM}", flush=True)
             logger.info(f"Added a {disk_size} disk to {VM}")
         except subprocess.CalledProcessError as e:
-            print(f"{deployment_name} - Failed to add disk to {VM}: {e}", flush=True)
+            print(f"Failed to add disk to {VM}: {e}", flush=True)
             logger.error(f"Failed to add disk to {VM}: {e}")
     else:
         print("No valid datastore found for the VM.", flush=True)
@@ -532,7 +542,7 @@ else:
 
 
 # Get MAC address of VM
-print(f"{deployment_name} - {bold}Getting MAC address from vCenter, needed for adding to eIP{_bold}", flush=True)
+print(f"{bold}Getting MAC address from vCenter, needed for adding to eIP{_bold}", flush=True)
 logger.info(f"Getting MAC address from vCenter, needed for adding to eIP")
 mac_result = subprocess.run(
     ["govc", "vm.info", "-json", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True
@@ -567,10 +577,10 @@ def add_to_dns():
 
     sleep_delay=int(random.uniform(5, 30))
 
-    print(f"{deployment_name} - {bold}Sleeping for {sleep_delay} seconds{_bold}", flush=True)
+    print(f"{bold}Sleeping for {sleep_delay} seconds{_bold}", flush=True)
     logger.info(f"Sleeping for {sleep_delay} seconds")
     time.sleep(sleep_delay)
-    print(f"{deployment_name} - {bold}Adding {VM}.{DOMAIN} to DNS{_bold}", flush=True)
+    print(f"{bold}Adding {VM}.{DOMAIN} to DNS{_bold}", flush=True)
     logger.info(f"Adding {VM}.{DOMAIN} to DNS")
 
     # Generate dc_to_dc from config
@@ -728,7 +738,7 @@ def resolve_dns():
     for attempt in range(max_retries):
         try:
             ip_address = socket.gethostbyname(f"{VM}.{DOMAIN}")
-            print(f"{deployment_name} - {VM}.{DOMAIN} resolves to {ip_address}", flush=True)
+            print(f"{VM}.{DOMAIN} resolves to {ip_address}", flush=True)
             logger.info(f"{VM}.{DOMAIN} resolves to {ip_address}")
             return ip_address
         except socket.gaierror:
@@ -738,7 +748,7 @@ def resolve_dns():
             time.sleep(retry_delay)
     
     # If all attempts fail, exit with error
-    print(f"{deployment_name} - {bold}Failed to resolve {VM}.{DOMAIN} after {max_retries} attempts!{_bold}", flush=True)
+    print(f"{bold}Failed to resolve {VM}.{DOMAIN} after {max_retries} attempts!{_bold}", flush=True)
     logger.error(f"Failed to resolve {VM}.{DOMAIN} after {max_retries} attempts!")
     
     node.status = statusf_instance
@@ -751,7 +761,7 @@ IP = resolve_dns()
 
 
 # Power off VM if necessary
-print(f"{deployment_name} - {bold}Powering off {VM} in case it's on{_bold}", flush=True)
+print(f"{bold}Powering off {VM} in case it's on{_bold}", flush=True)
 logger.info(f"Powering off {VM} in case it's on")
 power_status = subprocess.run(["govc", "vm.info", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True)
 if "poweredOn" in power_status.stdout:
@@ -761,7 +771,7 @@ if "poweredOn" in power_status.stdout:
     
 # Customize hostname and IP
 # (cpu, memory, disk are set during clone)
-print(f"{deployment_name} - {bold}Customizing hostname, and IP (these settings are stored in vcenter and applied at first boot){_bold}", flush=True)
+print(f"{bold}Customizing hostname, and IP (these settings are stored in vcenter and applied at first boot){_bold}", flush=True)
 logger.info(f"Customizing hostname, and IP (these settings are stored in vcenter and applied at first boot)")
 customize_command = [
     "govc", "vm.customize", "-vm", VM, "-type", "Linux", "-name", VM, "-domain", DOMAIN,
@@ -806,10 +816,10 @@ fields_set_command = ["govc", "fields.set", "deployment", deployment_name, f"{fo
 set_result = subprocess.run(fields_set_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
 if set_result.returncode == 0:
-    print(f"{deployment_name} - Custom field 'deployment' successfully set to {deployment_name}", flush=True)
+    print(f"Custom field 'deployment' successfully set to {deployment_name}", flush=True)
     logger.info(f"Custom field 'deployment' successfully set to {deployment_name}")
 else:
-    print(f"{deployment_name} - Failed to set custom field 'deployment'.", flush=True)
+    print(f"Failed to set custom field 'deployment'.", flush=True)
     logger.error(f"Failed to set custom field 'deployment'.")
     print("Error:", set_result.stderr)
     logger.error("Error:", set_result.stderr)
@@ -819,7 +829,7 @@ fields_set_command = ["govc", "fields.set", "Created_by", f"SSVM ({BUILTBY})", f
 set_result = subprocess.run(fields_set_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                       
 if set_result.returncode == 0:
-    print(f"{deployment_name} - Custom field 'Created_by' successfully set to {BUILTBY}")
+    print(f"Custom field 'Created_by' successfully set to {BUILTBY}")
     logger.info(f"Custom field 'Created_by' successfully set to {BUILTBY}")
 else:
     print("Failed to set custom field 'Created_by'.")
@@ -842,7 +852,7 @@ if uuid_result.returncode == 0:
             break
                       
     if cmdb_uuid_value:
-        print(f"{deployment_name} - cmdb_uuid value: {cmdb_uuid_value}", flush=True)
+        print(f"cmdb_uuid value: {cmdb_uuid_value}", flush=True)
         logger.info(f"cmdb_uuid value: {cmdb_uuid_value}")
     else:
         print("cmdb_uuid value not found.")
@@ -855,7 +865,7 @@ if uuid_result.returncode == 0:
     #name = config.get("name")
                       
     if uuid_value:
-        print(f"{deployment_name} - uuid value: {uuid_value}")
+        print(f"uuid value: {uuid_value}")
         logger.info(f"uuid value: {uuid_value}")
     else:
         print("uuid value not found.")
@@ -865,198 +875,217 @@ else:
     logger.error("Failed to retrieve VM info.")
     print("Error:", uuid_result.stderr)                    
     logger.error("Error:", uuid_result.stderr)                    
-    
+
+
 # Generate ISO files for cloud-init
-from jinja2 import Environment, FileSystemLoader
-
-print(f"{deployment_name} - {bold}Generating ISO files for cloud-init{_bold}", flush=True)
-logger.info(f"Generating ISO files for cloud-init")
-
-if ADDDISK:
-    mountdisks = f"/vra_automation/installs/mount_extra_disks.sh"
-    dumpdisks = f"echo '{ADDDISK}' >> /etc/vra.disk"
-else:
-    mountdisks = ""
-    dumpdisks = ""
-        
-if centrify_zone:
-    adjoin = f"/usr/sbin/adjoin --server DFW2W2SDC05.corp.pvt -z {centrify_zone} -R {centrify_role} " \
-             "-c OU=Computers,OU=Centrify,DC=corp,DC=pvt -f corp.pvt -u svc_centrify -p '#xupMcMlURubO2|'"
-
-    centrify_sshd = f"sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication yes/' " \
-                    "/etc/centrifydc/ssh/sshd_config; systemctl mask sshd; systemctl enable " \
-                    "centrify-sshd; mv /usr/bin/sudo /usr/bin/sudo.pre.cfy; ln -s /usr/bin/dzdo /usr/bin/sudo"
-else:
-    adjoin = ""
-    centrify_sshd = ""
-
-yumupdate = f"/usr/bin/yum update -y"
-automount_homedir = f"/vra_automation/installs/automount_homedir.sh"
-
-# future maybe
-fyptools_install = f"/vra_automation/installs/fyptools_install.sh"
-cohesity_install = f"/vra_automation/installs/cohesity_install.sh"
-
-# get date
-now = datetime.now()
-date = now.strftime("%Y-%m-%dT%H:%M:%S")
-
-# Set up Jinja2 environment and load the template file
-env = Environment(loader=FileSystemLoader(searchpath=os.path.join(settings.BASE_DIR, 'myapp', 'templates')))
-usertemplate = env.get_template("user_data_template.j2")
-metatemplate = env.get_template("meta_data_template.j2")
-  
-# Values to populate in the template from arguments
-template_data = {
-    'vm': f"{VM}.{DOMAIN}",
-    'date': date,
-    'type': TYPE,
-    'builtby': BUILTBY,
-    'ticket': TICKET,
-    'appname': APPNAME,
-    'owner': OWNER,
-    'patch': PATCH,
-    'yumupdate': yumupdate,
-    'dumpdisks': dumpdisks,
-#    'disk_size': args.disk_size,
-    'adddisk': ADDDISK,
-    'mountdisks': mountdisks,
-    'automount_homedir': automount_homedir,
-    'automount': NFS,
-    'adjoin': adjoin,
-    'centrify_sshd': centrify_sshd,
-    'centrify_zone': centrify_zone
-}
-   
-# Render the user-data and meta-data
-user_data = usertemplate.render(template_data)
-meta_data = metatemplate.render(template_data)
-
-# Directory to save the file  
-output_dir = os.path.join(settings.BASE_DIR, 'myapp', 'cloud-init-images', f"{VM}.{DOMAIN}")
-
-# Create the full paths for the ISO file and other necessary files
-iso_file = os.path.join(output_dir, "seed.iso")
-user_data_file = os.path.join(output_dir, "user-data")
-meta_data_file = os.path.join(output_dir, "meta-data")
-
-# Create the directory if it doesn't exist
-os.makedirs(output_dir, exist_ok=True)
-
-# Write user-data
-output_file = f'{output_dir}/user-data'
-with open(output_file, 'w') as f:
-    f.write(user_data)
-
-# Write meta-data
-output_file = f'{output_dir}/meta-data'
-with open(output_file, 'w') as f:
-    f.write(meta_data)
-
+if not CLONE:
+    from jinja2 import Environment, FileSystemLoader
     
-# Create the ISO image (bash command)
-# Determine the OS
-import platform
-os_type = platform.system()
-iso_command = [
-    "-o", iso_file, "-volid", "cidata", "-joliet", "-rock", user_data_file, meta_data_file
-]
-#print(os_type)
-#logger.info(os_type)
-
-print(f"{deployment_name} - {bold}Creating ISO image for cloud-init{_bold}", flush=True)
-logger.info(f"Creating ISO image for cloud-init")
-
-if os_type == "Linux":
-    subprocess.run(
-        ["genisoimage"] + iso_command,
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True
+    print(f"{bold}Generating ISO files for cloud-init{_bold}", flush=True)
+    logger.info(f"Generating ISO files for cloud-init")
+    
+    if ADDDISK:
+        mountdisks = f"/vra_automation/installs/mount_extra_disks.sh"
+        dumpdisks = f"echo '{ADDDISK}' >> /etc/vra.disk"
+    else:
+        mountdisks = ""
+        dumpdisks = ""
+            
+    if centrify_zone:
+        adjoin = f"/usr/sbin/adjoin --server DFW2W2SDC05.corp.pvt -z {centrify_zone} -R {centrify_role} " \
+                 "-c OU=Computers,OU=Centrify,DC=corp,DC=pvt -f corp.pvt -u svc_centrify -p '#xupMcMlURubO2|'"
+    
+        centrify_sshd = f"sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication yes/' " \
+                        "/etc/centrifydc/ssh/sshd_config; systemctl mask sshd; systemctl enable " \
+                        "centrify-sshd; mv /usr/bin/sudo /usr/bin/sudo.pre.cfy; ln -s /usr/bin/dzdo /usr/bin/sudo"
+    else:
+        adjoin = ""
+        centrify_sshd = ""
+    
+    yumupdate = f"/usr/bin/yum update -y"
+    automount_homedir = f"/vra_automation/installs/automount_homedir.sh"
+    
+    # future maybe
+    fyptools_install = f"/vra_automation/installs/fyptools_install.sh"
+    cohesity_install = f"/vra_automation/installs/cohesity_install.sh"
+    
+    # get date
+    now = datetime.now()
+    date = now.strftime("%Y-%m-%dT%H:%M:%S")
+    
+    # Set up Jinja2 environment and load the template file
+    env = Environment(loader=FileSystemLoader(searchpath=os.path.join(settings.BASE_DIR, 'myapp', 'templates')))
+    usertemplate = env.get_template("user_data_template.j2")
+    metatemplate = env.get_template("meta_data_template.j2")
+      
+    # Values to populate in the template from arguments
+    template_data = {
+        'vm': f"{VM}.{DOMAIN}",
+        'date': date,
+        'type': TYPE,
+        'builtby': BUILTBY,
+        'ticket': TICKET,
+        'appname': APPNAME,
+        'owner': OWNER,
+        'patch': PATCH,
+        'yumupdate': yumupdate,
+        'dumpdisks': dumpdisks,
+    #    'disk_size': args.disk_size,
+        'adddisk': ADDDISK,
+        'mountdisks': mountdisks,
+        'automount_homedir': automount_homedir,
+        'automount': NFS,
+        'adjoin': adjoin,
+        'centrify_sshd': centrify_sshd,
+        'centrify_zone': centrify_zone
+    }
+       
+    # Render the user-data and meta-data
+    user_data = usertemplate.render(template_data)
+    meta_data = metatemplate.render(template_data)
+    
+    # Directory to save the file  
+    output_dir = os.path.join(settings.BASE_DIR, 'myapp', 'cloud-init-images', f"{VM}.{DOMAIN}")
+    
+    # Create the full paths for the ISO file and other necessary files
+    iso_file = os.path.join(output_dir, "seed.iso")
+    user_data_file = os.path.join(output_dir, "user-data")
+    meta_data_file = os.path.join(output_dir, "meta-data")
+    
+    # Create the directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Write user-data
+    output_file = f'{output_dir}/user-data'
+    with open(output_file, 'w') as f:
+        f.write(user_data)
+    
+    # Write meta-data
+    output_file = f'{output_dir}/meta-data'
+    with open(output_file, 'w') as f:
+        f.write(meta_data)
+    
+        
+    # Create the ISO image (bash command)
+    # Determine the OS
+    import platform
+    os_type = platform.system()
+    iso_command = [
+        "-o", iso_file, "-volid", "cidata", "-joliet", "-rock", user_data_file, meta_data_file
+    ]
+    #print(os_type)
+    #logger.info(os_type)
+    
+    print(f"{bold}Creating ISO image for cloud-init{_bold}", flush=True)
+    logger.info(f"Creating ISO image for cloud-init")
+    
+    if os_type == "Linux":
+        subprocess.run(
+            ["genisoimage"] + iso_command,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True
+        )
+    elif os_type == "Darwin":  # macOS is identified as "Darwin"
+        subprocess.run(
+            ["mkisofs"] + iso_command,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True
+        )
+    else:
+        raise EnvironmentError("Unsupported operating system for this script")
+    
+    
+    
+    # Copy the ISO image to the VM's datastore
+    datastore_result = subprocess.run(
+        ["govc", "vm.info", "-json", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True
     )
-elif os_type == "Darwin":  # macOS is identified as "Darwin"
-    subprocess.run(
-        ["mkisofs"] + iso_command,
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True
-    )
+    
+    datastore_json = json.loads(datastore_result.stdout)
+    
+    # Extract the datastore information
+    datastore = None
+    for device in datastore_json["virtualMachines"][0]["config"]["hardware"]["device"]:
+        if "backing" in device and "fileName" in device["backing"] and device["backing"]["fileName"]:
+            datastore = device["backing"]["fileName"]
+            # Trim to get the datastore name
+            datastore = datastore.split('[')[-1].split(']')[0]
+            break
+    
+    # Check if the datastore was found
+    if datastore:
+        print(f"{bold}Copying the ISO to the VM's datastore - {datastore}{_bold}", flush=True)
+        logger.info(f"Copying the ISO to the VM's datastore - {datastore}")
+        
+        # Run the command to upload the ISO to the VM's datastore
+        subprocess.run(
+            ["govc", "datastore.upload", "-ds", datastore, iso_file, f"{VM}/seed.iso"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=True
+        )
+    else:
+        print("No valid datastore found for the VM.", flush=True)
+        logger.error("No valid datastore found for the VM.")
+    
+    
+    
+    # Mount the ISO to the VM and power it on
+    print(f"{bold}Attach the ISO to the VM{_bold}", flush=True)
+    logger.info(f"Attach the ISO to the VM")
+    cd_device = subprocess.run(["govc", "device.ls", "-vm", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True).stdout.splitlines()
+    cdrom_device = [line.split()[0] for line in cd_device if "cdrom" in line][0]
+    # added eject in case template or image being cloned has a cd incerted
+    result = subprocess.run(["govc", "device.cdrom.eject", "-vm", VM], check=True)
+    if result.returncode == 0:
+        print(f"CDROM ejected from {VM}", flush=True)
+    else:
+        print(f"Failed to eject CDROM from {VM}", flush=True)
+        logger.error(f"Failed to eject CDROM from {VM}")
+        print("Error:", set_result.stderr)
+        logger.error("Error:", set_result.stderr)
+        node.status = statusf_instance
+        node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
+    
+    insert_command= ["govc", "device.cdrom.insert", "-vm", VM, "-device", cdrom_device, "-ds", datastore, f"{VM}/seed.iso"]
+    print(" ".join(insert_command))
+    result = subprocess.run(insert_command, check=True)
+    if result.returncode == 0:
+        print(f"CDROM inserted into {VM}", flush=True)
+    else:
+        print(f"Failed to insert CDROM into {VM}", flush=True)
+        logger.error(f"Failed to insert CDROM into {VM}")
+        print("Error:", set_result.stderr)
+        logger.error("Error:", set_result.stderr)
+        node.status = statusf_instance
+        node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
+    
+    #print(f"ISO has been inserted into the CDROM", flush=True)
+    #logger.info(f"ISO has been inserted into the CDROM")
+    time.sleep(int(random.uniform(1, 3)))
+    result = subprocess.run(["govc", "device.connect", "-vm", VM, cdrom_device], check=True)
+    if result.returncode != 0:
+        print(f"Failed to connect CDROM to {VM}", flush=True)
+        logger.error(f"Failed to connect CDROM to {VM}")
+        print("Error:", set_result.stderr)
+        logger.error("Error:", set_result.stderr)
+        node.status = statusf_instance
+        node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
+    
+    #print(f"ISO has been inserted and attached to {VM}", flush=True)
+    #logger.info(f"ISO has been inserted and attached to {VM}")
+
 else:
-    raise EnvironmentError("Unsupported operating system for this script")
-
-
-
-# Copy the ISO image to the VM's datastore
-print(f"{deployment_name} - {bold}Copying the ISO to the VM's datastore{_bold}", flush=True)
-logger.info(f"Copying the ISO to the VM's datastore")
-datastore_result = subprocess.run(
-    ["govc", "vm.info", "-json", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True
-)
-
-datastore_json = json.loads(datastore_result.stdout)
-
-# Extract the datastore information
-datastore = None
-for device in datastore_json["virtualMachines"][0]["config"]["hardware"]["device"]:
-    if "backing" in device and "fileName" in device["backing"] and device["backing"]["fileName"]:
-        datastore = device["backing"]["fileName"]
-        # Trim to get the datastore name
-        datastore = datastore.split('[')[-1].split(']')[0]
-        break
-
-# Check if the datastore was found
-if datastore:
-    # Run the command to upload the ISO to the VM's datastore
-    subprocess.run(
-        ["govc", "datastore.upload", "-ds", datastore, iso_file, f"{VM}/seed.iso"],
-        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=True
-    )
-else:
-    print("No valid datastore found for the VM.", flush=True)
-    logger.error("No valid datastore found for the VM.")
-
-
-
-# Mount the ISO to the VM and power it on
-print(f"{deployment_name} - {bold}Attach the ISO to the VM{_bold}", flush=True)
-logger.info(f"Attach the ISO to the VM")
-cd_device = subprocess.run(["govc", "device.ls", "-vm", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True).stdout.splitlines()
-cdrom_device = [line.split()[0] for line in cd_device if "cdrom" in line][0]
-# added eject in case template or image being cloned has a cd incerted
-result = subprocess.run(["govc", "device.cdrom.eject", "-vm", VM], check=True)
-if result.returncode == 0:
-    print(f"{deployment_name} - CDROM ejected from {VM}", flush=True)
-else:
-    print(f"{deployment_name} - Failed to eject CDROM from {VM}", flush=True)
-    logger.error(f"Failed to eject CDROM from {VM}")
-    print("Error:", set_result.stderr)
-    logger.error("Error:", set_result.stderr)
-    node.status = statusf_instance
-    node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
-
-result = subprocess.run(["govc", "device.cdrom.insert", "-vm", VM, "-device", cdrom_device, "-ds", datastore, f"{VM}/seed.iso"], check=True)
-if result.returncode == 0:
-    print(f"{deployment_name} - CDROM inserted into {VM}", flush=True)
-else:
-    print(f"{deployment_name} - Failed to insert CDROM into {VM}", flush=True)
-    logger.error(f"Failed to insert CDROM into {VM}")
-    print("Error:", set_result.stderr)
-    logger.error("Error:", set_result.stderr)
-    node.status = statusf_instance
-    node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
-
-#print(f"{deployment_name} - ISO has been inserted into the CDROM", flush=True)
-#logger.info(f"ISO has been inserted into the CDROM")
-time.sleep(int(random.uniform(1, 3)))
-result = subprocess.run(["govc", "device.connect", "-vm", VM, cdrom_device], check=True)
-if result.returncode != 0:
-    print(f"{deployment_name} - Failed to connect CDROM to {VM}", flush=True)
-    logger.error(f"Failed to connect CDROM to {VM}")
-    print("Error:", set_result.stderr)
-    logger.error("Error:", set_result.stderr)
-    node.status = statusf_instance
-    node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
-
-#print(f"{deployment_name} - ISO has been inserted and attached to {VM}", flush=True)
-#logger.info(f"ISO has been inserted and attached to {VM}")
-
-print(f"{deployment_name} - {bold}Power on the VM, then check status{_bold}", flush=True)
+    print(f"{bold}Cloning a live VM, Skipping cloud-init{_bold}", flush=True)
+    logger.info(f"Cloning a live VM, Skipping cloud-init")
+    result = subprocess.run(["govc", "device.cdrom.eject", "-vm", VM], check=True)
+    if result.returncode == 0:
+        print(f"CDROM ejected from {VM}", flush=True)
+    else:
+        print(f"Failed to eject CDROM from {VM}", flush=True)
+        logger.error(f"Failed to eject CDROM from {VM}")
+        print("Error:", set_result.stderr)
+        logger.error("Error:", set_result.stderr)
+        node.status = statusf_instance
+        node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
+        
+print(f"{bold}Power on the VM, then check status{_bold}", flush=True)
 logger.info(f"Power on the VM, then check status")
 time.sleep(int(random.uniform(1, 3)))
 subprocess.run(["govc", "vm.power", "-on", VM], check=True)
@@ -1077,10 +1106,10 @@ if "yellowpages" in DOMAIN:
     govc_command = ["govc", "vm.change", "-name", f"{VM}.{DOMAIN}", "-vm", VM]
     result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     if result.returncode == 0:
-        print(f"{deployment_name} - {VM} has been renamed to {VM}.{DOMAIN}", flush=True)
+        print(f"{VM} has been renamed to {VM}.{DOMAIN}", flush=True)
         logger.info(f"{VM} has been renamed to {VM}.{DOMAIN}")
     else:
-        print(f"{deployment_name} - Failed to rename {VM}", flush=True)
+        print(f"Failed to rename {VM}", flush=True)
         logger.error(f"Failed to rename {VM}")
         print("Error:", set_result.stderr)
         logger.error("Error:", set_result.stderr)
@@ -1088,18 +1117,18 @@ if "yellowpages" in DOMAIN:
         node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
                             
 if "poweredOn" in power_status.stdout:
-    print(f"{deployment_name} - {VM} is powered up and booting.", flush=True)
+    print(f"{VM} is powered up and booting.", flush=True)
     logger.info(f"{VM} is powered up and booting.")
-    print(f"{deployment_name} - Cloud-init will now perform post-deployment operations.  Please be patient, this can take a while.", flush=True)
+    print(f"Cloud-init will now perform post-deployment operations.  Please be patient, this can take a while.", flush=True)
     logger.info(f"Cloud-init will now perform post-deployment operations.  Please be patient, this can take a while.")
-    print(f"{deployment_name} - Build is complete.", flush=True)
+    print(f"Build is complete.", flush=True)
     logger.info(f"Build is complete.")
 
     # Update the specific fields
     node.status = statuss_instance
 
 else:
-    print(f"{deployment_name} - {VM} did not power on after the build.  Please check with the Unix team for assistance.", flush=True)
+    print(f"{VM} did not power on after the build.  Please check with the Unix team for assistance.", flush=True)
     logger.warning(f"{VM} did not power on after the build.  Please check with the Unix team for assistance.")
     node = Node.objects.get(name=f"{VM}.{DOMAIN}")
 

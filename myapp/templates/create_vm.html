@@ -139,10 +139,16 @@
                                 {% else %}
                                     {{ form.domain|add_class:"form-control my-smaller-field" }}
                                 {% endif %}
-                                
                             </div>
                         </div>
-                                               
+                        
+                        <div class="mb-3 row move-right">
+                            <label for="clone" class="col-sm-3 col-form-label small-label">{{ form.clone.label_tag }}</label>
+                            <div class="col-sm-9">
+                                {{ form.clone }}
+                            </div>
+                        </div>
+                        
                     </div>
 
 <!-- Middle Column: User Input Fields -->
@@ -200,14 +206,22 @@
                             </div>
                         </div>
 
-                        <div class="mb-3 row d-flex align-items-center">
+                        <div id="os-field" class="mb-3 row d-flex align-items-center">
                             <label for="os" class="col-sm-3 col-form-label small-label">{{ form.os.label_tag }}</label>
                             <div class="col-sm-9">
                                 {{ form.os|add_class:"form-control my-smaller-field" }}
                             </div>
                         </div>
+                        
                         <!-- Hidden input field to hold the selected value -->
                         <input type="hidden" id="os_value" name="os_value" />
+
+                        <div id="clone-from-field" class="mb-3 row d-flex align-items-center">
+                            <label for="clone_from" class="col-sm-3 col-form-label small-label">{{ form.clone_from.label_tag }}</label>
+                            <div class="col-sm-9">
+                                {{ form.clone_from|add_class:"form-control my-smaller-field" }}
+                            </div>
+                        </div>
 
                         <div class="mb-3 row d-flex align-items-center">
                             <label for="deployment_count" class="col-sm-3 col-form-label small-label">{{ form.deployment_count.label_tag }}</label>

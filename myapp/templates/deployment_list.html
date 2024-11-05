@@ -72,10 +72,7 @@
                     </div>
                     {% endif %}
                         
-                    <a href="{% url 'view_system_logs' log_type='deployment' %}">Deployment Log</a> |
-                    <a href="{% url 'view_system_logs' log_type='destroy' %}">Destroy Log</a> |
-                    <a href="{% url 'view_system_logs' log_type='task' %}">Task Log</a> |
-                    <a href="{% url 'view_system_logs' log_type='application' %}">Application Log</a> |
+                    <a href="{% url 'view_deployment_log' %}">View Deployment Log</a> |
                     <a href="?show_vra={% if not show_vra_deployments %}true{% else %}false{% endif %}">
                         {% if show_vra_deployments %}
                             Hide VRA Deployments
@@ -225,7 +222,7 @@
                                                 <td id="deployment-actions-{{ deployment.id }}">
                                                    
                                                     {% if user.is_staff %}
-                                                        <a href="{% url 'cancel_screamtest' deployment.id %}" class="btn btn-primary">Cancel</a> / 
+                                                        <a href="{% url 'cancel_screamtest' deployment.id %}" class="btn btn-primary">Cancel (bring back)</a> / 
                                                         <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy Forever</a>
                                                     {% else %}
                                                         <span style="color: gray; cursor: not-allowed;">Cancel</span> / 

@@ -408,3 +408,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// enable clone
+function toggleFields() {
+    const cloneCheckbox = document.getElementById("clone");
+    const osFieldContainer = document.getElementById("os-field"); // Linux Version container div
+    const osField = document.getElementById("os"); // Linux Version field (select or input)
+    const cloneFromFieldContainer = document.getElementById("clone-from-field"); // Clone From container div
+    const cloneFromField = document.getElementById("clone_from"); // Clone From field (input)
+
+    if (cloneCheckbox.checked) {
+        osFieldContainer.classList.add("hidden");            // Hide Linux Version container
+        cloneFromFieldContainer.classList.remove("hidden");  // Show Clone From container
+        // osField.removeAttribute("required");                 // Make Linux Version optional
+        // cloneFromField.setAttribute("required", "required"); // Make Clone From required
+    } else {
+        osFieldContainer.classList.remove("hidden");         // Show Linux Version container
+        cloneFromFieldContainer.classList.add("hidden");     // Hide Clone From container
+        // cloneFromField.removeAttribute("required");          // Make Clone From optional
+        // osField.setAttribute("required", "required");        // Make Linux Version required
+    }
+}
+
+// Run toggleFields on page load
+document.addEventListener("DOMContentLoaded", toggleFields);

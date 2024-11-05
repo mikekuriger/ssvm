@@ -255,93 +255,113 @@ def cancel_screamtest(request, deployment_id):
 
 
 # functions to view system logs
+# @login_required
+# def view_system_logs(request, log_type):
+#     log_files = {
+#         'destroy': [ _os.path.join(settings.BASE_DIR, 'logs', 'destroy.log')],
+#         'deployment': [ _os.path.join(settings.BASE_DIR, 'logs', 'deployment.log')],
+#         'task': [ _os.path.join(settings.BASE_DIR, 'logs', 'django-background-tasks.log') ],
+#         'application': [
+#             _os.path.join(settings.BASE_DIR, 'logs', 'django.log'),
+#             _os.path.join(settings.BASE_DIR, 'django_output.log')
+#         ],
+#     }
+
+#      # Get the requested log file path
+#     log_file_paths = log_files.get(log_type)
+    
+#     if log_file_paths:
+#         filtered_lines = []
+#     # Iterate through each log file in the list
+#         for log_file_path in log_file_paths:
+#             if _os.path.exists(log_file_path):
+#                 with open(log_file_path, 'r') as log_file:
+#                     log_lines = log_file.readlines()
+
+#                     # Apply filters based on the log type
+#                     if log_type == 'deployment':
+#                         # Filter out specific deployment log entries
+#                         filtered_lines.extend([
+#                             line for line in log_lines
+#                             if "Successfully read log file" not in line
+#                             and "Looking for log file at" not in line
+#                         ])
+#                     elif log_type == 'destroy':
+#                         # Filter out specific deployment log entries
+#                         filtered_lines.extend([
+#                             line for line in log_lines
+#                             if "Successfully read log file" not in line
+#                             and "Looking for log file at" not in line
+#                         ])
+#                     elif log_type == 'task':
+#                         # Filter out 'Found 0 deployments' from the background task log
+#                         filtered_lines.extend([
+#                             line for line in log_lines
+#                             if "Found 0 deployments" not in line
+#                         ])
+#                     elif log_type == 'application':
+#                         # Filter out 'Looking for log file' from both application log files
+#                         filtered_lines.extend([
+#                             line for line in log_lines
+#                             if "INFO" not in line
+#                         ])
+#                     else:
+#                         # No filtering for other log types
+#                         filtered_lines.extend(log_lines)
+#             else:
+#                 return HttpResponse(f"Log file '{log_file_path}' not found.", status=404)
+
+#         # Return the filtered log content as plain text
+#         response_content = ''.join(filtered_lines)
+#         return HttpResponse(response_content, content_type='text/plain')
+
+#     return HttpResponse(f"Log type '{log_type}' not found.", status=404)
+
+
+
 @login_required
-def view_system_logs(request, log_type):
-    log_files = {
-        'destroy': [ _os.path.join(settings.BASE_DIR, 'logs', 'destroy.log')],
-        'deployment': [ _os.path.join(settings.BASE_DIR, 'logs', 'deployment.log')],
-        'task': [ _os.path.join(settings.BASE_DIR, 'logs', 'django-background-tasks.log') ],
-        'application': [
-            _os.path.join(settings.BASE_DIR, 'logs', 'django.log'),
-            _os.path.join(settings.BASE_DIR, 'django_output.log')
-        ],
-    }
+def view_deployment_log(request):
+    log_file_path = _os.path.join(settings.BASE_DIR, 'logs', 'deployment.log')
 
-     # Get the requested log file path
-    log_file_paths = log_files.get(log_type)
-    
-    if log_file_paths:
-        filtered_lines = []
-    # Iterate through each log file in the list
-        for log_file_path in log_file_paths:
-            if _os.path.exists(log_file_path):
-                with open(log_file_path, 'r') as log_file:
-                    log_lines = log_file.readlines()
-
-                    # Apply filters based on the log type
-                    if log_type == 'deployment':
-                        # Filter out specific deployment log entries
-                        filtered_lines.extend([
-                            line for line in log_lines
-                            if "Successfully read log file" not in line
-                            and "Looking for log file at" not in line
-                        ])
-                    elif log_type == 'destroy':
-                        # Filter out specific deployment log entries
-                        filtered_lines.extend([
-                            line for line in log_lines
-                            if "Successfully read log file" not in line
-                            and "Looking for log file at" not in line
-                        ])
-                    elif log_type == 'task':
-                        # Filter out 'Found 0 deployments' from the background task log
-                        filtered_lines.extend([
-                            line for line in log_lines
-                            if "Found 0 deployments" not in line
-                        ])
-                    elif log_type == 'application':
-                        # Filter out 'Looking for log file' from both application log files
-                        filtered_lines.extend([
-                            line for line in log_lines
-                            if "INFO" not in line
-                        ])
-                    else:
-                        # No filtering for other log types
-                        filtered_lines.extend(log_lines)
-            else:
-                return HttpResponse(f"Log file '{log_file_path}' not found.", status=404)
-
-        # Return the filtered log content as plain text
-        response_content = ''.join(filtered_lines)
-        return HttpResponse(response_content, content_type='text/plain')
-
-    return HttpResponse(f"Log type '{log_type}' not found.", status=404)
-
-
-
-@login_required
-def tail_system_logs(request, node_name):
-    vm_short_name = node_name.split('.')[0]
-    log_file_path = _os.path.join(settings.MEDIA_ROOT, f"{vm_short_name}.log")
-    
-    # loggerdestroy.info(f"Looking for log file at: {log_file_path}")
-    
     if not _os.path.exists(log_file_path):
-        # loggerdestroy.error(f"Log file {log_file_path} not found")
-        return JsonResponse({"status": "error", "message": "Log file {vm_short_name}.log not found"}, status=404)
+        return HttpResponse("Deployment log file not found.", status=404)
 
     try:
         with open(log_file_path, 'r') as log_file:
-            # Get the last N lines of the file
+            log_content = log_file.read()
+    except Exception as e:
+        return HttpResponse(f"Error reading log file: {str(e)}", status=500)
+
+    return render(request, 'view_deployment_log.html', {'log_content': log_content})
+
+
+
+@login_required
+def tail_deployment_log(request):
+    log_file_path = _os.path.join(settings.BASE_DIR, 'logs', 'deployment.log')
+
+    # Check if the log file exists
+    if not _os.path.exists(log_file_path):
+        return JsonResponse({"status": "error", "message": "Log file 'deployment.log' not found"}, status=404)
+
+    try:
+        with open(log_file_path, 'r') as log_file:
+            # Move to the end of the file
             log_file.seek(0, _os.SEEK_END)
             file_size = log_file.tell()
-            log_file.seek(max(file_size - 1024 * 10, 0))  # Read the last 10 KB of the log file
-
+            # Read the last 10 KB of the file
+            log_file.seek(max(file_size - 1024 * 10, 0))
             lines = log_file.readlines()
-            # loggerdestroy.info(f"Successfully read log file: {log_file_path}")
-            return JsonResponse({"status": "success", "log": ''.join(lines)}, status=200)
+
+            # Filter out specific entries if needed
+            filtered_lines = [
+                line for line in lines
+                if "Successfully read log file" not in line and "Looking for log file at" not in line
+            ]
+
+            # Return the filtered log content as a JSON response
+            return JsonResponse({"status": "success", "log": ''.join(filtered_lines)}, status=200)
     except Exception as e:
-        # loggerdestroy.error(f"Error reading log file {log_file_path}: {str(e)}")
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
     
@@ -440,6 +460,7 @@ def create_vm(request):
             cpu = data['cpu']
             ram = data['ram']
             os_raw = data['os']
+            clone_from = data['clone_from']
             os_value = request.POST.get('os_value')
             disk_size = data['disk_size']
             cluster = data['cluster']
@@ -464,6 +485,9 @@ def create_vm(request):
             vm_details = []
             # Append each field to the list, checking for conditionals where needed
             vm_details.append(f"<strong>Builtby</strong>: {builtby}<br>")
+            if clone_from:
+                vm_details.append(f"<strong>Clone From</strong>: {clone_from}<br>")
+            
             vm_details.append(f"<strong>{hostname_label}</strong>: {full_hostnames}<br>")
             vm_details.append(f"<strong>Domain</strong>: {domain}<br>")
             vm_details.append(f"<strong>Ticket</strong>: {ticket}<br>")
@@ -474,7 +498,10 @@ def create_vm(request):
             vm_details.append(f"<strong>Deployment Count</strong>: {deployment_count}<br>")
             vm_details.append(f"<strong>CPU</strong>: {cpu}<br>")
             vm_details.append(f"<strong>RAM</strong>: {ram}<br>")
-            vm_details.append(f"<strong>OS</strong>: {os_value}<br>")
+
+            if not clone_from:
+                vm_details.append(f"<strong>OS</strong>: {os_value}<br>")
+        
             vm_details.append(f"<strong>Disk Size</strong>: {disk_size}<br>")
             vm_details.append(f"<strong>Cluster</strong>: {cluster}<br>")
             vm_details.append(f"<strong>Network</strong>: {network}<br>")
@@ -515,7 +542,7 @@ def create_vm(request):
                 deployment_count=deployment_count,
                 cpu=cpu,
                 ram=ram,
-                os=os_raw,
+                os = clone_from if clone_from else os_raw,
                 os_value=os_value,
                 disk_size=disk_size,
                 add_disks=add_disks,

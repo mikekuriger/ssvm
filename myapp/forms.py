@@ -95,6 +95,12 @@ class VMCreationForm(forms.Form):
         widget=forms.Select(attrs={'id': 'domain', 'class': 'form-control'})
     )
 
+    clone = forms.BooleanField(
+        label="Clone",
+        required=False,
+        widget=forms.CheckboxInput(attrs={'onclick': "toggleFields()", 'id': 'clone', 'class': 'form-check-input'})
+    )
+
     # owner = forms.ChoiceField(
     #     label="Owner",
     #     #choices=load_users_from_csv(),
@@ -180,6 +186,12 @@ class VMCreationForm(forms.Form):
         initial='SSVM-OEL8',
         required=True,
         widget=forms.Select(attrs={'id': 'os', 'class': 'form-control'})
+    )
+
+    clone_from = forms.CharField(
+        label="Clone From",
+        required=False,
+        widget=forms.TextInput(attrs={'id': 'clone_from', 'class': 'form-control', 'placeholder': 'st1lntssvm01'})
     )
 
     disk_size = forms.ChoiceField(
