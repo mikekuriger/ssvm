@@ -93,7 +93,7 @@ PATCH = data.get("Patches")
 NFS = data.get("NFS")
 
 
-def get_datastorecluster(cluster_name):
+def get_datastorecluster(cluster_name, datacenter):
     # Normalize the cluster name to lowercase and remove hyphens
     normalized_cluster = cluster_name.replace('-', '').lower()
     govc_command = ["govc", "datastore.cluster.info"]
@@ -114,10 +114,12 @@ def get_datastorecluster(cluster_name):
                 return datastorecluster_name
             
         #in case there is no datasource cluster, use the datastore directly
-        rawdatastore_name = f"rawev3ds_{normalized_cluster}_01"
-        #print(f"No Datastore Cluster found, using datastore {rawdatastore_name} directly")
-        #logger.info(f"No Datastore Cluster found, using datastore {rawdatastore_name} directly")
-        return rawdatastore_name
+        if datacenter == 'ev3':
+            rawdatastore_name = f"rawev3ds_{normalized_cluster}_01"
+            return rawdatastore_name
+        else:
+            return None
+            
     except subprocess.CalledProcessError as e:
         print(f"An error occurred: {e.stderr}", flush=True)
         logger.info(f"An error occurred: {e.stderr}")
@@ -277,7 +279,7 @@ _bold = '\033[0m'
 #print("Getting Datastore Cluster - ", end="", flush=True)
 #logger.info("Getting Datastore Cluster - ", end="")
 
-DATASTORECLUSTER = get_datastorecluster(CLUSTER)
+DATASTORECLUSTER = get_datastorecluster(CLUSTER, DC)
 if DATASTORECLUSTER.startswith("raw"):
     DATASTORE = DATASTORECLUSTER[3:]
     print(f"No Datastore Cluster found, using datastore {DATASTORE} directly", flush=True)
@@ -345,8 +347,13 @@ logger.info(f"Add_disk - {ADDDISK}")
 print()
 
 # CLONE TEMPLATE
-# Check if a VM with the same name already exists 
-# remove yellowpages from name if it exists
+        
+print()           
+print(f"{bold}Begin clone for deployment: {deployment_name}{_bold}", flush=True)
+logger.info(f"Begin clone for deployment: {deployment_name}")
+print()
+
+# if it's a legacy yellowpages server, rename it temporarilly to get rid of the domain name, it breaks the clone operation
 if "yellowpages" in DOMAIN:
     govc_command = ["govc", "vm.info", f"{VM}.{DOMAIN}"]
     result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
@@ -361,18 +368,38 @@ if "yellowpages" in DOMAIN:
             logger.error(f"Failed to rename {VM}")
             print("Error:", set_result.stderr)
             logger.error("Error:", set_result.stderr)
-            
-             
-print(f"{bold}Begin clone for deployment: {deployment_name}{_bold}", flush=True)
-logger.info(f"Begin clone for deployment: {deployment_name}")
-print()
+
+
+# Check if a VM with the same name already exists, and check if the source VM (template) exists before cloning.
+# will move this to the create_vm via javascript at some point so user knows before submitting
 
 try:
     govc_command = ["govc", "vm.info", VM]
     result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     vmstat = result.stdout
+    
+    govc_os_command = ["govc", "vm.info", OS]
+    result_os = subprocess.run(govc_os_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    vmstat_os = result_os.stdout
 
-    # Check if the output contains the VM name and deployment_name
+    #print(vmstat_os, flush=True)
+
+    # Check if template exists
+    # print(f"{bold}Checking to see if template exists - {OS}{_bold}", flush=True)
+    # logger.info(f"Checking to see if template exists - {OS}")
+    
+    if OS in vmstat_os:
+        print(f"Template {OS} found", flush=True)
+        logger.info(f"Template {OS} found")
+
+    else:
+        print(f"Template {OS} does not exist", flush=True)
+        logger.info(f"Template {OS} does not exist")
+        node.status = statusf_instance
+        node.save(update_fields=['status'])
+        sys.exit(1)
+        
+    # Check if the VM with same deployment_name exists
     print(f"{bold}Checking to see if a VM already exists with the name {VM}{_bold}", flush=True)
     logger.info(f"Checking to see if a VM already exists with the name {VM}")
     if VM in vmstat:
@@ -1092,8 +1119,58 @@ subprocess.run(["govc", "vm.power", "-on", VM], check=True)
 
 # Wait a bit, then check to see if VM will stay powered up, if not not sure what to do...
 time.sleep(15)
-power_status = subprocess.run(["govc", "vm.info", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True)
 
+# if CLONE:
+#     #govc guest.run -vm st1lndssvm01 -l root:'12ui34op!@#$' -k adleave -f
+#     govc_command = ["govc", "guest.run", "-vm", f"{VM}", "-l", "root:'12ui34op!@#$'", "-k", "adleave", "-f" ]
+#     result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+#     if result.returncode == 0:
+#         print(f"{VM} has been removed from centrify", flush=True)
+#         logger.info(f"{VM} has been removed from centrify")
+#     else:
+#         print(f"Failed to remove {VM} from centrify", flush=True)
+#         logger.error(f"Failed to remove {VM} from centriyf")
+#         print("Error:", set_result.stderr)
+#         logger.error("Error:", set_result.stderr)
+#         node.status = statusf_instance
+#         node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
+
+
+# try to unregister a clone's VM from centrify, or else it will be in conflict with the donor VM
+max_retries = 3
+retry_delay = 30 
+
+if CLONE:
+    print(f"Attempting to unregister {VM} from Centrify.", flush=True)
+    logger.info(f"Attempting to unregister {VM} from Centrify.")
+    govc_command = ["govc", "guest.run", "-vm", VM, "-l", "root:'12ui34op!@#$'", "-k", "adleave", "-f"]
+    
+    for attempt in range(1, max_retries + 1):
+        result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+
+        if result.returncode == 0:
+            print(f"{VM} has been removed from centrify", flush=True)
+            logger.info(f"{VM} has been removed from centrify")
+            break 
+        else:
+            print(f"Attempt {attempt} failed to remove {VM} from centrify", flush=True)
+            logger.error(f"Attempt {attempt} failed to remove {VM} from centrify")
+            print("Error:", result.stderr)
+            logger.error(f"Error: {result.stderr}")
+
+
+            # Wait before the next retry if this isn't the last attempt
+            if attempt < max_retries:
+                print(f"Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+            else:
+                print(f"Failed to remove {VM} from centrify after {max_retries} attempts")
+                logger.error(f"Failed to remove {VM} from centrify after {max_retries} attempts")
+
+                # Update status on failure
+                node.status = statusf_instance
+                node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
+    
 # update details in cmdb
 now = datetime.now()
 node = Node.objects.get(name=f"{VM}.{DOMAIN}")
@@ -1115,7 +1192,8 @@ if "yellowpages" in DOMAIN:
         logger.error("Error:", set_result.stderr)
         node.status = statusf_instance
         node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
-                            
+        
+power_status = subprocess.run(["govc", "vm.info", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True)                       
 if "poweredOn" in power_status.stdout:
     print(f"{VM} is powered up and booting.", flush=True)
     logger.info(f"{VM} is powered up and booting.")

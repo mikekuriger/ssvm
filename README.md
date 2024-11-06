@@ -114,6 +114,7 @@ pip install jupyterlab-git
 pip install jupyterlab_github
 pip install PyYAML
 pip install SOLIDserverRest
+pip install channels
 ```
 
 ## database stuff
