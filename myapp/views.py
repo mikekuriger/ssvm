@@ -35,6 +35,7 @@ def register_node(request):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 # deployment status refresh
 def get_deployment_status(request, deployment_id):
     try:
@@ -48,6 +49,8 @@ def get_deployment_status(request, deployment_id):
     except Deployment.DoesNotExist:
         return JsonResponse({'error': 'Deployment not found'}, status=404)
 
+
+# Node status refresh
 def get_node_status(request, node_id):
     try:
         node = Node.objects.get(id=node_id)
@@ -58,6 +61,7 @@ def get_node_status(request, node_id):
         return JsonResponse(data)
     except Node.DoesNotExist:
         return JsonResponse({'error': 'Node not found'}, status=404)
+
 
 # deployment approvals
 def approve_deployment(request, deployment_id):
@@ -72,6 +76,7 @@ def approve_deployment(request, deployment_id):
     deployment.save()
     return redirect('deployment_list') 
 
+
 # deployment cancel (set to failed)
 def cancel_deployment(request, deployment_id):
     deployment = get_object_or_404(Deployment, id=deployment_id)
@@ -84,11 +89,9 @@ def cancel_deployment(request, deployment_id):
     return redirect('deployment_list') 
 
 
-
 # Get the logger for the deployment tasks
 loggerdestroy = logging.getLogger('destroy')
 logger = logging.getLogger('deployment')
-
 
 
 # Main Destroy Deployment logic
