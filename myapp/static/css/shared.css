@@ -1096,6 +1096,11 @@ table#change-history tbody th {
     font-weight: normal;
 }
 
+.status-deployed {
+    color: green;
+    font-weight: normal;
+}
+
 .status-Alive {
     color: green;
     font-weight: normal;

@@ -11,6 +11,8 @@ urlpatterns = [
     path('', views.node_list, name='node_list'),
     path('admin/', admin.site.urls),
     path('api/register_node/', views.register_node, name='register_node'),
+    path('api/node_status/<int:node_id>/', views.get_node_status, name='get_node_status'),
+    #path('api/deployment_status/<int:deployment_id>/', views.get_deployment_status, name='get_deployment_status'),
     path('approve_deployment/<uuid:deployment_id>/', views.approve_deployment, name='approve_deployment'),
     path('cancel_deployment/<uuid:deployment_id>/', views.cancel_deployment, name='cancel_deployment'),
     path('cancel_screamtest/<uuid:deployment_id>/', views.cancel_screamtest, name='cancel_screamtest'),

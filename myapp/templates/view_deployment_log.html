@@ -1,0 +1,62 @@
+<!-- view_log.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Viewer</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        #log-output {
+            width: 97%;
+            height: 768px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #fff;
+            overflow-y: scroll;
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap; /* Preserve line breaks and spacing */
+        }
+    </style>
+</head>
+<body>
+    <h1>Viewing Deployment Log</h1>
+    <div id="log-output"></div>
+
+        <script>
+        function fetchLogs() {
+            fetch("{% url 'tail_deployment_log' %}")
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === "success") {
+                        document.getElementById("log-output").textContent = data.log;
+                    } else {
+                        document.getElementById("log-output").textContent = data.message;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching the log:', error);
+                    document.getElementById("log-output").textContent = "Error loading log file.";
+                });
+        }
+        fetchLogs();
+        // Polling the log every 5 seconds
+        setInterval(fetchLogs, 5000);
+        </script>
+   
+    <a href="{% url 'deployment_list' %}">Back to Deployments</a>
+</body>
+</html>
+
+

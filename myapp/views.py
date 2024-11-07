@@ -37,8 +37,27 @@ def register_node(request):
 
 # deployment status refresh
 def get_deployment_status(request, deployment_id):
-    deployment = Deployment.objects.get(id=deployment_id)
-    return JsonResponse({'status': deployment.status})
+    try:
+        deployment = Deployment.objects.get(id=deployment_id)
+        data = {
+            'status': deployment.status,
+            'protected': deployment.protected,
+            'is_staff': request.user.is_staff
+        }
+        return JsonResponse(data)
+    except Deployment.DoesNotExist:
+        return JsonResponse({'error': 'Deployment not found'}, status=404)
+
+def get_node_status(request, node_id):
+    try:
+        node = Node.objects.get(id=node_id)
+        data = {
+            'status': node.status.name,
+            'ping_status': node.ping_status
+        }
+        return JsonResponse(data)
+    except Node.DoesNotExist:
+        return JsonResponse({'error': 'Node not found'}, status=404)
 
 # deployment approvals
 def approve_deployment(request, deployment_id):

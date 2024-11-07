@@ -74,6 +74,57 @@
     });
     </script>
 
+    <script>
+        // Gather all node IDs in an array from the Django template context
+        const nodeIds = [{% for node in page_obj %}{{ node.id }},{% endfor %}];
+        console.log("Node IDs to update:", nodeIds);  // Debug: log the IDs
+    
+        function updateNodeStatus(nodeId) {
+            fetch(`/api/node_status/${nodeId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    const statusCell = document.getElementById(`node-status-${nodeId}`);
+                    if (statusCell) {
+                        const status = data.status.toLowerCase();
+                        const pingStatus = data.ping_status; 
+                        let content = "";
+                        let className = "";
+        
+                        // Determine the content and class based on status and ping_status
+                        if (status === "building") {
+                            content = `${data.status} <div class="loader"></div>`;
+                            className = "status-building";
+                        } else if (status === "prebuild") {
+                            content = data.status;
+                            className = "status-prebuild";
+                        } else if (["inservice", "setup"].includes(status)) {
+                           const isAlive = Boolean(pingStatus);
+                           content = `${data.status} / ${isAlive ? "Alive" : "Dead"}`;
+                           className = isAlive ? "status-Alive" : "status-Dead";
+                        } else {
+                            // For any other statuses, show the status and ping state
+                           const isAlive = Boolean(pingStatus);
+                           content = `${data.status} / ${isAlive ? "Alive" : "Dead"}`;
+                           className = isAlive ? "status-Alive" : "status-Dead";
+                        }
+        
+                        // Update the content and class of the cell
+                        statusCell.innerHTML = content;
+                        statusCell.className = className;
+                    }
+                })
+                .catch(error => console.error('Error fetching node status:', error));
+        }
+    
+        // Set interval to poll every 5 seconds
+        setInterval(function() {
+            nodeIds.forEach(updateNodeStatus);
+        }, 5000);
+        
+    </script>
+
+
+
 </head>
 {% include 'head.html' %}
         <div class="main shifted" id="main">
@@ -192,7 +243,7 @@
                                                             None
                                                         {% endif %}
                                                     </td>
-                                                    <td class="status-{% if node.status.name in 'inservice setup' %}{% if node.ping_status == 1 %}Alive{% else %}Dead{% endif %}{% else %}{{ node.status.name }}{% endif %}">
+                                                    <td id="node-status-{{ node.id }}" class="status-{% if node.status.name in 'inservice setup' %}{% if node.ping_status == 1 %}Alive{% else %}Dead{% endif %}{% else %}{{ node.status.name }}{% endif %}">
                                                     {% if node.status.name in 'building' %}
                                                         {{ node.status.name }}
                                                         <div class="loader"></div>
@@ -249,7 +300,7 @@
                                                             None
                                                         {% endif %}
                                                     </td>
-                                                    <td class=status-destroyed>
+                                                    <td id="node-status-{{ node.id }}" class=status-destroyed>
                                                     {{ node.status.name }}</td>   
                                                     <td>{{ node.hardware_profile }}</td>
                                                     <td>{{ node.processor_count }}</td>
@@ -278,7 +329,7 @@
                                                             None
                                                         {% endif %}
                                                     </td>
-                                                    <td class=status-screamtest>
+                                                    <td id="node-status-{{ node.id }}" class=status-screamtest>
                                                     {{ node.status.name }}</td>   
                                                     <td>{{ node.hardware_profile }}</td>
                                                     <td>{{ node.processor_count }}</td>
