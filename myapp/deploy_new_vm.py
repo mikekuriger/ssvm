@@ -15,12 +15,14 @@ import warnings
 from cryptography.utils import CryptographyDeprecationWarning
 warnings.filterwarnings("ignore", category=CryptographyDeprecationWarning)
 
+# This script is called from deploy.py, to do the deployment
+# deploy.py is called by the scheduler
+
+
 # Get the logger for the deployment tasks
 import logging
 logger = logging.getLogger('deployment')
 
-# This script is called from deploy.py, to do the deployment
-# deploy.py is called by the scheduler
 
 # Ensure the script is aware of the Django settings module
 sys.path.append('/home/ssvm/ssvm') 
@@ -31,7 +33,6 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.safestring import mark_safe
 from django.conf import settings
 from myapp.models import Deployment, Node, OperatingSystem, HardwareProfile, Status
-
 
 
 # Set up argument parsing
