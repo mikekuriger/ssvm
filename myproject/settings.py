@@ -45,6 +45,8 @@ SECRET_KEY = "django-insecure-ibho6#$u)=+o3l=hvh3sqd9+wjc+8l)(*6l%6powc7$9ajq$ig
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+DEFAULT_FROM_EMAIL = 'SSVM <ssvm@st1lndssvm01.corp.pvt>'
+
 ALLOWED_HOSTS = ['*']
 
 LOGIN_REDIRECT_URL = '/create_vm'

@@ -9,13 +9,18 @@ from django.shortcuts import get_object_or_404
 from myapp.models import Deployment, Node, HardwareProfile, OperatingSystem, Status
 import os as _os
 import subprocess
-
+from django.contrib.auth import get_user_model
 
 
 logger = logging.getLogger('deployment')
 loggerdestroy = logging.getLogger('destroy')
 
 
+# get emails of admins, plan to use for sending emails 
+def get_admin_emails():
+    User = get_user_model()
+    admins = User.objects.filter(is_active=True).filter(is_staff=True) | User.objects.filter(is_superuser=True)
+    return [admin.email for admin in admins if admin.email]
 
 
 # Remove VM from vcenter

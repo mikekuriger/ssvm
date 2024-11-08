@@ -71,17 +71,17 @@ def create_spool_files(deployment_name):
     except Exception as e:
         print(f"An error occurred while creating spool files: {e}")
 
-def extract_hostnames(content):
-    hostnames_line = next((line for line in content if line.startswith("Hostnames:")), None)
-    if hostnames_line:
-        _, hostnames = hostnames_line.split(": ", 1)
-        return [hostname.strip() for hostname in hostnames.split(",")]
-    hostname_line = next((line for line in content if line.startswith("Hostname:")), None)
-    if hostname_line:
-        _, hostname = hostname_line.split(": ", 1)
-        return [hostname.strip()]
-    print("No hostnames found in the specified file.")
-    return []
+# def extract_hostnames(content):
+#     hostnames_line = next((line for line in content if line.startswith("Hostnames:")), None)
+#     if hostnames_line:
+#         _, hostnames = hostnames_line.split(": ", 1)
+#         return [hostname.strip() for hostname in hostnames.split(",")]
+#     hostname_line = next((line for line in content if line.startswith("Hostname:")), None)
+#     if hostname_line:
+#         _, hostname = hostname_line.split(": ", 1)
+#         return [hostname.strip()]
+#     print("No hostnames found in the specified file.")
+#     return []
 
 
 

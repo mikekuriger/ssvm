@@ -51,6 +51,7 @@ class Deployment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     approval_alert_sent = models.BooleanField(default=False)
     protected = models.BooleanField(default=False)
+    pid = models.IntegerField(null=True, blank=True)
     
     def __str__(self):
         return f"{self.deployment_name} - {self.status} - {self.full_hostnames}"

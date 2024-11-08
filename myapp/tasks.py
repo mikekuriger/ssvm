@@ -1,7 +1,8 @@
 # myapp/tasks.py
 from background_task import background
-from myapp.models import Deployment, Node, VRA_Node
+from myapp.models import Deployment, Node, VRA_Node, Status
 from myapp.utils import destroy_deployment_logic
+from myapp.utils import get_admin_emails
 from django.conf import settings
 from django.core.mail import send_mail
 from django.urls import reverse
@@ -60,26 +61,86 @@ def check_dns_ping_status():
 
             
 
+# this task looks for 'building' deployments that are stuck due to the build script being killed
+@background
+def check_stuck_deployments():
+    import psutil
+    deployments = Deployment.objects.filter(status='building')
+
+    if deployments.count() > 0:
+        print(f"Found {deployments.count()} deployments building.")
+        logger.info(f"Found {deployments.count()} deployments building.")
+            
+    for deployment in deployments:
+        pid = deployment.pid
+        if not psutil.pid_exists(pid):
+            print(f"Build script not found, marking deployment failed.")
+            logger.info(f"Build script not found, marking deployment failed.")
+            
+            # mark deployment failed if PID is not there, somehow it was killed
+            deployment.status = 'failed'
+            deployment.save()
+    
+            # mark nodes as failed also
+            hostname_list = deployment.full_hostnames.split(",") if deployment.full_hostnames else []
+            domain = deployment.domain
+            for hostname in hostname_list:
+                
+                try:
+                    node = Node.objects.get(name=(hostname.strip() + "." + domain))
+                    node.status, _ = Status.objects.get_or_create(name='failed')
+                    node.save()
+                    logger.info(f"Node {hostname} marked failed.")
+                except Node.DoesNotExist:
+                    logger.warning(f"Node {hostname} does not exist in the database.")
+
+
+
+
+
 # this task looks for 'queued' deployments and triggers the build script
 @background
 def check_queued_deployments():
     queued_deployments = Deployment.objects.filter(status='queued')
-    
+
+    if queued_deployments.count() > 0:
+        print(f"Found {queued_deployments.count()} deployments queued for deployment.")
+        logger.info(f"Found {queued_deployments.count()} deployments queued for deployment.")
+            
     for deployment in queued_deployments:
         deployment_name = deployment.deployment_name
-        print(f"Dispatching deploy task for {deployment_name}")
+        # print(f"Dispatching deploy task for {deployment_name}")
         
         base_path = settings.BASE_DIR
         python_executable = os.path.join(base_path, "ssvm_env", "bin", "python")
         deploy_command = [python_executable, os.path.join(base_path, "myapp", "deploy.py"), deployment_name]
 
         try:
-            # Run the deploy script as a separate process
-            result = subprocess.run(deploy_command, check=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-            print(f"Deployment {deployment_name} completed successfully: {result.stdout.decode('utf-8')}")
+            # Run the deploy script as a separate process and capture the PID
+            process = subprocess.Popen(deploy_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            pid = process.pid
+            deployment.pid = pid
+            deployment.save()
+            
+            print(f"Deployment process started with PID: {pid}")
+            logger.info(f"Deployment process started with PID: {pid}")
 
-        except subprocess.CalledProcessError as e:
-            print(f"Error deploying {deployment_name}: {e.stderr.decode('utf-8')}")
+            # Periodically check if the process is still running
+            while process.poll() is None:  # process.poll() returns None if the process is still running
+                #print(f"Deployment {deployment_name} is still running...")
+                time.sleep(5)  
+
+            # Capture the result
+            stdout, stderr = process.communicate()
+            if process.returncode == 0:
+                print(f"Deployment {deployment_name} completed successfully: {stdout.decode('utf-8')}")
+                logger.info(f"Deployment {deployment_name} completed successfully: {stdout.decode('utf-8')}")
+            else:
+                print(f"Error deploying {deployment_name}: {stderr.decode('utf-8')}")
+                logger.info(f"Error deploying {deployment_name}: {stderr.decode('utf-8')}")
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
         
             
 # Background task to check and destroy deployments stuck in "queued for destruction"
@@ -87,8 +148,9 @@ def check_queued_deployments():
 def check_destroy_deployments():
     destroying_deployments = Deployment.objects.filter(status='queued_for_destroy')
 
-    print(f"Found {destroying_deployments.count()} deployments queued for destruction.")
-    logger.info(f"Found {destroying_deployments.count()} deployments queued for destruction.")
+    if destroying_deployments.count() > 0:
+        print(f"Found {destroying_deployments.count()} deployments queued for destruction.")
+        logger.info(f"Found {destroying_deployments.count()} deployments queued for destruction.")
         
     # Loop through each deployment and run the destroy logic
     for deployment in destroying_deployments:
@@ -116,7 +178,8 @@ def send_failure_alert():
         deployment_names = ", ".join([d.deployment_name for d in failed_deployments])
         subject = f"Approval Needed: SSVM Deployment {deployment_names}"
         message = f"The following deployments are waiting for approval: {deployment_names}"
-        recipient_list = [admin[1] for admin in settings.ADMINS]  # Send to all admins
+        # recipient_list = [admin[1] for admin in settings.ADMINS]  # Send to all admins
+        recipient_list = get_admin_emails()
         
         send_mail(
             subject,
@@ -142,7 +205,8 @@ def send_approval_alert():
         message += f"Please review them here: {deployment_url}"
 
         subject = f"Approval Needed: SSVM Deployment {deployment_names}"
-        recipient_list = [admin[1] for admin in settings.ADMINS]  # Send to all admins
+        # recipient_list = [admin[1] for admin in settings.ADMINS]  # Send to all admins
+        recipient_list = get_admin_emails()
 
         send_mail(
             subject,

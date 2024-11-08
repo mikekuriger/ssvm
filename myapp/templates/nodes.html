@@ -92,7 +92,8 @@
         
                         // Determine the content and class based on status and ping_status
                         if (status === "building") {
-                            content = `${data.status} <div class="loader"></div>`;
+                            // content = `${data.status} <div class="loader"></div>`;
+                            content = `<span style="display: inline-block; vertical-align: middle;">${data.status}</span> <div class="loader" style="display: inline-block; vertical-align: middle;"></div>`;
                             className = "status-building";
                         } else if (status === "prebuild") {
                             content = data.status;
@@ -247,8 +248,6 @@
                                                     {% if node.status.name in 'building' %}
                                                         {{ node.status.name }}
                                                         <div class="loader"></div>
-                                                        
-
                                                         <style>
                                                         .loader {
                                                             display: inline-block;
@@ -259,7 +258,7 @@
                                                             border-radius: 50%;
                                                             width: 12px;
                                                             height: 12px;
-                                                            animation: spin 3s linear infinite;
+                                                            animation: spin 5s linear infinite;
                                                         }
 
                                                         @keyframes spin {
