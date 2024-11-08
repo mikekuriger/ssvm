@@ -458,9 +458,9 @@ try:
             try:
                 attempt += 1
                 print(f"Attempt {attempt} of {retries} to clone VM...", flush=True)
-                print(" ".join(clone_command))
+                #print(" ".join(clone_command))
                 logger.info(f"Attempt {attempt} of {retries} to clone VM...")
-                logger.info(" ".join(clone_command))
+                #logger.info(" ".join(clone_command))
 
                 # Run the command with both stdout and stderr being captured in real-time LOGGING 
                 with subprocess.Popen(clone_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True) as process:
@@ -738,7 +738,7 @@ def add_to_dns():
     dc = dc_to_dc.get(DC, "Unknown DC")
     vlan = network_to_subnet.get(VLAN, "Unknown Network")
 
-    subnet = get_subnet_v4(vlan)
+    subnet = get_subnet_v4(vlan, dc)
     #print(subnet)
     #logger.info(subnet)
 
