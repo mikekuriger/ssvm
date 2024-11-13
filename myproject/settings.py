@@ -23,7 +23,9 @@ SITE_URL = 'https://st1lndssvm01.corp.pvt'
 
 CSRF_TRUSTED_ORIGINS = [
     'https://st1lndssvm01.corp.pvt',  # Original server
-    'https://st1lndssvm02.corp.pvt'   # New server
+    'https://st1lndssvm02.corp.pvt',
+    'https://st1lnpssvm01.corp.pvt',
+    'https://st1lnpssvm02.corp.pvt'
 ]
 # ssl stuff (ssl is configured in nginx)
 # SECURE_SSL_REDIRECT = True
