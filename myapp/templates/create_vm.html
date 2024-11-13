@@ -130,7 +130,7 @@
                             <label for="domain" class="col-sm-3 col-form-label small-label">{{ form.domain.label_tag }}</label>
                             <div class="col-sm-9">
                                 
-                                {% if not user.is_superuser %}
+                                {% if not user.groups.all|yesno:"admins" %}
                                     <select id="domain" name="domain" class="form-control readonly" tabindex="-1">
                                         {% for choice in form.domain.field.choices %}
                                             <option value="{{ choice.0 }}" {% if choice.0 == form.domain.value %}selected{% endif %}>{{ choice.1 }}</option>
