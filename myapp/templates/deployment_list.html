@@ -68,6 +68,14 @@
                             content = `<span style="color: gray; cursor: not-allowed;">Re-Deploy</span> / 
                                        <span style="color: gray; cursor: not-allowed;">Destroy</span>`;
                         }
+                    } else if (deploymentStatus === 'screamtest') {
+                        if (isStaff) {
+                            content = `<a href="/cancel_screamtest/${deploymentId}" class="btn btn-primary">Cancel (bring back)</a> / 
+                                       <a href="#" class="destroy-button" data-id="${deploymentId}" data-status="${deploymentStatus}">Destroy Forever</a>`;
+                        } else {
+                            content = `<span style="color: gray; cursor: not-allowed;">Cancel</span> / 
+                                       <span style="color: gray; cursor: not-allowed;">Destroy Forever</span>`;
+                        }
                     } else if (deploymentStatus === 'building') {
                         content = `<div class="progress-bar"><div class="progress"></div></div>`;
                     }
@@ -415,7 +423,7 @@
                                                 <td id="deployment-actions-{{ deployment.id }}">
                                                    
                                                     {% if user.is_staff %}
-                                                        <a href="{% url 'cancel_screamtest' deployment.id %}" class="btn btn-primary">Cancel</a> / 
+                                                        <a href="{% url 'cancel_screamtest' deployment.id %}" class="btn btn-primary">Cancel (bring back)</a> / 
                                                         <a href="#" class="destroy-button" data-id="{{ deployment.id }}" data-status="{{ deployment.status }}">Destroy Forever</a>
                                                     {% else %}
                                                         <span style="color: gray; cursor: not-allowed;">Cancel</span> / 
