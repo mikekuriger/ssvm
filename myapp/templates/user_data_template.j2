@@ -3,13 +3,13 @@ runcmd:
 {%- if patch == "True" %}
   - {{ yumupdate }}
 {%- endif %}
-{%- if adddisk and adddisk != "False" %}
+{%- if adddisk != "False" %}
   - {{ dumpdisks }}
 {%- endif %}
   - mkdir /vra_automation
   - mount -o nfsvers=3 st1-isiprod01.nfs.corp.pvt:/ifs/st1-isiprod01/nfs/vra_automation /vra_automation
   - /vra_automation/scripts/main2.sh | tee -a /var/log/vra_automation.log
-{%- if adddisk %}
+{%- if adddisk != "False" %}
   - {{ mountdisks }}
 {%- endif %}
 {%- if cohesity == "True" %}
@@ -28,7 +28,7 @@ runcmd:
   - echo "JIRA TICKET - {{ ticket }}" >> /etc/cmdb.txt
   - echo "APP NAME - {{ appname }}" >> /etc/cmdb.txt
   - echo "APP OWNER - {{ owner }}" >> /etc/cmdb.txt
-{%- if centrify_zone %}
+{%- if adjoin %}
   - {{ adjoin }}
   - {{ centrify_sshd }}
 {%- endif %}

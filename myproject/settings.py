@@ -180,23 +180,6 @@ AUTH_LDAP_GROUP_SEARCH = LDAPSearch(
 )
 
 
-
-# AUTH_LDAP_SERVER_URI = "ldap://dfw2w2sdc04.corp.pvt:3268"
-# AUTH_LDAP_BIND_DN = "%(user)s"
-# AUTH_LDAP_BIND_PASSWORD = ""
-
-# AUTH_LDAP_USER_DN_TEMPLATE = 'corp\%(user)s'
-# AUTH_LDAP_BIND_AS_AUTHENTICATING_USER = True
-# AUTH_LDAP_REFRESH_DN_ON_BIND = True              # ... the authenticated user dn can be refreshed using ...
-
-
-# AUTH_LDAP_USER_SEARCH = LDAPSearch(              # ... an ldap search in the users base DN
-#     "OU=Groups,OU=Administration,DC=corp,DC=pvt",
-#     ldap.SCOPE_SUBTREE,
-#     "(sAMAccountName=%(user)s)"
-# )
-
-
 AUTH_LDAP_GROUP_TYPE = ActiveDirectoryGroupType()
 AUTH_LDAP_REQUIRE_GROUP = None
 

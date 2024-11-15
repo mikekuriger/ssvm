@@ -348,8 +348,7 @@ logger.info(f"Add_disk - {ADDDISK}")
 print()
 
 # CLONE TEMPLATE
-        
-print()           
+                 
 print(f"{bold}Begin clone for deployment: {deployment_name}{_bold}", flush=True)
 logger.info(f"Begin clone for deployment: {deployment_name}")
 print()
@@ -532,7 +531,7 @@ else:
 
 
 # if requested, add 2nd disk 
-if ADDDISK == 'True':
+if ADDDISK != 'False':
     disk_size, label = ADDDISK.split(',')
     disk_name = (VM + "/" + VM + "_z")
     disk_size = (disk_size + "G")
@@ -566,7 +565,7 @@ if ADDDISK == 'True':
         print("No valid datastore found for the VM.", flush=True)
         logger.error("No valid datastore found for the VM.")
 else:
-    ADDDISK="False"
+    ADDDISK='False'
 
 
 # Get MAC address of VM
@@ -919,7 +918,7 @@ if not CLONE:
         mountdisks = ""
         dumpdisks = ""
             
-    if centrify_zone:
+    if centrify_zone and centrify_zone != 'None':
         adjoin = f"/usr/sbin/adjoin --server DFW2W2SDC05.corp.pvt -z {centrify_zone} -R {centrify_role} " \
                  "-c OU=Computers,OU=Centrify,DC=corp,DC=pvt -f corp.pvt -u svc_centrify -p '#xupMcMlURubO2|'"
     
@@ -958,7 +957,6 @@ if not CLONE:
         'patch': PATCH,
         'yumupdate': yumupdate,
         'dumpdisks': dumpdisks,
-    #    'disk_size': args.disk_size,
         'adddisk': ADDDISK,
         'mountdisks': mountdisks,
         'automount_homedir': automount_homedir,

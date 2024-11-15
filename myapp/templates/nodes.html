@@ -230,6 +230,8 @@
                                                     {% if user.is_staff and model_type != 'vra' %} 
                                                         <a href="{% url 'admin:myapp_node_change' node.id %}"style="display: inline;">Edit</a> /
                                                         <a href="{% url 'view_log' node_id=node.id %}?model={{ model_type }}">Build Log</a>
+                                                    {% elif user.is_staff and model_type == 'vra' %}
+                                                        <a href="{% url 'admin:myapp_vra_node_change' node.id %}"style="display: inline;">Edit</a>
                                                     {% else %}
                                                         <span style="color: gray; cursor: not-allowed;">Edit</span>
                                                     {% endif %}</td>
