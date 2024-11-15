@@ -1161,7 +1161,7 @@ textarea {
     width: 100%;             /* Full width of progress bar */
     height: 100%;            /* Same height as container */
     background-color: #3498db;  /* Color of the progressing line */
-    animation: loading 1.5s linear infinite; /* Animation speed and repeat */
+    animation: loading 2.5s linear infinite; /* Animation speed and repeat */
     position: absolute;
 }
 
@@ -1172,12 +1172,15 @@ textarea {
 }
 
 .loader {
+    display: inline-block;
+    margin-left: 3px;
+    ertical-align: middle; 
     border: 3px solid #f3f3f3;
     border-top: 3px solid #3498db;
     border-radius: 50%;
     width: 12px;
     height: 12px;
-    animation: spin 3s linear infinite;
+    animation: spin 1s linear infinite;
 }
 
 @keyframes spin {

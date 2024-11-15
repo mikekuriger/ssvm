@@ -248,26 +248,7 @@
                                                     </td>
                                                     <td id="node-status-{{ node.id }}" class="status-{% if node.status.name in 'inservice setup' %}{% if node.ping_status == 1 %}Alive{% else %}Dead{% endif %}{% else %}{{ node.status.name }}{% endif %}">
                                                     {% if node.status.name in 'building' %}
-                                                        {{ node.status.name }}
-                                                        <div class="loader"></div>
-                                                        <style>
-                                                        .loader {
-                                                            display: inline-block;
-                                                            margin-left: 3px;
-                                                            vertical-align: middle; 
-                                                            border: 3px solid #f3f3f3;
-                                                            border-top: 3px solid #3498db;
-                                                            border-radius: 50%;
-                                                            width: 12px;
-                                                            height: 12px;
-                                                            animation: spin 5s linear infinite;
-                                                        }
-
-                                                        @keyframes spin {
-                                                          0% { transform: rotate(0deg); }
-                                                          100% { transform: rotate(360deg); }
-                                                        }
-                                                        </style>
+                                                        {{ node.status.name }} <div class="loader" style="display: inline-block; vertical-align: middle;"></div>
                                                     {% elif node.status.name in 'prebuild' %}
                                                         {{ node.status.name }}
                                                     {% else %}
