@@ -102,6 +102,9 @@
                            const isAlive = Boolean(pingStatus);
                            content = `${data.status} / ${isAlive ? "Alive" : "Dead"}`;
                            className = isAlive ? "status-Alive" : "status-Dead";
+                        } else if (status === "destroyed") {
+                            content = data.status;
+                            className = "status-destroyed";
                         } else {
                             // For any other statuses, show the status and ping state
                            const isAlive = Boolean(pingStatus);
@@ -282,8 +285,7 @@
                                                             None
                                                         {% endif %}
                                                     </td>
-                                                    <td id="node-status-{{ node.id }}" class=status-destroyed>
-                                                    {{ node.status.name }}</td>   
+                                                    <td id="node-status-{{ node.id }}" class=status-destroyed>{{ node.status.name }}</td>
                                                     <td>{{ node.hardware_profile }}</td>
                                                     <td>{{ node.processor_count }}</td>
                                                     <td>{{ node.physical_memory }}</td>
