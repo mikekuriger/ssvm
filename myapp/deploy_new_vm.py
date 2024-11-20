@@ -1191,6 +1191,8 @@ if "yellowpages" in DOMAIN:
         logger.error("Error:", set_result.stderr)
         node.status = statusf_instance
         node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
+        print(f"Node status = failed.", flush=True)
+        logger.info(f"Node status = failed.")
         
 power_status = subprocess.run(["govc", "vm.info", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True)                       
 if "poweredOn" in power_status.stdout:
@@ -1203,6 +1205,9 @@ if "poweredOn" in power_status.stdout:
 
     # Update the specific fields
     node.status = statuss_instance
+    node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
+    print(f"Node status = setup.", flush=True)
+    logger.info(f"Node status = setup.")
 
 else:
     print(f"{VM} did not power on after the build.  Please check with the Unix team for assistance.", flush=True)
@@ -1211,6 +1216,12 @@ else:
 
     # Update the specific fields
     node.status = statusf_instance
+    node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
+    print(f"Node status = failed.", flush=True)
+    logger.info(f"Node status = failed.")
 
-# Save the changes
-node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number'])
+# Catchall in case status didn't update
+node.ping_status=True
+node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number', 'ping_status])
+# print(f"catchall - Node status = setup.", flush=True)
+# logger.info(f"catchall - Node status = setup.")

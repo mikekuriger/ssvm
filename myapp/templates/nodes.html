@@ -99,17 +99,19 @@
                             content = data.status;
                             className = "status-prebuild";
                         } else if (["inservice", "setup"].includes(status)) {
-                           const isAlive = Boolean(pingStatus);
-                           content = `${data.status} / ${isAlive ? "Alive" : "Dead"}`;
-                           className = isAlive ? "status-Alive" : "status-Dead";
+                            const isAlive = Boolean(pingStatus);
+                            // content = `${data.status} / ${isAlive ? "Alive" : "Dead"}`;
+                            content = `${data.status}`;
+                            className = isAlive ? "status-Alive" : "status-Dead";
                         } else if (status === "destroyed") {
                             content = data.status;
                             className = "status-destroyed";
                         } else {
                             // For any other statuses, show the status and ping state
-                           const isAlive = Boolean(pingStatus);
-                           content = `${data.status} / ${isAlive ? "Alive" : "Dead"}`;
-                           className = isAlive ? "status-Alive" : "status-Dead";
+                            const isAlive = Boolean(pingStatus);
+                            // content = `${data.status} / ${isAlive ? "Alive" : "Dead"}`;
+                            content = `${data.status}`;
+                            className = isAlive ? "status-Alive" : "status-Dead";
                         }
         
                         // Update the content and class of the cell
@@ -255,7 +257,7 @@
                                                     {% elif node.status.name in 'prebuild' %}
                                                         {{ node.status.name }}
                                                     {% else %}
-                                                        {{ node.status.name }} / {% if node.ping_status == 1 %}Alive{% else %}Dead{% endif %}
+                                                        {{ node.status.name }}
                                                     {% endif %}
                                                     </td>
                                                     <td>{{ node.hardware_profile }}</td>
