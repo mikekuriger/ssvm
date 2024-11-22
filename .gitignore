@@ -190,7 +190,6 @@ mysql.txt
 restart
 snap/*
 ssvm_env
-myproject/settings.py
 django_pid.txt
 myapp/*Copy*.py
 *.bak
