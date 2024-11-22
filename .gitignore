@@ -196,3 +196,5 @@ django_pid.txt
 myapp/*Copy*.py
 *.bak
 myapp/templates/deployment_list.new.html
+eip_test.py
+*.ori
