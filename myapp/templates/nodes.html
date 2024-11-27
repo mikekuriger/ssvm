@@ -106,6 +106,9 @@
                         } else if (status === "destroyed") {
                             content = data.status;
                             className = "status-destroyed";
+                        } else if (status === "screamtest") {
+                            content = data.status;
+                            className = "status-screamtest";
                         } else {
                             // For any other statuses, show the status and ping state
                             const isAlive = Boolean(pingStatus);

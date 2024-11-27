@@ -49,7 +49,7 @@ def destroy_vm(node, deployment):
         loggerdestroy.error(f"vCenter {vcenter} is not responding (503 error), setting deployment back to 'deployed'.")
         deployment.status = 'deployed'  
         deployment.save(update_fields=['status'])
-        return False
+        return 'Error'
     
     else:
         loggerdestroy.info(f"vCenter {vcenter} is responding successfully.")
@@ -74,13 +74,13 @@ def destroy_vm(node, deployment):
 
         if result.returncode == 0:
             # If the command succeeded, the VM was destroyed
-            loggerdestroy.info(f"VM {vm_name} successfully destroyed from vCenter.")
+            # loggerdestroy.info(f"VM {vm_name} successfully destroyed from vCenter.")
             node.status = Status.objects.get(name='destroyed')
             node.save(update_fields=['status'])
             return True  
 
         elif 'no such' in result.stderr.lower() or 'not found' in result.stderr.lower():
-            loggerdestroy.info(f"VM {vm_name} not found in vCenter.")
+            # loggerdestroy.info(f"VM {vm_name} not found in vCenter.")
             node.status = Status.objects.get(name='destroyed')
             node.save(update_fields=['status'])
             return False # this is OK, it was likely already deleted
@@ -104,11 +104,17 @@ def remove_dns_entry(node, deployment):
     vcenter = datacenter['vcenter']
     username = datacenter['credentials']['username']
     password = datacenter['credentials']['password']
-    
-    sds_conn = SOLIDserverRest(datacenter['eipmaster'])
-    sds_conn.set_ssl_verify(False)
-    sds_conn.use_basicauth_sds(user=datacenter['eip_credentials']['username'], password=datacenter['eip_credentials']['password'])
 
+    # Extract details from the config
+    master   = config['global']['eip']['eipmaster']
+    username = config['global']['eip']['username']
+    password = config['global']['eip']['password']
+    #print(f"dns username: {username}, password {password}")
+    
+    sds_conn = SOLIDserverRest(master)
+    sds_conn.set_ssl_verify(False)
+    sds_conn.use_basicauth_sds(user=username, password=password)
+    
     dns_name = node.name.split('.')[0]
     dns_zone = deployment.domain or 'corp.pvt'
     parameters = {"WHERE": f"name='{dns_name}.{dns_zone}'"}
@@ -123,10 +129,10 @@ def remove_dns_entry(node, deployment):
             ip_id = ip_list[0].get('ip_id')
             delete_response = sds_conn.query("ip_address_delete", {"ip_id": ip_id})
             if delete_response.status_code == 200:
-                loggerdestroy.info(f"DNS entry {dns_name}.{dns_zone} deleted.")
+                # loggerdestroy.info(f"DNS entry {dns_name}.{dns_zone} deleted.")
                 return True
             else:
-                loggerdestroy.error(f"Error deleting DNS entry {dns_name}.{dns_zone}: {delete_response.content.decode()}")
+                # loggerdestroy.error(f"Error deleting DNS entry {dns_name}.{dns_zone}: {delete_response.content.decode()}")
                 return 'Error'
     else:
         #loggerdestroy.info(f"{dns_name}.{dns_zone} was not found in DNS: {response.content.decode()}")
@@ -240,33 +246,36 @@ def destroy_deployment_logic(deployment_id):
         for node in nodes_in_deployment:
 
             # Step 1: Destroy VMs in the deployment
+            loggerdestroy.info(f"Step 1: Destroy VMs in the deployment")
             vm_destroyed = destroy_vm(node, deployment)
             if vm_destroyed == True:
-                loggerdestroy.info(f"VM {node.name} destroyed from vCenter.")
+                loggerdestroy.info(f"{node.name} destroyed from vCenter.")
                 
             elif vm_destroyed == False:  
-                loggerdestroy.info(f"VM {node.name} not in Vcenter, skipping VM delete operation")
+                loggerdestroy.info(f"{node.name} not found in vCenter.")
                 vm_destroyed = True # all is good
                 
             elif vm_destroyed == 'Error':  
                 loggerdestroy.error(f"Error deleting {node.name} ({node.serial_number}) in vCenter")
                 return 'Error'
-            else:
-                # loggerdestroy.info(f"Node {node.name} not in vCenter, no need to destroy.")
-                loggerdestroy.error(f"Failed to find {node.name} ({node.serial_number}) in vCenter, skipping VM delete operation")
-                return 'Error'
+            # else:
+            #     # loggerdestroy.info(f"Node {node.name} not in vCenter, no need to destroy.")
+            #     loggerdestroy.error(f"Failed to find {node.name} ({node.serial_number}) in vCenter, skipping VM delete operation")
+            #     return 'Error'
             
         
             # Step 2: Remove DNS entries
+            loggerdestroy.info(f"Step 2: Remove DNS entries")
             dns_removed = remove_dns_entry(node, deployment)
             if dns_removed == True:
-                loggerdestroy.info(f"VM {node.name} removed from DNS.")
+                loggerdestroy.info(f"{node.name} removed from DNS.")
                 
             elif dns_removed == False:
-                loggerdestroy.info(f"VM {node.name} not found in DNS.")
+                loggerdestroy.info(f"{node.name} not found in DNS.")
                 dns_removed = True # for next check, all is good!
+                
             else:
-                loggerdestroy.error(f"Failed to remove node {node.name} from DNS.")
+                loggerdestroy.error(f"Error deleting DNS entry for {node.name}.")
                 return 'Error'
 
         

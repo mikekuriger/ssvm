@@ -26,6 +26,7 @@ django.setup()
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.safestring import mark_safe
+from django.utils.timezone import make_aware
 from django.conf import settings
 from myapp.models import Deployment, Node, OperatingSystem, HardwareProfile, Status
 
@@ -69,10 +70,12 @@ status_instances = setup_status_instances()
 
 # Set deployment detail variables
 deployment_name = data.get('Deployment_id')
-deployment_date = data.get('Deployment_date')
+naive_deployment_date_str = data.get('Deployment_date') 
+naive_deployment_date = datetime.strptime(naive_deployment_date_str, "%Y-%m-%dT%H:%M")
+deployment_date = make_aware(naive_deployment_date)
 deployment_count = int(data.get("Deployment_count", 0))
 
-DOMAIN = data.get('Domain')
+DOMAIN = data.get('Domain') or 'corp.pvt'
 VM = data.get('Hostname')
 OS = data.get('OS')
 VERSION = data.get('VERSION')
@@ -87,7 +90,7 @@ BUILTBY = data.get('Builtby')
 TICKET = data.get('Ticket')
 APPNAME = data.get('App_Name')
 OWNER = data.get('Owner')
-ADDDISK = data.get('Add_disk')
+ADDDISK = data.get('Add_disk') or 'False'
 centrify_zone = data.get('Centrify_zone') or 'None'
 centrify_role = data.get('Centrify_role')
 CENTRIFY = data.get('Centrify')
@@ -123,42 +126,60 @@ def run_command(command, capture_output=True, check=True, text=True):
     try:
         return subprocess.run(command, capture_output=capture_output, check=check, text=text)
     except subprocess.CalledProcessError as e:
-        logger.error(f"Command failed: {' '.join(command)}")
-        logger.error(f"Error: {e.stderr}")
-        raise
+        class FailedResult:
+            returncode = e.returncode
+            stdout = e.stdout
+            stderr = e.stderr
+            args = e.cmd
+        return FailedResult()
+       
 
 
 def get_dc_variables():
     """Set up datacenter-specific configuration."""
-
     if DC not in datacenter_config:
         handle_failure(f"Datacenter {DC} not found in configuration.")
 
     # Get the datacenter configuration
     dc_config = datacenter_config[DC]
-    
     vlan_map = dc_config.get('vlans', {})
 
     # Check if the VLAN exists in the datacenter's VLAN map
     if VLAN not in vlan_map:
-        handle_failure(
-            f"{VM}.{DOMAIN}",
-            status_instances,
-            f"Invalid VLAN {VLAN} for datacenter {DC}."
-        )
+        handle_failure(f"Invalid VLAN {VLAN} for datacenter {DC}.")
 
-    # Extract VLAN details
+    # Extract VLAN details from config.yaml
     vlan_details = vlan_map[VLAN]
     network = vlan_details.get('network')
     netmask = vlan_details.get('netmask')
     vlan_name = vlan_details.get('name')
-    gateway = network.split('-')[0] + ".1"
 
     # Extract datacenter-level details
     dc_name = dc_config.get('name')
     dns = dc_config.get('dns')
     domains = dc_config.get('dnsdomains')
 
+    # Check for None values and warn
+    variables = {
+        "network": network,
+        "netmask": netmask,
+        "vlan_name": vlan_name,
+        "dc_name": dc_name,
+        "dns": dns,
+        "domains": domains,
+    }
+    print(f"date = {deployment_date}")
+    for var_name, value in variables.items():
+        if value is None:
+            handle_failure(f"Warning: {var_name} was not found, check config.yaml for errors")
+        else:
+            if var_name == 'domains':
+                print(f"{var_name} = corp.pvt dexmedia.com")
+            else:
+                print(f"{var_name} = {value}")
+        
+    # if all is good, set gateway
+    gateway = network.split('-')[0] + ".1"
     return network, netmask, gateway, vlan_name, dc_name, dns, domains
 
 
@@ -269,12 +290,12 @@ def does_vm_exist():
     """Check if a VM with the same name already exists, and check if the source VM (template) exists before cloning."""
     try:
         # Check for the template (source VM)
+        print("Checking template - ", end="", flush=True)
+        logger.info("Checking template")
+
         govc_os_command = ["govc", "vm.info", OS]
         result_os = run_command(govc_os_command)
         vmstat_os = result_os.stdout
-
-        print("Checking template - ", end="", flush=True)
-        logger.info("Checking template")
         
         if OS in vmstat_os:
             print(f"Template {OS} found", flush=True)
@@ -387,7 +408,61 @@ def clone_vm(datastorecluster, network):
             else:
                 handle_failure("Maximum retries reached. Exiting.")
         
+
+
+def resize_boot_disk():
+    # Resize boot disk if needed
+    if DISK > 100:
+        boot_disk_size=(str(DISK) + "G")
+        print(f"Resizing boot disk to {bold}{boot_disk_size}{_bold}", flush=True)
+        logger.info(f"Resizing boot disk to {boot_disk_size}")
+        subprocess.run(["govc", "vm.disk.change", "-vm", VM, "-disk.name", "disk-1000-0", "-size", str(boot_disk_size)], check=True)
+    else:
+        print(f"Disk resize not needed", flush=True)
+        logger.info(f"Disk resize not needed")
     
+
+def add_disk():
+    # if requested, add 2nd disk
+    # global ADDDISK
+    if ADDDISK != 'False':
+        disk_size, label = ADDDISK.split(',')
+        disk_name = (VM + "/" + VM + "_z")
+        disk_size = (disk_size + "G")
+        print(f"Adding 2nd disk - {bold}{disk_size}{_bold}", flush=True)
+        logger.info(f"Adding 2nd disk - {disk_size}")
+    
+        datastore_result = subprocess.run(
+            ["govc", "vm.info", "-json", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True
+        )
+        datastore_json = json.loads(datastore_result.stdout)
+    
+        # Extract the datastore information
+        datastore = None
+        for device in datastore_json["virtualMachines"][0]["config"]["hardware"]["device"]:
+            if "backing" in device and "fileName" in device["backing"] and device["backing"]["fileName"]:
+                datastore = device["backing"]["fileName"]
+                # Trim to get the datastore name
+                datastore = datastore.split('[')[-1].split(']')[0]
+                break
+    
+        if datastore:
+            command = ["govc", "vm.disk.create", "-vm", VM, "-thick", "-eager", "-size", disk_size, "-name", disk_name, "-ds", datastore] 
+            try:
+                subprocess.run(command, check=True)
+                print(f"Added a {disk_size} disk to {VM}", flush=True)
+                logger.info(f"Added a {disk_size} disk to {VM}")
+            except subprocess.CalledProcessError as e:
+                print(f"Failed to add disk to {VM}: {e}", flush=True)
+                logger.error(f"Failed to add disk to {VM}: {e}")
+        else:
+            print("No valid datastore found for the VM.", flush=True)
+            logger.error("No valid datastore found for the VM.")
+    # else:
+    #     ADDDISK='False'
+
+
+
 def get_mac_address():
     print(f"{bold}Getting MAC address from vCenter{_bold}", flush=True)
     logger.info(f"Getting MAC address from vCenter")
@@ -588,7 +663,8 @@ def power_off():
 
 def customize(mac_address, IP, netmask, gateway, dns, domains):                    
     # Customize the VM
-    print(f"{bold}Customizing VM details - IP, Netmask, Gateway, DNS servers, and Domains{_bold}", flush=True)
+    print(f"{bold}Customizing VM details{_bold}\n- IP ({IP})\n- Netmask ({netmask})\n- Gateway ({gateway})\n- DNS ({dns})\n- Domains ({domains})", flush=True)
+  
     result = run_command([
         "govc", "vm.customize", "-vm", VM, "-type", "Linux", "-name", 
         VM, "-domain", DOMAIN, "-mac", mac_address, "-ip", IP, 
@@ -725,7 +801,10 @@ def cloud_init():
         cohesity_install = f"/vra_automation/installs/cohesity_install.sh"
         
         # get date
-        now = datetime.now()
+        #now = datetime.now()
+        
+        naive_now = datetime.now()
+        now = make_aware(naive_now)
         date = now.strftime("%Y-%m-%dT%H:%M:%S")
         
         # Set up Jinja2 environment and load the template file
@@ -930,7 +1009,8 @@ def finalize_node_status(status, uuid, serial_number):
         print(f"Node {name} does not exist in the database. Logging failure.", flush=True)
         logger.error(f"Node {name} does not exist in the database. Logging failure.")
         sys.exit(1)
-    now = datetime.now()
+    naive_now = datetime.now()
+    now = make_aware(naive_now)
     node.ping_status=True
     if status == "failed":
         node.ping_status=False
@@ -991,6 +1071,16 @@ def main():
         print(f"{bold}** clone_vm - {_bold}", end="")
         clone_vm(datastorecluster, network)
 
+    # Resize boot disk
+    if DISK > 100:
+        print(f"{bold}** resize_boot_disk - {_bold}")
+        resize_boot_disk()
+
+    # Add disk
+    if ADDDISK != 'False':
+        print(f"{bold}** add_disk - {_bold}")
+        add_disk()
+    
     # get MAC from Vcenter
     print(f"{bold}** get_macaddress - {_bold}", end="")
     mac_address = get_mac_address()
