@@ -630,7 +630,7 @@ def add_to_dns(mac_address, vlan_name, dc_name):
 def handle_dns(mac_address, vlan_name, dc_name):
 
     max_retries = 60
-    retry_delay = 2
+    retry_delay = 10
     
     print(f"{bold}Attempting to resolve{_bold} {VM}.{DOMAIN}", flush=True)
     
