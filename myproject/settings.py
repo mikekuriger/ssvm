@@ -19,9 +19,10 @@ from django_auth_ldap.config import LDAPSearch, LDAPSearchUnion, GroupOfNamesTyp
 SCHEDULER_AUTOSTART = True
 MAX_RUN_TIME = 3600
 
-SITE_URL = 'https://st1lndssvm01.corp.pvt'
+SITE_URL = 'https://ssvm.corp.pvt'
 
 CSRF_TRUSTED_ORIGINS = [
+    'https://ssvm.corp.pvt',
     'https://st1lndssvm01.corp.pvt',  # Original server
     'https://st1lndssvm02.corp.pvt',
     'https://st1lnpssvm01.corp.pvt',
