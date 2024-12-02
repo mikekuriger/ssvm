@@ -65,13 +65,13 @@ def destroy_vm(node, deployment):
 
         if vm_uuid is not None:
             loggerdestroy.info(f"Attempting to destroy VM: {vm_name} by UUID {vm_uuid}")
-            poweroff_vm_command = ["govc", "vm.power", "-off", "-vm.uuid", vm_uuid]
+            poweroff_vm_command = ["govc", "vm.power", "-off", "-force", "-vm.uuid", vm_uuid]
             eject_cd_command = ["govc", "device.cdrom.eject", "-vm.uuid", vm_uuid]
             destroy_vm_command = ["govc", "vm.destroy", "-vm.uuid", vm_uuid]
 
         else:
             loggerdestroy.info(f"Attempting to destroy VM: {vm_name}")
-            poweroff_vm_command = ["govc", "vm.power", "-off", vm_name]
+            poweroff_vm_command = ["govc", "vm.power", "-off", "-force", vm_name]
             eject_cd_command = ["govc", "device.cdrom.eject", "-vm", vm_name]
             destroy_vm_command = ["govc", "vm.destroy", vm_name]
 
@@ -79,7 +79,18 @@ def destroy_vm(node, deployment):
         loggerdestroy.info(f"Attempting to power off VM: {vm_name}")
         result = subprocess.run(poweroff_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         if result.returncode == 0:
-            loggerdestroy.info(f"Powered off: {vm_name}")
+            #loggerdestroy.info(f"Powered off: {vm_name}")
+
+            for attempt in range(10):
+                power_status = run_command(["govc", "vm.info", vm_name])
+                if "poweredOff" in power_status.stdout:
+                    loggerdestroy.info(f"Powered off: {vm_name}")
+                    
+                elif "poweredOn" in power_status.stdout:
+                    loggerdestroy.warning(f"VM {vm_name} is still powered on. Attempt {attempt + 1} of 10. Retrying in 10 seconds...")
+                    time.sleep(10)
+                else:
+                    print(f"Unexpected power status for VM {vm_name}: {power_status.stdout.strip()}")
         
         # Eject CD    
             result = subprocess.run(poweroff_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
