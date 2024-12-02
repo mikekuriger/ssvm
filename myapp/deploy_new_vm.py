@@ -889,12 +889,53 @@ def cloud_init():
             print(f"Copying the ISO to the VM's datastore - {datastore}", flush=True)
             logger.info(f"Copying the ISO to the VM's datastore - {datastore}")
             
-            # Run the command to upload the ISO to the VM's datastore
+        # Upload the ISO to the VM's datastore
             run_command(["govc", "datastore.upload", "-ds", datastore, iso_file, f"{VM}/seed.iso"])
             
         else:
             print("No valid datastore found for the VM.", flush=True)
             logger.error("No valid datastore found for the VM.")
+
+
+        # Mount the ISO to the VM and power it on
+        print(f"{bold}Attach the ISO to the VM{_bold}", flush=True)
+        logger.info(f"Attach the ISO to the VM")
+        cd_device = subprocess.run(["govc", "device.ls", "-vm", VM], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True).stdout.splitlines()
+        cdrom_device = [line.split()[0] for line in cd_device if "cdrom" in line][0]
+        
+        # added eject in case template or image being cloned has a cd incerted
+        result = run_command(["govc", "device.cdrom.eject", "-vm", VM])
+        if result.returncode == 0:
+            print(f"CDROM ejected from {VM}", flush=True)
+        else:
+            print(f"Failed to eject CDROM from {VM}", flush=True)
+            logger.error(f"Failed to eject CDROM from {VM}")
+            print("Error:", set_result.stderr)
+            logger.error("Error:", set_result.stderr)
+        
+        insert_command = ["govc", "device.cdrom.insert", "-vm", VM, "-device", cdrom_device, "-ds", datastore, f"{VM}/seed.iso"]
+        # print(" ".join(insert_command))
+        result = run_command(insert_command)
+        if result.returncode == 0:
+            print(f"CDROM inserted into {VM}", flush=True)
+        else:
+            print(f"Failed to insert CDROM into {VM}", flush=True)
+            logger.error(f"Failed to insert CDROM into {VM}")
+            print("Error:", set_result.stderr)
+            logger.error("Error:", set_result.stderr)
+        
+        #print(f"ISO has been inserted into the CDROM", flush=True)
+        #logger.info(f"ISO has been inserted into the CDROM")
+        time.sleep(int(random.uniform(1, 3)))
+        result = run_command(["govc", "device.connect", "-vm", VM, cdrom_device])
+        if result.returncode != 0:
+            print(f"Failed to connect CDROM to {VM}", flush=True)
+            logger.error(f"Failed to connect CDROM to {VM}")
+            print("Error:", set_result.stderr)
+            logger.error("Error:", set_result.stderr)
+        
+        #print(f"ISO has been inserted and attached to {VM}", flush=True)
+        #logger.info(f"ISO has been inserted and attached to {VM}")
 
     # this is a CLONE
     else:
