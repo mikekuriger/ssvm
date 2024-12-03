@@ -96,13 +96,6 @@ def destroy_vm(node, deployment):
         loggerdestroy.error(f"VM {vm_name} failed to power off after 10 attempts.")
         return 'Error'
             
-    # Eject CDROM
-    loggerdestroy.info(f"Ejecting CDROM for VM {vm_name}.")
-    result = subprocess.run(eject_cd_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-    if result.returncode != 0:
-        loggerdestroy.warning(f"Failed to eject CDROM for VM {vm_uuid}: {result.stderr.strip()}")
-
-
     # Delete seed.iso
     datastore_result = subprocess.run(info_json_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     try:
@@ -111,16 +104,46 @@ def destroy_vm(node, deployment):
         for device in datastore_json["virtualMachines"][0]["config"]["hardware"]["device"]:
             if "backing" in device and "fileName" in device["backing"]:
                 backing_file = device["backing"]["fileName"]
-                if "seed.iso" in backing_file:
-                    datastore = device["backing"]["fileName"].split('[')[-1].split(']')[0]
+                #print(f"found backing - {backing_file}")
+                datastore = device["backing"]["fileName"].split('[')[-1].split(']')[0]
+                if datastore:
                     folder = device["backing"]["fileName"].split("]")[-1].strip().split("/")[0]
-                    break
-
-        if datastore:
-            delete_iso_command = ["govc", "datastore.rm", "-ds", datastore, f"{folder}/seed.iso"]
-            subprocess.run(delete_iso_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-        else:
-            loggerdestroy.warning(f"No seed.iso found for VM {vm_name}. Skipping seed.iso deletion.")
+                    delete_iso_command = ["govc", "datastore.rm", "-ds", datastore, f"{folder}/seed.iso"]
+                    ls_iso_command = ["govc", "datastore.ls", "-ds", datastore, f"{folder}/seed.iso"]
+                    
+                    loggerdestroy.info(f"Found {datastore}/{folder}")
+    
+                    # look for the seed.iso file
+                    result = subprocess.run(ls_iso_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                    if result.returncode == 0:
+                        loggerdestroy.info(f" - {datastore}/{folder}/seed.iso")
+                   
+                        if "seed.iso" in backing_file:
+                            print(f" * iso is mapped, ejecting - {datastore}/{folder}")
+                            # eject CD
+                            result = subprocess.run(eject_cd_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                            if result.returncode != 0:
+                                loggerdestroy.error(f" Failed to eject CDROM for VM {vm_name}: {result.stderr.strip()}")
+                            else:
+                                loggerdestroy.info(f" Ejected CDROM for VM {vm_name}")
+                                loggerdestroy.info(f" Deleting {datastore}/{folder}/seed.iso")
+                                result = subprocess.run(delete_iso_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                                if result.returncode == 0:
+                                    loggerdestroy.info(f" Success - Deleted {datastore}/{folder}/seed.iso")
+                                else:
+                                    loggerdestroy.error(f" Failed to delete {datastore}/{folder}/seed.iso")
+                        else:
+                            loggerdestroy.info(f" * iso not mapped - {datastore}/{folder}")
+                            loggerdestroy.info(f" Deleting {datastore}/{folder}/seed.iso")
+                            result = subprocess.run(delete_iso_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                            if result.returncode == 0:
+                                loggerdestroy.info(f" Success - Deleted {datastore}/{folder}/seed.iso")
+                            else:
+                                loggerdestroy.error(f" Failed to delete {datastore}/{folder}/seed.iso")
+                    else:
+                        loggerdestroy.info(f" - NO seed.iso found in {datastore}/{folder}")
+                    
+        
     except (KeyError, IndexError, json.JSONDecodeError):
         loggerdestroy.error(f"Error parsing datastore details for VM {vm_name}. Skipping seed.iso deletion.")
 
