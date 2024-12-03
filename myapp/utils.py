@@ -65,64 +65,70 @@ def destroy_vm(node, deployment):
 
         if vm_uuid is not None:
             loggerdestroy.info(f"Attempting to destroy VM: {vm_name} by UUID {vm_uuid}")
+            info_command = ["govc", "vm.info", "-vm.uuid", vm_uuid]
             poweroff_vm_command = ["govc", "vm.power", "-off", "-force", "-vm.uuid", vm_uuid]
             eject_cd_command = ["govc", "device.cdrom.eject", "-vm.uuid", vm_uuid]
             destroy_vm_command = ["govc", "vm.destroy", "-vm.uuid", vm_uuid]
 
         else:
             loggerdestroy.info(f"Attempting to destroy VM: {vm_name}")
+            info_command = ["govc", "vm.info", vm_name]
             poweroff_vm_command = ["govc", "vm.power", "-off", "-force", vm_name]
             eject_cd_command = ["govc", "device.cdrom.eject", "-vm", vm_name]
             destroy_vm_command = ["govc", "vm.destroy", vm_name]
 
         # Power off
         loggerdestroy.info(f"Attempting to power off VM: {vm_name}")
-        result = subprocess.run(poweroff_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-        if result.returncode == 0:
-            #loggerdestroy.info(f"Powered off: {vm_name}")
-
-            for attempt in range(10):
-                power_status = run_command(["govc", "vm.info", vm_name])
-                if "poweredOff" in power_status.stdout:
-                    loggerdestroy.info(f"Powered off: {vm_name}")
-                    
-                elif "poweredOn" in power_status.stdout:
-                    loggerdestroy.warning(f"VM {vm_name} is still powered on. Attempt {attempt + 1} of 10. Retrying in 10 seconds...")
+        power_status = run_command(info_command)
+      
+        for attempt in range(3):
+            if "poweredOff" in power_status.stdout:
+                loggerdestroy.info(f"Powered off: {vm_name}")
+                
+            # Eject CD    
+                result = subprocess.run(poweroff_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                if result.returncode == 0:
+                    loggerdestroy.info(f"CDROM ejected: {vm_name}")
+                else:
+                    loggerdestroy.error(f"Error ejecting CDROM: {vm_name}: {result.stderr}")
+    
+            # Delete seed.iso
+                # locate datastore
+                datastore_result = run_command(["govc", "vm.info", "-json", "-vm.uuid", vm_uuid])
+                datastore_json = json.loads(datastore_result.stdout)
+                datastore = None
+                for device in datastore_json["virtualMachines"][0]["config"]["hardware"]["device"]:
+                    if "backing" in device and "fileName" in device["backing"] and device["backing"]["fileName"]:
+                        datastore = device["backing"]["fileName"]
+                        datastore = datastore.split('[')[-1].split(']')[0]
+                        break
+                        
+                delete_iso_command = ["govc", "datastore.rm", "-ds", datastore, f"{vm_name}/seed.iso"]        
+                result = subprocess.run(delete_iso_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                
+                if result.returncode == 0:
+                    loggerdestroy.info(f"seed.iso deleted: {vm_name}")
+                else:
+                    loggerdestroy.error(f"Error deleting seed.iso: {vm_name}: {result.stderr}")
+                
+            elif "poweredOn" in power_status.stdout:       
+                result = subprocess.run(poweroff_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                if result.returncode == 0:
+                    loggerdestroy.info(f"Power off command sent for VM {vm_name}. Waiting 10 seconds...")
                     time.sleep(10)
                 else:
-                    print(f"Unexpected power status for VM {vm_name}: {power_status.stdout.strip()}")
-        
-        # Eject CD    
-            result = subprocess.run(poweroff_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-            if result.returncode == 0:
-                loggerdestroy.info(f"CDROM ejected: {vm_name}")
-            else:
-                loggerdestroy.error(f"Error ejecting CDROM: {vm_name}: {result.stderr}")
-
-        # Delete seed.iso
-            # locate datastore
-            datastore_result = run_command(["govc", "vm.info", "-json", "-vm.uuid", vm_uuid])
-            datastore_json = json.loads(datastore_result.stdout)
-            datastore = None
-            for device in datastore_json["virtualMachines"][0]["config"]["hardware"]["device"]:
-                if "backing" in device and "fileName" in device["backing"] and device["backing"]["fileName"]:
-                    datastore = device["backing"]["fileName"]
-                    datastore = datastore.split('[')[-1].split(']')[0]
+                    print(f"Error, unable to power off {vm_name}: {power_status.stdout.strip()}")
                     break
-                    
-            delete_iso_command = ["govc", "datastore.rm", "-ds", datastore, f"{vm_name}/seed.iso"]        
-            result = subprocess.run(delete_iso_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-            if result.returncode == 0:
-                loggerdestroy.info(f"seed.iso deleted: {vm_name}")
-            else:
-                loggerdestroy.error(f"Error deleting seed.iso: {vm_name}: {result.stderr}")
+                        
+            elif 'no such' in result.stderr.lower() or 'not found' in result.stderr.lower():
+                print(f"{vm_name} not found in Vcenter")
+                break
 
-        elif 'no such' in result.stderr.lower() or 'not found' in result.stderr.lower():
-            pass
+        else: 
+            loggerdestroy.error(f"Failed to power off VM {vm_name} after 3 attempts.")
+            raise RuntimeError(f"VM {vm_name} could not be powered off.")
+    
 
-        else:
-            loggerdestroy.error(f"Error executing govc vm.power -off command for VM {vm_name}: {result.stderr}")
-        
         # Destroy VM
         result = subprocess.run(destroy_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
