@@ -879,18 +879,17 @@ def cloud_init():
         datastore = None
         for device in datastore_json["virtualMachines"][0]["config"]["hardware"]["device"]:
             if "backing" in device and "fileName" in device["backing"] and device["backing"]["fileName"]:
-                datastore = device["backing"]["fileName"]
-                # Trim to get the datastore name
-                datastore = datastore.split('[')[-1].split(']')[0]
+                datastore = device["backing"]["fileName"].split('[')[-1].split(']')[0]
+                folder = device["backing"]["fileName"].split("]")[-1].strip().split("/")[0]
                 break
         
         # Check if the datastore was found
         if datastore:
-            print(f"Copying the ISO to the VM's datastore - {datastore}", flush=True)
-            logger.info(f"Copying the ISO to the VM's datastore - {datastore}")
+            print(f"Copying the ISO to the VM's datastore - {datastore}/{folder}", flush=True)
+            logger.info(f"Copying the ISO to the VM's datastore - {datastore}/{folder}")
             
         # Upload the ISO to the VM's datastore
-            run_command(["govc", "datastore.upload", "-ds", datastore, iso_file, f"{VM}/seed.iso"])
+            run_command(["govc", "datastore.upload", "-ds", datastore, iso_file, f"{folder}/seed.iso"])
             
         else:
             print("No valid datastore found for the VM.", flush=True)
@@ -913,7 +912,7 @@ def cloud_init():
             print("Error:", set_result.stderr)
             logger.error("Error:", set_result.stderr)
         
-        insert_command = ["govc", "device.cdrom.insert", "-vm", VM, "-device", cdrom_device, "-ds", datastore, f"{VM}/seed.iso"]
+        insert_command = ["govc", "device.cdrom.insert", "-vm", VM, "-device", cdrom_device, "-ds", datastore, f"{folder}/seed.iso"]
         # print(" ".join(insert_command))
         result = run_command(insert_command)
         if result.returncode == 0:
