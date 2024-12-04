@@ -23,7 +23,25 @@ def get_admin_emails():
     admins = User.objects.filter(is_active=True).filter(is_staff=True) | User.objects.filter(is_superuser=True)
     return [admin.email for admin in admins if admin.email]
 
+
+# adleave from centrify - will be used for screamtest and destroy
+def adleave(VM):  
+    loggerdestroy.info(f"Attempting to unregister {VM} from Centrify.")
+    govc_command = ["govc", "guest.run", "-vm", VM, "-l", "root:12ui34op!@#$", "-k", "adleave", "-r", "-u", "svc_centrify", "-p", "\"#xupMcMlURubO2|\""]
     
+    result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    #loggerdestroy.info(result)
+
+    if result.returncode == 0:
+        loggerdestroy.info(f"{VM} has been removed from centrify")
+        # break
+        return True
+    else:
+        loggerdestroy.error(f"Failed to remove {VM} from centrify")
+        loggerdestroy.error(f"Error: {result.stderr}")
+        return True
+
+
 # Remove VM from vcenter (called from destroy_deployment_logic)
 def destroy_vm(node, deployment):
     config = load_config()
@@ -76,10 +94,13 @@ def destroy_vm(node, deployment):
             return 'Error'
 
         if "poweredOff" in power_status.stdout:
-            loggerdestroy.info(f"VM {vm_name} is already powered off.")
+            loggerdestroy.info(f"VM {vm_name} is powered off.")
             break
 
         if "poweredOn" in power_status.stdout:
+            # Leave centrify 
+            adleave(vm_name)
+            
             loggerdestroy.info(f"VM {vm_name} is powered on. Attempting to power it off (Attempt {attempt + 1}/3).")
             result = subprocess.run(poweroff_vm_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
             if result.returncode == 0:
@@ -222,10 +243,10 @@ def screamtest_vm(node, deployment, decom_ticket, decom_date):
     vcenter = datacenter['vcenter']
     username = datacenter['credentials']['username']
     password = datacenter['credentials']['password']
-    logger = logging.getLogger('deployment')
+    loggerdestroy = logging.getLogger('destroy')
 
     # Log the vCenter credentials being used
-    logger.info(f"Using vCenter {vcenter} to poweroff and rename {node.name}")
+    loggerdestroy.info(f"Using vCenter {vcenter} to poweroff and rename {node.name}")
 
     # Set environment variables for govc
     _os.environ["GOVC_URL"] = f"https://{vcenter}"
@@ -233,17 +254,17 @@ def screamtest_vm(node, deployment, decom_ticket, decom_date):
     _os.environ["GOVC_PASSWORD"] = password
     
     # make sure vcenter is responding
-    logger.info(f"Testing vCenter {vcenter}")
+    loggerdestroy.info(f"Testing vCenter {vcenter}")
     govc_command = ["govc", "about"]
     result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     if result.returncode != 0 or "503 Service Unavailable" in result.stderr:
-        logger.error(f"vCenter {vcenter} is not responding (503 error), setting deployment back to 'deployed'.")
+        loggerdestroy.error(f"vCenter {vcenter} is not responding (503 error), setting deployment back to 'deployed'.")
         deployment.status = 'deployed'  
         deployment.save(update_fields=['status'])
         return False
     
     else:
-        logger.info(f"vCenter {vcenter} is responding successfully.")
+        loggerdestroy.info(f"vCenter {vcenter} is responding successfully.")
         
         # Proceed with VM naming
         vm_short_name = node.name.split('.')[0]
@@ -264,17 +285,20 @@ def screamtest_vm(node, deployment, decom_ticket, decom_date):
             power_off_command = ["govc", "vm.power", "-off", "-force", "-vm.uuid", vm_uuid]
             power_status_command = ["govc", "vm.info", "-vm.uuid", vm_uuid]
             rename_command = ["govc", "vm.change", "-vm.uuid", vm_uuid, "-name", newname]
-            logger.info(f"using UUID {vm_uuid}")
+            loggerdestroy.info(f"using UUID {vm_uuid}")
         else:
             govc_command = ["govc", "vm.info", vm_name]
             power_off_command = ["govc", "vm.power", "-off", "-force", vm_name]
             power_status_command = ["govc", "vm.info", vm_name]
             rename_command = ["govc", "vm.change", "-vm", vm_name, "-name", newname]
-            logger.info(f"using NAME {vm_name}")
+            loggerdestroy.info(f"using NAME {vm_name}")
             
         result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
         if result.returncode == 0:
+            # Leave centrify 
+            adleave(vm_name)
+            
             # Power off the VM
             subprocess.run(power_off_command, check=True)
             
@@ -282,25 +306,25 @@ def screamtest_vm(node, deployment, decom_ticket, decom_date):
             power_status = subprocess.run(power_status_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True)
 
             if "poweredOff" in power_status.stdout:
-                logger.info(f"{vm_name} has been powered off")
+                loggerdestroy.info(f"{vm_name} has been powered off")
 
                 # Rename VM to {vm_name}-Screamtest_{ticket}_{date}
                 rename_result = subprocess.run(rename_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
  
                 if rename_result.returncode == 0:
-                    logger.info(f"Renamed {vm_name} to {newname}")
+                    loggerdestroy.info(f"Renamed {vm_name} to {newname}")
                     return True
 
                 else:
-                    logger.error(f"Failed to rename {vm_name}. Error: {rename_result.stderr}")
+                    loggerdestroy.error(f"Failed to rename {vm_name}. Error: {rename_result.stderr}")
                     return False
 
             else:
-                logger.error(f"Failed to power off {vm_name}. Error: {power_status.stderr}")
+                loggerdestroy.error(f"Failed to power off {vm_name}. Error: {power_status.stderr}")
                 return False
             
         else:
-            logger.error(f"VM {vm_name} not found in vCenter")
+            loggerdestroy.error(f"VM {vm_name} not found in vCenter")
             return False
         
 

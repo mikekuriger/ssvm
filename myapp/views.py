@@ -165,7 +165,7 @@ def screamtest_deployment(request, deployment_id):
                 deployment.status = 'screamtest'
                 deployment.decom_ticket = decom_ticket
                 deployment.save()
-                logger.info(f"Deployment {deployment.deployment_name} is now in 'screamtest' status.")
+                loggerdestroy.info(f"Deployment {deployment.deployment_name} is now in 'screamtest' status.")
 
                 nodes_in_deployment = Node.objects.filter(deployment=deployment)
                 vm_screamtest = True
@@ -174,14 +174,14 @@ def screamtest_deployment(request, deployment_id):
                     # Screamtest VMs in the deployment
                     vm_screamtest = screamtest_vm(node, deployment, decom_ticket, decom_date)
                     if vm_screamtest == True:
-                        logger.info(f"VM {node.name} has been screamtested successfully.")
+                        loggerdestroy.info(f"VM {node.name} has been screamtested successfully.")
                         # update node.name ?  maybe not...
                         # update node.status
                         node.status = Status.objects.get(name='screamtest')
                         node.save()
                 
                     elif vm_screamtest == False:  
-                        logger.info(f"Failed to screamtest VM {node.name} - operation failed.")
+                        loggerdestroy.info(f"Failed to screamtest VM {node.name} - operation failed.")
 
                 
                 # update deployment.decom_date and deployment.status
@@ -191,7 +191,7 @@ def screamtest_deployment(request, deployment_id):
                 
             
                 messages.success(request, f"Deployment {deployment_id} has been screamtested successfully.")
-                logger.info(request, f"Deployment {deployment_id} has been screamtested successfully.")
+                loggerdestroy.info(request, f"Deployment {deployment_id} has been screamtested successfully.")
 
             except Exception as e:
                 messages.error(request, f"Failed to screamtest deployment {deployment_id}. Error: {e}")
@@ -245,9 +245,13 @@ def cancel_screamtest(request, deployment_id):
             # Step 2: Power on the VM
             power_on_command = ["govc", "vm.power", "-on", "-vm.uuid", vm_uuid]
             power_on_result = subprocess.run(power_on_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-
+            
             if power_on_result.returncode == 0:
                 logger.info(f"VM {original_name} powered on successfully.")
+            
+            elif 'current state (Powered on)' in power_on_result.stderr:
+                logger.info(f"VM {original_name} already powered on.")
+                
             else:
                 logger.error(f"Failed to power on VM {original_name}. Error: {power_on_result.stderr}")
                 all_restored = False
