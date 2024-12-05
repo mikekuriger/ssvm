@@ -1,0 +1,18 @@
+[Unit]
+Description=Django Background Task Processor
+After=network.target
+
+[Service]
+User=ssvm
+Group=ssvm
+WorkingDirectory=/home/ssvm/ssvm
+ExecStart=/bin/bash -c 'source /home/ssvm/ssvm/ssvm_env/bin/activate && python /home/ssvm/ssvm/manage.py process_tasks'
+#ExecStart=/home/ssvm/ssvm/ssvm_env/bin/python /home/ssvm/ssvm/manage.py process_tasks
+Restart=on-failure
+Environment="PATH=/home/ssvm/ssvm/ssvm_env/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
+Environment="DJANGO_SETTINGS_MODULE=myproject.settings"
+StandardOutput=append:/home/ssvm/ssvm/logs/django-background-tasks.log
+StandardError=append:/home/ssvm/ssvm/logs/django-background-tasks.log
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,14 @@
+[Unit]
+Description=Django Application
+After=network.target
+
+[Service]
+User=ssvm
+Group=ssvm
+WorkingDirectory=/home/ssvm/ssvm
+ExecStart=/home/ssvm/ssvm/ssvm_env/bin/python /home/ssvm/ssvm/manage.py runserver 127.0.0.1:8000
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
