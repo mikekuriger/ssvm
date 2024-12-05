@@ -176,8 +176,8 @@ def send_failure_alert():
     
     if failed_deployments.exists():
         deployment_names = ", ".join([d.deployment_name for d in failed_deployments])
-        subject = f"Approval Needed: SSVM Deployment {deployment_names}"
-        message = f"The following deployments are waiting for approval: {deployment_names}"
+        subject = f"Failed: SSVM Deployment {deployment_names}"
+        message = f"The following deployments have failed: {deployment_names}"
         # recipient_list = [admin[1] for admin in settings.ADMINS]  # Send to all admins
         recipient_list = get_admin_emails()
         

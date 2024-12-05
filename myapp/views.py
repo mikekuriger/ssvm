@@ -207,11 +207,6 @@ def screamtest_deployment(request, deployment_id):
 
 
 
-
-
-
-
-
 # Cancel screamtest
 @login_required   
 def cancel_screamtest(request, deployment_id):

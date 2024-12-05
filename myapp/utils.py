@@ -52,7 +52,7 @@ def destroy_vm(node, deployment):
     loggerdestroy = logging.getLogger('destroy')
 
     # Log the vCenter credentials being used
-    loggerdestroy.info(f"Using vCenter {vcenter} to destroy VM {node.name} with UUID {node.serial_number}")
+    loggerdestroy.info(f"Using vCenter {vcenter} to destroy VM {node.name} with UUID {repr(node.serial_number)}")
 
     # Set environment variables for govc
     _os.environ["GOVC_URL"] = f"https://{vcenter}"
@@ -69,8 +69,8 @@ def destroy_vm(node, deployment):
     vm_name = node.name.split('.')[0] if "yellowpages" not in node.name else node.name
     vm_uuid = node.serial_number
    
-    if vm_uuid:
-        loggerdestroy.info(f"Attempting to destroy VM: {vm_name} by UUID {vm_uuid}")
+    if vm_uuid and vm_uuid.lower() != 'none':
+        loggerdestroy.info(f"Attempting to destroy VM: {vm_name} by UUID {repr(vm_uuid)}")
         info_command = ["govc", "vm.info", "-vm.uuid", vm_uuid]
         info_json_command = ["govc", "vm.info", "-json", "-vm.uuid", vm_uuid]
         poweroff_vm_command = ["govc", "vm.power", "-off", "-force", "-vm.uuid", vm_uuid]
@@ -78,12 +78,12 @@ def destroy_vm(node, deployment):
         destroy_vm_command = ["govc", "vm.destroy", "-vm.uuid", vm_uuid]
 
     else:
-        loggerdestroy.info(f"Attempting to destroy VM: {vm_name}")
-        info_command = ["govc", "vm.info", vm_name]
-        info_json_command = ["govc", "vm.info", "-json", vm_name]
-        poweroff_vm_command = ["govc", "vm.power", "-off", "-force", vm_name]
-        eject_cd_command = ["govc", "device.cdrom.eject", "-vm", vm_name]
-        destroy_vm_command = ["govc", "vm.destroy", vm_name]
+        loggerdestroy.info(f"Attempting to destroy VM: {node.name} by NAME")
+        info_command = ["govc", "vm.info", "-vm.dns", node.name]
+        info_json_command = ["govc", "vm.info", "-json", "-vm.dns", node.name]
+        poweroff_vm_command = ["govc", "vm.power", "-off", "-force", "-vm.dns", node.name]
+        eject_cd_command = ["govc", "device.cdrom.eject", "-vm.dns", node.name]
+        destroy_vm_command = ["govc", "vm.destroy", "-vm.dns", node.name]
 
     # Check power status
     loggerdestroy.info(f"Checking power status for VM {vm_name}.")
@@ -91,7 +91,7 @@ def destroy_vm(node, deployment):
         power_status = subprocess.run(info_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         if power_status.returncode != 0:
             loggerdestroy.error(f"Error checking power status for VM {vm_name}: {power_status.stderr.strip()}")
-            return 'Error'
+            break
 
         if "poweredOff" in power_status.stdout:
             loggerdestroy.info(f"VM {vm_name} is powered off.")
@@ -109,7 +109,7 @@ def destroy_vm(node, deployment):
                 loggerdestroy.error(f"Failed to send power off command for VM {vm_name}: {result.stderr.strip()}")
         else:
             loggerdestroy.warning(f"Unexpected power status for VM {vm_name}: {power_status.stdout.strip()}")
-            return 'Error'
+            break
 
         time.sleep(5)
 
@@ -280,18 +280,18 @@ def screamtest_vm(node, deployment, decom_ticket, decom_date):
         newname = f"{vm_name}-Screamtest_{decom_ticket}_{decom_date}"
         
         # Check if VM exists in vCenter
-        if vm_uuid is not None and vm_uuid != '':
+        if vm_uuid and vm_uuid.lower() != 'none':
             govc_command = ["govc", "vm.info", "-vm.uuid", vm_uuid]
             power_off_command = ["govc", "vm.power", "-off", "-force", "-vm.uuid", vm_uuid]
             power_status_command = ["govc", "vm.info", "-vm.uuid", vm_uuid]
             rename_command = ["govc", "vm.change", "-vm.uuid", vm_uuid, "-name", newname]
             loggerdestroy.info(f"using UUID {vm_uuid}")
         else:
-            govc_command = ["govc", "vm.info", vm_name]
-            power_off_command = ["govc", "vm.power", "-off", "-force", vm_name]
-            power_status_command = ["govc", "vm.info", vm_name]
-            rename_command = ["govc", "vm.change", "-vm", vm_name, "-name", newname]
-            loggerdestroy.info(f"using NAME {vm_name}")
+            govc_command = ["govc", "vm.info", "-vm.dns", vm_fqdn]
+            power_off_command = ["govc", "vm.power", "-off", "-force", "-vm.dns", vm_fqdn]
+            power_status_command = ["govc", "vm.info", "-vm.dns", vm_fqdn]
+            rename_command = ["govc", "vm.change", "-vm.dns", vm_fqdn, "-name", newname]
+            loggerdestroy.info(f"using NAME {vm_fqdn}")
             
         result = subprocess.run(govc_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
