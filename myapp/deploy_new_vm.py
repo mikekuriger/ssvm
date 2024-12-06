@@ -9,6 +9,7 @@ import argparse
 import random
 import django
 import re
+import uuid
 from datetime import datetime
 
 import warnings
@@ -1080,8 +1081,10 @@ def fetch_cmdb_uuid():
     print(f"{bold}Fetching cmdb_uuid from vCenter{_bold}")
     logger.info("Fetching cmdb_uuid from vCenter")
 
-    # for some reason, the cmdb_uuid is not always populated right away in vcenter
-    # will keep trying for 10 mins before giving up.  it's not super important
+    # The cmdb_uuid is not always populated right away in vcenter
+    # it depends on how long it takes the cmdb to scan for new servers
+    # it might be better to populate this later with a cron job
+    
     retries = 30
     delay = 20
     cmdb_uuid_value = None
@@ -1131,7 +1134,8 @@ def fetch_cmdb_uuid():
         else:
             print("Maximum retries reached. cmdb_uuid not found. Exiting.")
             logger.error("Maximum retries reached. cmdb_uuid not found. Exiting.")
-            return None, None
+            #return None, None
+            cmdb_uuid_value = None
 
     # Once cmdb_uuid is found, retrieve the UUID
     print(f"{bold}Fetching UUID from vCenter{_bold}")
@@ -1146,8 +1150,8 @@ def fetch_cmdb_uuid():
         logger.info(f"UUID value: {uuid_value}")
     else:
         print("UUID value not found.")
-        logger.error("UUID value not found.")
-        return cmdb_uuid_value, None
+        logger.error("UUID value not found.  Creating one for now")
+        uuid_value = str(f"fake-{uuid.uuid4()}")
 
     return cmdb_uuid_value, uuid_value
 
