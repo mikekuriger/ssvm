@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import sys
-sys.path.append('/home/mk7193/python/myenv/lib/python3.6/site-packages')
 from collections import defaultdict
 from datetime import datetime
 import argparse
@@ -14,23 +13,11 @@ import time
 import shutil
 
 
-# Set up Django environment
-sys.path.append('/home/mk7193/python/myproject') 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')
-
-import django
-django.setup()
-
-from myapp.models import Node, OperatingSystem, Status, HardwareProfile
-from django.utils import timezone
-
 
 def get_dmidecode_output():
     try:
-        # Using Popen instead of subprocess.run for Python 2.6 compatibility
-        result = subprocess.Popen(['dmidecode'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, _ = result.communicate()
-        return stdout.decode('utf-8') if isinstance(stdout, bytes) else stdout
+        result = subprocess.run(['sudo', 'dmidecode'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True)
+        return result.stdout
     except subprocess.CalledProcessError as e:
         print("Error running dmidecode: {}".format(e))
         return None
@@ -166,23 +153,21 @@ def get_physical_memory():
 
 
 
-
-
-
-
-
 def get_first_nic_hwaddr():
     try:
-        result = subprocess.Popen(['ip', 'link', 'show'], stdout=subprocess.PIPE)
-        output, _ = result.communicate()
-        for line in output.splitlines():
+        result = subprocess.run(['ip', 'link', 'show'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+        for line in result.stdout.splitlines():
             line = line.strip()
             if re.search(r'link/ether', line):
-                return line.split()[1]
-    except OSError as e:
-        print("Error running ip link show: {}".format(e))
+                return line.split()[1]  # Extract the MAC address
+    except subprocess.CalledProcessError as e:
+        print(f"Error running ip link show: {e.stderr}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
     return None
 
+
+    
 def get_uniqueid():
 
     dmidecode_output = get_dmidecode_output()
@@ -203,6 +188,8 @@ def get_uniqueid():
 
     return uniqueid
 
+
+    
 def get_swap_space():
     swap_total = 0
     swap_free = 0
@@ -227,20 +214,23 @@ def get_swap_space():
 
     return swap_total_mb
 
+
+
 def get_kernel_version():
     try:
-        kernel_version = subprocess.Popen(['uname', '-r'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        output, error = kernel_version.communicate()
+        kernel_version = subprocess.run(['uname', '-r'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
         if kernel_version.returncode != 0:
             print("Error retrieving kernel version: {}".format(error))
             return None
-
-        return output.strip().decode('utf-8')
+            
+        return kernel_version.stdout.strip()
         
     except Exception as e:
         print("An error occurred: {}".format(e))
         return None
+
+
     
 def get_timezone():
     try:
@@ -256,6 +246,7 @@ def get_timezone():
     except Exception as e:
         print("An error occurred while retrieving the timezone: {}".format(e))
         return None
+
 
 def get_disk_usage():
     try:
@@ -275,15 +266,8 @@ def get_disk_usage():
 
 def get_centrify_zone():
     try:
-        result = subprocess.Popen(['adinfo'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        output, _ = result.communicate()
-        
-        # Decode if necessary (for Python 3)
-        if isinstance(output, bytes):
-            output = output.decode('utf-8')
-        
-        # Split output by lines and find the line that starts with "Zone:"
-        for line in output.splitlines():
+        result = subprocess.run(['adinfo'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        for line in result.stdout.splitlines():
             if line.startswith("Zone:"):
                 # Extract only the last part after the last '/'
                 zone = line.split('/')[-1].strip()
@@ -296,72 +280,23 @@ def get_centrify_zone():
 
 
 
+def convert_dmi_to_vcenter(dmi_uuid):
+    # Split the DMI UUID into its components
+    parts = dmi_uuid.split('-')
+    
+    # Reverse the byte order of the first three groups
+    part1 = ''.join(reversed([parts[0][i:i+2] for i in range(0, len(parts[0]), 2)]))
+    part2 = ''.join(reversed([parts[1][i:i+2] for i in range(0, len(parts[1]), 2)]))
+    part3 = ''.join(reversed([parts[2][i:i+2] for i in range(0, len(parts[2]), 2)]))
+    
+    # Keep the last two groups unchanged
+    part4 = parts[3]
+    part5 = parts[4]
+    
+    # Reassemble the vCenter UUID
+    vcenter_uuid = f"{part1}-{part2}-{part3}-{part4}-{part5}"
+    return vcenter_uuid
 
-    
-
-def import_node(hw_name, hw_model, owner, serial, processor_manufacturer, processor_model, processor_speed, processor_socket_count, processor_core_count, processor_count, physical_memory, physical_memory_sizes, swap, uniqueid, kernel_version, timezone, used_space, avail_space, centrify_zone):
-    
-    import platform
-    os_name, os_version, _ = platform.linux_distribution()
-    os_value=os_name + ' ' + os_version
-    
-    # Attempt to get or create the OS, Status, and Hardware Profile instances
-    os_instance, _ = OperatingSystem.objects.get_or_create(name=os_value)
-    status_instance, _ = Status.objects.get_or_create(
-        name='setup',
-        defaults={'description': 'Node is not in production'}
-    )
-    hwprofile_instance, _ = HardwareProfile.objects.get_or_create(
-        #name='Vmware Virtual Platform',
-        #defaults={'description': 'Vmware Virtual Platform'}
-        name=hw_name,
-        defaults={'description': hw_model}
-    )
-
-    updated_at = timezone.now().date()
-    
-    import socket
-    hostname = socket.gethostname()
-    
-
-    
-    # Attempt to update or create the Node instance
-    node, created = Node.objects.update_or_create(
-        name=hostname,
-        defaults={
-            'contact': owner,
-            'serial_number': serial,
-            'processor_manufacturer': processor_manufacturer,
-            'processor_model': processor_model,
-            'processor_speed': processor_speed,
-            'processor_socket_count': processor_socket_count,
-            'processor_core_count': processor_core_count,
-            'processor_count': processor_count,
-            'physical_memory': physical_memory,
-            'physical_memory_sizes': physical_memory_sizes,
-            'swap': swap,
-            'uniqueid': uniqueid,
-            'kernel_version': kernel_version,
-            'timezone': timezone,
-            'used_space': used_space,
-            'avail_space': avail_space,
-            'centrify_zone': centrify_zone,
-            'created_at': created_at,
-            'updated_at': updated_at,
-            'operating_system': os_instance,
-            'status': status_instance,
-            "centrify_zone": centrify_zone,
-            'hardware_profile': hwprofile_instance
-        }
-    )
-    
-    # Only set 'deployment_date' if the node was just created
-    if created:
-        node.deployment_date = updated_at
-        node.save(update_fields=['deployment_date'])
-
-    action = "created" if created else "updated"
-    print(f"Successfully {action} node: {node.name}")
     
 
     
@@ -416,35 +351,37 @@ if __name__ == "__main__":
     if centrify_zone:
         centrify_zone=centrify_zone
 
-    # Call the function with parsed arguments
-    import_node(
-        hw_name=hw_name,
-        hw_model=hw_model,
-        owner='unix',
-        serial=serial,
-        processor_manufacturer=processor_manufacturer,
-        processor_model=processor_model,
-        processor_speed=processor_speed,
-        processor_socket_count=processor_socket_count,
-        processor_core_count=processor_core_count,
-        processor_count=processor_count,
-        physical_memory=physical_memory,
-        physical_memory_sizes=physical_memory_sizes,
-        swap=swap,
-        uniqueid=uniqueid,
-        kernel_version=kernel_version,
-        timezone=timezone,
-        used_space=used_space,
-        avail_space=avail_space,
-        centrify_zone=centrify_zone
-    )
+    owner="unix"
+    
+    print(f"hw_name - {hw_name}")
+    print(f"hw_name - {hw_name}")
+    print(f"hw_model - {hw_model}")
+    print(f"owner - {owner}")
+    print(f"serial - {serial}")
+    print(f"processor_manufacturer - {processor_manufacturer}")
+    print(f"processor_model - {processor_model}")
+    print(f"processor_speed - {processor_speed}")
+    print(f"processor_socket_count - {processor_socket_count}")
+    print(f"processor_core_count - {processor_core_count}")
+    print(f"processor_count - {processor_count}")
+    print(f"physical_memory - {physical_memory}")
+    print(f"physical_memory_sizes - {physical_memory_sizes}")
+    print(f"swap - {swap}")
+    print(f"uniqueid - {uniqueid}")
+    print(f"kernel_version - {kernel_version}")
+    print(f"timezone - {timezone}")
+    print(f"used_space - {used_space}")
+    print(f"avail_space - {avail_space}")
+    print(f"centrify_zone - {centrify_zone}")
 
-curl -X POST http://your-django-server/api/register_node/ \
-    -H "Content-Type: application/json" \
-    -d '{
-        "name": "node_name",
-        "serial_number": "serial123",
-        "processor_manufacturer": "Intel",
-        ...
-    }'
+
+
+# curl -X POST http://your-django-server/api/register_node/ \
+#     -H "Content-Type: application/json" \
+#     -d '{
+#         "name": "node_name",
+#         "serial_number": "serial123",
+#         "processor_manufacturer": "Intel",
+#         ...
+#     }'
 

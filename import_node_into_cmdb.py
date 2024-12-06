@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 sys.path.append('/home/mk7193/python/myenv/lib/python3.6/site-packages')
@@ -295,11 +295,6 @@ def get_centrify_zone():
         return None
 
 
-
-
-
-    
-
 def import_node(hw_name, hw_model, owner, serial, processor_manufacturer, processor_model, processor_speed, processor_socket_count, processor_core_count, processor_count, physical_memory, physical_memory_sizes, swap, uniqueid, kernel_version, timezone, used_space, avail_space, centrify_zone):
     
     import platform
@@ -347,9 +342,10 @@ def import_node(hw_name, hw_model, owner, serial, processor_manufacturer, proces
             'used_space': used_space,
             'avail_space': avail_space,
             'centrify_zone': centrify_zone,
+            'created_at': created_at,
+            'updated_at': updated_at,
             'operating_system': os_instance,
             'status': status_instance,
-            "centrify_zone": centrify_zone,
             'hardware_profile': hwprofile_instance
         }
     )

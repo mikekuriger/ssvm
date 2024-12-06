@@ -715,50 +715,7 @@ def customize(mac_address, IP, netmask, gateway, dns, domains):
         logger.error("Failed to set custom field 'Createdby'.")
         print("Error:", set_result.stderr)
         logger.error("Error:", set_result.stderr)
-    
-    # Fetch cmdb_uuid and UUID
-    print(f"{bold}Fetching cmdb_uuid and UUID from Vcenter{_bold}")
-    logger.info("Fetching cmdb_uuid and UUID from Vcenter")
-    govc_command = ["govc", "vm.info", "-json", VM]
-    uuid_result = run_command(govc_command)
 
-    if uuid_result.returncode == 0:
-        vm_info = json.loads(uuid_result.stdout)
-        custom_values = vm_info.get("virtualMachines", [])[0].get("customValue", [])
-        cmdb_uuid_value = None
-        for field in custom_values:
-            if field.get("key") == 1001:  # this is the cmdb_uuid
-                cmdb_uuid_value = field.get("value")
-                break
-
-        if cmdb_uuid_value:
-            print(f"cmdb_uuid value: {cmdb_uuid_value}", flush=True)
-            logger.info(f"cmdb_uuid value: {cmdb_uuid_value}")
-        else:
-            print("cmdb_uuid value not found.")
-            logger.error("cmdb_uuid value not found.")
-                          
-        vm_values = vm_info.get("virtualMachines", [{}])[0] 
-        config = vm_values.get("config", {})
-    
-        uuid_value = config.get("uuid")
-                          
-        if uuid_value:
-            print(f"uuid value: {uuid_value}")
-            logger.info(f"uuid value: {uuid_value}")
-        else:
-            print("uuid value not found.")
-            logger.error("uuid value not found.")
-
-        return cmdb_uuid_value, uuid_value
-        
-    else:
-        print("Failed to retrieve VM info.")
-        logger.error("Failed to retrieve VM info.")
-        print("Error:", uuid_result.stderr)                    
-        logger.error("Error:", uuid_result.stderr)
-        return None, None
-                
 
 
 
@@ -1004,8 +961,6 @@ def rename_yellowpages():
             print("Error:", set_result.stderr)
             logger.error("Error:", set_result.stderr)
             
-            # finalize_node_status(f"{VM}.{DOMAIN}", "failed", uuid, serial_number, status_instances)
-            
             print(f"Node status = failed.", flush=True)
             logger.info(f"Node status = failed.")
             return 'failed'
@@ -1025,7 +980,6 @@ def check_power_status():
         # logger.info(f"Build is complete.")
     
         # Update the cmdb
-        # finalize_node_status(f"{VM}.{DOMAIN}", "inservice", uuid, serial_number, status_instances)
         print(f"Node status = inservice.", flush=True)
         logger.info(f"Node status = inservice.")
         return 'inservice'
@@ -1040,7 +994,167 @@ def check_power_status():
 
 
 
-def finalize_node_status(status, uuid, serial_number):
+# def fetch_cmdb_uuid():
+#     # Fetch cmdb_uuid and UUID
+#     print(f"{bold}Fetching cmdb_uuid and UUID from Vcenter{_bold}")
+#     logger.info("Fetching cmdb_uuid and UUID from Vcenter")
+
+#     retries = 30
+#     delay = 10
+    
+#     attempt = 0
+#     while attempt < retries:
+    
+#         try:
+#             attempt += 1
+#             print(f"Attempt {attempt} of {retries} to fetch cmdb_uuid", flush=True)
+#             logger.info(f"Attempt {attempt} of {retries} to fetch cmdb_uuid")
+    
+#             govc_command = ["govc", "vm.info", "-json", VM]
+#             uuid_result = run_command(govc_command)
+        
+#             if uuid_result.returncode == 0:
+#                 vm_info = json.loads(uuid_result.stdout)
+#                 cmdb_uuid_value = None
+                
+#                 for item in vm_info.get("virtualMachines", [])[0].get("value", []):
+#                     if item.get("key") == 1001:
+#                         cmdb_uuid_value = item.get("value")
+#                         print(f"cmdb_uuid value 1: {cmdb_uuid_value}")
+#                         logger.info(f"cmdb_uuid value 1: {cmdb_uuid_value}")
+#                         break
+        
+#                 if not cmdb_uuid_value:
+#                     custom_values = vm_info.get("virtualMachines", [])[0].get("customValue", [])
+#                     for field in custom_values:
+#                         if field.get("key") == 1001:
+#                             cmdb_uuid_value = field.get("value")
+#                             print(f"cmdb_uuid value 2: {cmdb_uuid_value}")
+#                             logger.info(f"cmdb_uuid value 2: {cmdb_uuid_value}")
+#                             break
+            
+#                 if cmdb_uuid_value:
+#                     print(f"cmdb_uuid value: {cmdb_uuid_value}", flush=True)
+#                     logger.info(f"cmdb_uuid value: {cmdb_uuid_value}")
+#                     break  # Exit the retry loop since the operation was successful
+
+#         except subprocess.CalledProcessError as e:
+#             print(f"cmdb_uuid value not found on attempt {attempt}: {e.stderr}", flush=True)
+#             logger.error(f"cmdb_uuid value not found on attempt {attempt}: {e.stderr}")
+    
+#             if attempt < retries:
+#                 print(f"Retrying in {delay} seconds...", flush=True)
+#                 logger.info(f"Retrying in {delay} seconds...")
+#                 time.sleep(delay)  
+#             else:
+#                 print("Maximum retries reached. Exiting.")
+#                 print("cmdb_uuid value not found.")
+#                 logger.error("Maximum retries reached. Exiting.")
+#                 logger.error("cmdb_uuid value not found.")
+                          
+#         vm_values = vm_info.get("virtualMachines", [{}])[0] 
+#         config = vm_values.get("config", {})
+    
+#         uuid_value = config.get("uuid")
+                          
+#         if uuid_value:
+#             print(f"uuid value: {uuid_value}")
+#             logger.info(f"uuid value: {uuid_value}")
+#         else:
+#             print("uuid value not found.")
+#             logger.error("uuid value not found.")
+
+#         return cmdb_uuid_value, uuid_value
+        
+#     else:
+#         print("Failed to retrieve VM info.")
+#         logger.error("Failed to retrieve VM info.")
+#         print("Error:", uuid_result.stderr)                    
+#         logger.error("Error:", uuid_result.stderr)
+#         return None, None
+
+
+
+def fetch_cmdb_uuid():
+    # Fetch cmdb_uuid and UUID
+    print(f"{bold}Fetching cmdb_uuid from vCenter{_bold}")
+    logger.info("Fetching cmdb_uuid from vCenter")
+
+    # for some reason, the cmdb_uuid is not always populated right away in vcenter
+    # will keep trying for 10 mins before giving up.  it's not super important
+    retries = 30
+    delay = 20
+    cmdb_uuid_value = None
+
+    for attempt in range(1, retries + 1):
+        print(f"Attempt {attempt} of {retries} to fetch cmdb_uuid", flush=True)
+        logger.info(f"Attempt {attempt} of {retries} to fetch cmdb_uuid")
+
+        try:
+            govc_command = ["govc", "vm.info", "-json", VM]
+            uuid_result = run_command(govc_command)
+
+            if uuid_result.returncode != 0:
+                raise subprocess.CalledProcessError(
+                    uuid_result.returncode, govc_command, uuid_result.stderr
+                )
+
+            vm_info = json.loads(uuid_result.stdout)
+
+            # Check for cmdb_uuid in the primary location
+            for item in vm_info.get("virtualMachines", [])[0].get("value", []):
+                if item.get("key") == 1001:
+                    cmdb_uuid_value = item.get("value")
+                    break
+
+            # Check for cmdb_uuid in the secondary location
+            if not cmdb_uuid_value:
+                custom_values = vm_info.get("virtualMachines", [])[0].get("customValue", [])
+                for field in custom_values:
+                    if field.get("key") == 1001:
+                        cmdb_uuid_value = field.get("value")
+                        break
+
+            if cmdb_uuid_value:
+                print(f"cmdb_uuid value: {cmdb_uuid_value}", flush=True)
+                logger.info(f"cmdb_uuid value: {cmdb_uuid_value}")
+                break  # Exit the retry loop since cmdb_uuid was found
+
+        except subprocess.CalledProcessError as e:
+            print(f"Error fetching cmdb_uuid on attempt {attempt}: {e.stderr}", flush=True)
+            logger.error(f"Error fetching cmdb_uuid on attempt {attempt}: {e.stderr}")
+
+        if attempt < retries:
+            print(f"Retrying in {delay} seconds...", flush=True)
+            logger.info(f"Retrying in {delay} seconds...")
+            time.sleep(delay)
+        else:
+            print("Maximum retries reached. cmdb_uuid not found. Exiting.")
+            logger.error("Maximum retries reached. cmdb_uuid not found. Exiting.")
+            return None, None
+
+    # Once cmdb_uuid is found, retrieve the UUID
+    print(f"{bold}Fetching UUID from vCenter{_bold}")
+    logger.info("Fetching UUID from vCenter")
+
+    vm_values = vm_info.get("virtualMachines", [{}])[0]
+    config = vm_values.get("config", {})
+    uuid_value = config.get("uuid")
+
+    if uuid_value:
+        print(f"UUID value: {uuid_value}", flush=True)
+        logger.info(f"UUID value: {uuid_value}")
+    else:
+        print("UUID value not found.")
+        logger.error("UUID value not found.")
+        return cmdb_uuid_value, None
+
+    return cmdb_uuid_value, uuid_value
+
+
+
+# finalize_node_status('inservice', cmdb_uuid, uuid)
+def finalize_node_status(status, cmdb_uuid, uuid):
     """Update node's final status and details."""
     name=f"{VM}.{DOMAIN}"
     try:
@@ -1056,9 +1170,10 @@ def finalize_node_status(status, uuid, serial_number):
         node.ping_status=False
     node.status = status_instances[status]
     node.updated_at = now
+    node.asset_tag = cmdb_uuid
     node.uniqueid = uuid
-    node.serial_number = serial_number
-    node.save(update_fields=['status', 'updated_at', 'uniqueid', 'serial_number', 'ping_status'])
+    node.serial_number = convert_uuid_to_serial(uuid)
+    node.save(update_fields=['status', 'updated_at', 'asset_tag', 'uniqueid', 'serial_number', 'ping_status'])
 
     print(f"Build is complete.", flush=True)
     logger.info(f"Build is complete.")
@@ -1066,6 +1181,26 @@ def finalize_node_status(status, uuid, serial_number):
     logger.info(f"Cloud-init will now perform post-deployment operations.  Please be patient, this can take a while.")
 
 
+
+def convert_uuid_to_serial(uniqueid):
+    # Split the UUID into its components
+    parts = uniqueid.split('-')
+    
+    # Reverse the byte order of the first three groups
+    part1 = ' '.join(reversed([parts[0][i:i+2] for i in range(0, len(parts[0]), 2)]))
+    part2 = ' '.join(reversed([parts[1][i:i+2] for i in range(0, len(parts[1]), 2)]))
+    part3 = ' '.join(reversed([parts[2][i:i+2] for i in range(0, len(parts[2]), 2)]))
+    
+    # Keep the last two groups as is
+    part4 = ' '.join([parts[3][i:i+2] for i in range(0, len(parts[3]), 2)])
+    part5 = ' '.join([parts[4][i:i+2] for i in range(0, len(parts[4]), 2)])
+    
+    # Assemble the serial number with "VMware-" prefix
+    serial = f"VMware-{part1} {part2} {part3}-{part4} {part5}"
+    return serial
+    
+    
+    
 def handle_failure(message):
     """Update node's status to failed"""
     name=f"{VM}.{DOMAIN}"
@@ -1136,7 +1271,7 @@ def main():
     # Customize hostname and IP
     # (cpu, memory, disk are set during clone)
     print(f"{bold}** customize - {_bold}", end="")
-    uniqueid, serial_number = customize(mac_address, IP, netmask, gateway, dns, domains)
+    customize(mac_address, IP, netmask, gateway, dns, domains)
 
     # Generate ISO, and mount to VM
     print(f"{bold}** cloud_init{_bold}")
@@ -1146,6 +1281,8 @@ def main():
     print(f"{bold}** power_on - {_bold}", end="")
     power_on()
 
+    time.sleep(10)  # Wait for 10 seconds for Vm to boot up
+    
     # add domain to yellowpages VMs in vcenter
     if "yellowpages" in DOMAIN:
         print(f"{bold}** rename_yellowpages{_bold}")
@@ -1158,11 +1295,15 @@ def main():
     status2 = check_power_status()
     if status2 == 'Failed':
         finalize_node_status('failed', uniqueid, serial_number)
-            
+
+    # Fetch cmdb_uuid_value, uuid_value (once VM is powered on)
+    print(f"{bold}** fetch cmdb_uuid_value, uuid_value - {_bold}", end="")
+    cmdb_uuid, uuid = fetch_cmdb_uuid()
+    
     # Finalize Node
     print(f"{bold}** finalize_node_status", _bold)
     if status != 'Failed' and status2 != 'Failed':
-        finalize_node_status('inservice', uniqueid, serial_number)
+        finalize_node_status('inservice', cmdb_uuid, uuid)
 
 
 if __name__ == "__main__":

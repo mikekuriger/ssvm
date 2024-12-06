@@ -9,7 +9,6 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404
 from myapp.models import Deployment, Node, HardwareProfile, OperatingSystem, Status
 import os as _os
-import subprocess
 from django.contrib.auth import get_user_model
 
 
@@ -67,7 +66,8 @@ def destroy_vm(node, deployment):
         return 'Error'
 
     vm_name = node.name.split('.')[0] if "yellowpages" not in node.name else node.name
-    vm_uuid = node.serial_number
+    #vm_uuid = node.serial_number
+    vm_uuid = node.uniqueid
    
     if vm_uuid and vm_uuid.lower() != 'none':
         loggerdestroy.info(f"Attempting to destroy VM: {vm_name} by UUID {repr(vm_uuid)}")
@@ -269,7 +269,8 @@ def screamtest_vm(node, deployment, decom_ticket, decom_date):
         # Proceed with VM naming
         vm_short_name = node.name.split('.')[0]
         vm_fqdn = node.name
-        vm_uuid = node.serial_number  # Get UUID from serial_number
+        #vm_uuid = node.serial_number  # Get UUID from serial_number
+        vm_uuid = node.uniqueid
         
         if "yellowpages" in vm_fqdn:
             vm_name = vm_fqdn
