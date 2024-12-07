@@ -14,6 +14,8 @@ import shutil
 import distro
 import socket
 import requests
+import warnings
+from urllib3.exceptions import InsecureRequestWarning
 
 
 def get_dmidecode_output():
@@ -293,69 +295,11 @@ def get_centrify_zone():
                 # Extract only the last part after the last '/'
                 zone = line.split('/')[-1].strip()
                 return zone
-        print("Zone not found in adinfo output.")
+        #print("Zone not found in adinfo output.")
         return None
     except Exception as e:
         print("Error running adinfo: {}".format(e))
         return None
-
-
-
-def import_node(hw_name, hw_model, owner, serial, processor_manufacturer, processor_model, processor_speed, processor_socket_count, processor_core_count, processor_count, physical_memory, physical_memory_sizes, swap, uniqueid, kernel_version, timezone, used_space, avail_space, centrify_zone):
-    
-    
-    # Attempt to get or create the OS, Status, and Hardware Profile instances
-    os_instance, _ = OperatingSystem.objects.get_or_create(name=os_value)
-    
-    # status_instance, _ = Status.objects.get_or_create(
-    #     name='setup',
-    #     defaults={'description': 'Node is not in production'}
-    # )
-    
-    hwprofile_instance, _ = HardwareProfile.objects.get_or_create(
-        #name='Vmware Virtual Platform',
-        #defaults={'description': 'Vmware Virtual Platform'}
-        name=hw_name,
-        defaults={'description': hw_model}
-    )
-
-
-    # Attempt to update or create the Node instance
-    node, created = Node.objects.update_or_create(
-        name=hostname,
-        defaults={
-            'serial_number': serial,
-            'processor_manufacturer': processor_manufacturer,
-            'processor_model': processor_model,
-            'processor_speed': processor_speed,
-            'processor_socket_count': processor_socket_count,
-            'processor_core_count': processor_core_count,
-            'processor_count': processor_count,
-            'physical_memory': physical_memory,
-            'physical_memory_sizes': physical_memory_sizes,
-            'swap': swap,
-            'uniqueid': uniqueid,
-            'kernel_version': kernel_version,
-            'timezone': timezone,
-            'used_space': used_space,
-            'avail_space': avail_space,
-            'centrify_zone': centrify_zone,
-            'created_at': created_at,
-            # 'updated_at': updated_at, #This field updates automatically in model
-            'operating_system': os_instance,
-            'status': status_instance,
-            'hardware_profile': hwprofile_instance
-        }
-    )
-    
-    #Only set 'created_at' if the node was just created
-    if created:
-        node.created_at = timezone.now().date()
-        node.save(update_fields=['created_at'])
-
-    action = "created" if created else "updated"
-    print(f"Successfully {action} node: {node.name}")
-
 
 
 if __name__ == "__main__":
@@ -476,12 +420,17 @@ if __name__ == "__main__":
         "hw_desc": hw_desc,
     }
 
-    print(data)
+    #print(data)
     #sys.exit(0)
-    
-    response = requests.post(url, json=data, verify=False)
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', InsecureRequestWarning)
+        response = requests.post(url, json=data, verify=False)
+        
     #print(response.json())
 
-    print(f"Status Code: {response.status_code}")
-    print(f"Response Content: {response.text}")
+    if response.status_code == 200:
+        print(f"Registration succeeded")
+    else:
+        print(f"Status Code: {response.status_code}")
+        print(f"Response Content: {response.text}")
 
