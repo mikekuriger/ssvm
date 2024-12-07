@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import sys
-sys.path.append('/home/mk7193/python/myenv/lib/python3.6/site-packages')
 from collections import defaultdict
 from datetime import datetime
 import argparse
@@ -12,7 +11,8 @@ import subprocess
 import xml.etree.ElementTree as ET
 import time
 import shutil
-
+import distro
+import socket
 
 # Set up Django environment
 sys.path.append('/home/mk7193/python/myproject') 
@@ -27,10 +27,8 @@ from django.utils import timezone
 
 def get_dmidecode_output():
     try:
-        # Using Popen instead of subprocess.run for Python 2.6 compatibility
-        result = subprocess.Popen(['dmidecode'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, _ = result.communicate()
-        return stdout.decode('utf-8') if isinstance(stdout, bytes) else stdout
+        result = subprocess.run(['sudo', 'dmidecode'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True)
+        return result.stdout
     except subprocess.CalledProcessError as e:
         print("Error running dmidecode: {}".format(e))
         return None
@@ -166,11 +164,6 @@ def get_physical_memory():
 
 
 
-
-
-
-
-
 def get_first_nic_hwaddr():
     try:
         result = subprocess.Popen(['ip', 'link', 'show'], stdout=subprocess.PIPE)
@@ -182,6 +175,27 @@ def get_first_nic_hwaddr():
     except OSError as e:
         print("Error running ip link show: {}".format(e))
     return None
+
+
+
+def convert_dmi_to_vcenter(dmi_uuid):
+    # Split the DMI UUID into its components
+    parts = dmi_uuid.split('-')
+    
+    # Reverse the byte order of the first three groups
+    part1 = ''.join(reversed([parts[0][i:i+2] for i in range(0, len(parts[0]), 2)]))
+    part2 = ''.join(reversed([parts[1][i:i+2] for i in range(0, len(parts[1]), 2)]))
+    part3 = ''.join(reversed([parts[2][i:i+2] for i in range(0, len(parts[2]), 2)]))
+    
+    # Keep the last two groups unchanged
+    part4 = parts[3]
+    part5 = parts[4]
+    
+    # Reassemble the vCenter UUID
+    vcenter_uuid = f"{part1}-{part2}-{part3}-{part4}-{part5}"
+    return vcenter_uuid
+
+
 
 def get_uniqueid():
 
@@ -201,7 +215,9 @@ def get_uniqueid():
         if not uniqueid:
             raise RuntimeError("Unable to find a uniqueid")
 
-    return uniqueid
+    return convert_dmi_to_vcenter(uniqueid)
+
+    
 
 def get_swap_space():
     swap_total = 0
@@ -241,6 +257,7 @@ def get_kernel_version():
     except Exception as e:
         print("An error occurred: {}".format(e))
         return None
+
     
 def get_timezone():
     try:
@@ -256,6 +273,7 @@ def get_timezone():
     except Exception as e:
         print("An error occurred while retrieving the timezone: {}".format(e))
         return None
+
 
 def get_disk_usage():
     try:
@@ -295,37 +313,41 @@ def get_centrify_zone():
         return None
 
 
-def import_node(hw_name, hw_model, owner, serial, processor_manufacturer, processor_model, processor_speed, processor_socket_count, processor_core_count, processor_count, physical_memory, physical_memory_sizes, swap, uniqueid, kernel_version, timezone, used_space, avail_space, centrify_zone):
+def import_node(hw_name, hw_manufacturer, hw_desc, serial, processor_manufacturer, processor_model, processor_speed, processor_socket_count, processor_core_count, processor_count, physical_memory, physical_memory_sizes, swap, uniqueid, kernel_version, timezone, used_space, avail_space, centrify_zone):
     
-    import platform
-    os_name, os_version, _ = platform.linux_distribution()
-    os_value=os_name + ' ' + os_version
+    os_name = distro.name(pretty=True)
+    os_varient = distro.name()
+    os_version = distro.version()
+    os_vendor = distro.id()
     
     # Attempt to get or create the OS, Status, and Hardware Profile instances
-    os_instance, _ = OperatingSystem.objects.get_or_create(name=os_value)
+    os_instance, _ = OperatingSystem.objects.get_or_create(
+        name=os_name,
+        defaults={
+            'varient': os_varient,
+            'version': os_version,
+            'vendor': os_vendor}
+    )
     status_instance, _ = Status.objects.get_or_create(
         name='setup',
         defaults={'description': 'Node is not in production'}
     )
     hwprofile_instance, _ = HardwareProfile.objects.get_or_create(
-        #name='Vmware Virtual Platform',
-        #defaults={'description': 'Vmware Virtual Platform'}
         name=hw_name,
-        defaults={'description': hw_model}
+        defaults={
+            'description': hw_desc,
+            'manufacturer': hw_manufacturer}
     )
 
-    #updated_at = datetime.now().date() Not needed, this field updates automatically in model
     
-    import socket
-    hostname = socket.gethostname()
     
-
+    
     
     # Attempt to update or create the Node instance
     node, created = Node.objects.update_or_create(
         name=hostname,
         defaults={
-            'contact': owner,
+            # 'contact': owner,
             'serial_number': serial,
             'processor_manufacturer': processor_manufacturer,
             'processor_model': processor_model,
@@ -342,10 +364,7 @@ def import_node(hw_name, hw_model, owner, serial, processor_manufacturer, proces
             'used_space': used_space,
             'avail_space': avail_space,
             'centrify_zone': centrify_zone,
-            'created_at': created_at,
-            'updated_at': updated_at,
             'operating_system': os_instance,
-            'status': status_instance,
             'hardware_profile': hwprofile_instance
         }
     )
@@ -363,13 +382,17 @@ def import_node(hw_name, hw_model, owner, serial, processor_manufacturer, proces
 
 if __name__ == "__main__":
 
+    hostname = socket.gethostname()
+    now = datetime.now()
+    created_at = now.strftime('%Y-%m-%dT%H:%M')
+
     # get details from functions:
     host_info, host_model, host_serial = get_host_info()
     if host_info:
         hw_manufacturer=host_info
-        hw_model=host_model
-        hw_name=hw_manufacturer + hw_model
-        serial=host_serial
+        hw_desc=host_model
+        hw_name=host_info + ' ' + host_model
+        serial_number=host_serial
 
     cpu_info, cpu_model, cpu_version, cpu_speed, cpu_count, cpu_core_count, cpu_socket_count = get_cpu_info() 
     if cpu_info:
@@ -416,9 +439,10 @@ if __name__ == "__main__":
     # Call the function with parsed arguments
     import_node(
         hw_name=hw_name,
-        hw_model=hw_model,
-        owner='mk7193',
-        serial=serial,
+        hw_manufacturer=hw_manufacturer,
+        hw_desc=hw_desc,
+        #owner='mk7193',
+        serial=serial_number,
         processor_manufacturer=processor_manufacturer,
         processor_model=processor_model,
         processor_speed=processor_speed,

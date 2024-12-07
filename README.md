@@ -91,7 +91,7 @@ cd ssvm
 ## get the code from github
 ```
 cd ~ssvm
-git clone https://github.com/mikekuriger/ssvm.git
+git clone https://{username}@stash.int.yp.com/scm/mk/ssvm.git
 ```
 ## python stuff
 ```

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 from collections import defaultdict
@@ -11,7 +11,9 @@ import subprocess
 import xml.etree.ElementTree as ET
 import time
 import shutil
-
+import distro
+import socket
+import requests
 
 
 def get_dmidecode_output():
@@ -145,8 +147,8 @@ def get_physical_memory():
                 if line.startswith('MemTotal'):
                     # MemTotal is in kilobytes, so we convert to megabytes
                     physical_memory_kb = int(line.split()[1])
-                    physical_memory_mb = physical_memory_kb // 1024 // 1024  # Convert to BG
-                    return physical_memory_mb, memory_sizes  # Return both values
+                    physical_memory_mb = physical_memory_kb // 1024 // 1024  # Convert to GB
+                    return physical_memory_mb, memory_sizes  
     except IOError:
         print("Failed to read /proc/meminfo")
         return None, None
@@ -155,7 +157,7 @@ def get_physical_memory():
 
 def get_first_nic_hwaddr():
     try:
-        result = subprocess.run(['ip', 'link', 'show'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+        result = subprocess.run(['ip', 'link', 'show'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, check=True)
         for line in result.stdout.splitlines():
             line = line.strip()
             if re.search(r'link/ether', line):
@@ -167,6 +169,25 @@ def get_first_nic_hwaddr():
     return None
 
 
+    
+def convert_dmi_to_vcenter(dmi_uuid):
+    # Split the DMI UUID into its components
+    parts = dmi_uuid.split('-')
+    
+    # Reverse the byte order of the first three groups
+    part1 = ''.join(reversed([parts[0][i:i+2] for i in range(0, len(parts[0]), 2)]))
+    part2 = ''.join(reversed([parts[1][i:i+2] for i in range(0, len(parts[1]), 2)]))
+    part3 = ''.join(reversed([parts[2][i:i+2] for i in range(0, len(parts[2]), 2)]))
+    
+    # Keep the last two groups unchanged
+    part4 = parts[3]
+    part5 = parts[4]
+    
+    # Reassemble the vCenter UUID
+    vcenter_uuid = f"{part1}-{part2}-{part3}-{part4}-{part5}"
+    return vcenter_uuid
+
+    
     
 def get_uniqueid():
 
@@ -186,7 +207,7 @@ def get_uniqueid():
         if not uniqueid:
             raise RuntimeError("Unable to find a uniqueid")
 
-    return uniqueid
+    return convert_dmi_to_vcenter(uniqueid)
 
 
     
@@ -208,9 +229,9 @@ def get_swap_space():
         return None
 
     # Convert values from kB to MB
-    swap_total_mb = swap_total / 1024
-    swap_free_mb = swap_free / 1024
-    swap_used_mb = swap_used / 1024
+    swap_total_mb = round(swap_total / 1024)
+    swap_free_mb = round(swap_free / 1024)
+    swap_used_mb = round(swap_used / 1024)
 
     return swap_total_mb
 
@@ -218,7 +239,7 @@ def get_swap_space():
 
 def get_kernel_version():
     try:
-        kernel_version = subprocess.run(['uname', '-r'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        kernel_version = subprocess.run(['uname', '-r'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
         if kernel_version.returncode != 0:
             print("Error retrieving kernel version: {}".format(error))
@@ -266,7 +287,7 @@ def get_disk_usage():
 
 def get_centrify_zone():
     try:
-        result = subprocess.run(['adinfo'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(['adinfo'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         for line in result.stdout.splitlines():
             if line.startswith("Zone:"):
                 # Extract only the last part after the last '/'
@@ -280,36 +301,77 @@ def get_centrify_zone():
 
 
 
-def convert_dmi_to_vcenter(dmi_uuid):
-    # Split the DMI UUID into its components
-    parts = dmi_uuid.split('-')
+def import_node(hw_name, hw_model, owner, serial, processor_manufacturer, processor_model, processor_speed, processor_socket_count, processor_core_count, processor_count, physical_memory, physical_memory_sizes, swap, uniqueid, kernel_version, timezone, used_space, avail_space, centrify_zone):
     
-    # Reverse the byte order of the first three groups
-    part1 = ''.join(reversed([parts[0][i:i+2] for i in range(0, len(parts[0]), 2)]))
-    part2 = ''.join(reversed([parts[1][i:i+2] for i in range(0, len(parts[1]), 2)]))
-    part3 = ''.join(reversed([parts[2][i:i+2] for i in range(0, len(parts[2]), 2)]))
     
-    # Keep the last two groups unchanged
-    part4 = parts[3]
-    part5 = parts[4]
+    # Attempt to get or create the OS, Status, and Hardware Profile instances
+    os_instance, _ = OperatingSystem.objects.get_or_create(name=os_value)
     
-    # Reassemble the vCenter UUID
-    vcenter_uuid = f"{part1}-{part2}-{part3}-{part4}-{part5}"
-    return vcenter_uuid
+    # status_instance, _ = Status.objects.get_or_create(
+    #     name='setup',
+    #     defaults={'description': 'Node is not in production'}
+    # )
+    
+    hwprofile_instance, _ = HardwareProfile.objects.get_or_create(
+        #name='Vmware Virtual Platform',
+        #defaults={'description': 'Vmware Virtual Platform'}
+        name=hw_name,
+        defaults={'description': hw_model}
+    )
 
-    
 
+    # Attempt to update or create the Node instance
+    node, created = Node.objects.update_or_create(
+        name=hostname,
+        defaults={
+            'serial_number': serial,
+            'processor_manufacturer': processor_manufacturer,
+            'processor_model': processor_model,
+            'processor_speed': processor_speed,
+            'processor_socket_count': processor_socket_count,
+            'processor_core_count': processor_core_count,
+            'processor_count': processor_count,
+            'physical_memory': physical_memory,
+            'physical_memory_sizes': physical_memory_sizes,
+            'swap': swap,
+            'uniqueid': uniqueid,
+            'kernel_version': kernel_version,
+            'timezone': timezone,
+            'used_space': used_space,
+            'avail_space': avail_space,
+            'centrify_zone': centrify_zone,
+            'created_at': created_at,
+            # 'updated_at': updated_at, #This field updates automatically in model
+            'operating_system': os_instance,
+            'status': status_instance,
+            'hardware_profile': hwprofile_instance
+        }
+    )
     
+    #Only set 'created_at' if the node was just created
+    if created:
+        node.created_at = timezone.now().date()
+        node.save(update_fields=['created_at'])
+
+    action = "created" if created else "updated"
+    print(f"Successfully {action} node: {node.name}")
+
+
 
 if __name__ == "__main__":
 
     # get details from functions:
+    hostname = socket.gethostname()
+    
+    now = datetime.now()
+    created_at = now.strftime('%Y-%m-%dT%H:%M')
+    
     host_info, host_model, host_serial = get_host_info()
     if host_info:
         hw_manufacturer=host_info
-        hw_model=host_model
-        hw_name=hw_manufacturer + hw_model
-        serial=host_serial
+        hw_desc=host_model
+        hw_name=host_info + ' ' + host_model
+        serial_number=host_serial
 
     cpu_info, cpu_model, cpu_version, cpu_speed, cpu_count, cpu_core_count, cpu_socket_count = get_cpu_info() 
     if cpu_info:
@@ -351,37 +413,75 @@ if __name__ == "__main__":
     if centrify_zone:
         centrify_zone=centrify_zone
 
-    owner="unix"
+        
+    os_name = distro.name(pretty=True)
+    os_varient = distro.name()
+    os_version = distro.version()
+    os_vendor = distro.id()
     
-    print(f"hw_name - {hw_name}")
-    print(f"hw_name - {hw_name}")
-    print(f"hw_model - {hw_model}")
-    print(f"owner - {owner}")
-    print(f"serial - {serial}")
-    print(f"processor_manufacturer - {processor_manufacturer}")
-    print(f"processor_model - {processor_model}")
-    print(f"processor_speed - {processor_speed}")
-    print(f"processor_socket_count - {processor_socket_count}")
-    print(f"processor_core_count - {processor_core_count}")
-    print(f"processor_count - {processor_count}")
-    print(f"physical_memory - {physical_memory}")
-    print(f"physical_memory_sizes - {physical_memory_sizes}")
-    print(f"swap - {swap}")
-    print(f"uniqueid - {uniqueid}")
-    print(f"kernel_version - {kernel_version}")
-    print(f"timezone - {timezone}")
-    print(f"used_space - {used_space}")
-    print(f"avail_space - {avail_space}")
-    print(f"centrify_zone - {centrify_zone}")
+        #hw_manufacturer=host_info
+        #hw_desc=host_model
+        #hw_name=host_info + ' ' + host_model
 
+    # print(f"name - {hostname}")
+    # print(f"serial_number - {serial_number}")
+    # print(f"processor_manufacturer - {processor_manufacturer}")
+    # print(f"processor_model - {processor_model}")
+    # print(f"processor_speed - {processor_speed}")
+    # print(f"processor_socket_count - {processor_socket_count}")
+    # print(f"processor_core_count - {processor_core_count}")
+    # print(f"processor_count - {processor_count}")
+    # print(f"physical_memory - {physical_memory}")
+    # print(f"physical_memory_sizes - {physical_memory_sizes}")
+    # print(f"swap - {swap}")
+    # print(f"uniqueid - {uniqueid}")
+    # print(f"kernel_version - {kernel_version}")
+    # print(f"timezone - {timezone}")
+    # print(f"used_space - {used_space}")
+    # print(f"avail_space - {avail_space}")
+    # print(f"centrify_zone - {centrify_zone}")
+    # print(f"created_at - {created_at}")
+    # print(f"* operating_system - {os_name}, {os_varient}, {os_version}, {os_vendor}")
+    # print(f"* hardware_profile - {hw_name}, {hw_manufacturer}, {hw_desc}")
 
+    # sys.exit(0)
 
-# curl -X POST http://your-django-server/api/register_node/ \
-#     -H "Content-Type: application/json" \
-#     -d '{
-#         "name": "node_name",
-#         "serial_number": "serial123",
-#         "processor_manufacturer": "Intel",
-#         ...
-#     }'
+    SVR = 'st1lndssvm01.corp.pvt'
+    url = f"https://{SVR}/api/register_node/"
+    data = {
+        "name": hostname,
+        "serial_number": serial_number,
+        "processor_manufacturer": processor_manufacturer,
+        "processor_model": processor_model,
+        "processor_speed": processor_speed,
+        "processor_socket_count": processor_socket_count,
+        "processor_core_count": processor_core_count,
+        "processor_count": processor_count,
+        "physical_memory": physical_memory,
+        # "physical_memory_sizes": physical_memory_sizes,
+        "physical_memory_sizes": ', '.join(physical_memory_sizes) if physical_memory_sizes else '',
+        "swap": swap,
+        "uniqueid": uniqueid,
+        "kernel_version": kernel_version,
+        "timezone": timezone,
+        "used_space": used_space,
+        "avail_space": avail_space,
+        "centrify_zone": centrify_zone,
+        "os_name": os_name,
+        "os_varient": os_varient,
+        "os_version": os_version,
+        "os_vendor": os_vendor,
+        "hw_name": hw_name,
+        "hw_manufacturer": hw_manufacturer,
+        "hw_desc": hw_desc,
+    }
+
+    print(data)
+    #sys.exit(0)
+    
+    response = requests.post(url, json=data, verify=False)
+    #print(response.json())
+
+    print(f"Status Code: {response.status_code}")
+    print(f"Response Content: {response.text}")
 

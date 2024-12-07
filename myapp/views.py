@@ -11,11 +11,14 @@ from django.utils.safestring import mark_safe
 from myapp.config_helper import load_config
 from myapp.forms import VMCreationForm, load_users_from_csv
 from myapp.models import Deployment, Node, HardwareProfile, OperatingSystem, Status, VRA_Deployment, VRA_Node
-from myapp.serializers import NodeSerializer
 from myapp.utils import destroy_vm, remove_dns_entry, screamtest_vm
+
 from rest_framework import status
 from rest_framework.decorators import api_view
+from rest_framework.views import APIView
 from rest_framework.response import Response
+from myapp.serializers import NodeSerializer
+
 from time import sleep
 import glob
 import json
@@ -26,7 +29,7 @@ import subprocess
 import yaml
 
 
-
+# function based apt, uses api_view
 @api_view(['POST'])
 def register_node(request):
     serializer = NodeSerializer(data=request.data)
@@ -35,6 +38,74 @@ def register_node(request):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+# class based api, uses APIView
+class NodeRegistrationAPIView(APIView):
+    def post(self, request):
+        data = request.data
+
+        # Step 1: Extract and process OS-related data
+        os_name = data.pop('os_name', None)
+        os_varient = data.pop('os_varient', None)
+        os_version = data.pop('os_version', None)
+        os_vendor = data.pop('os_vendor', None)
+        
+        if not os_name:
+            return Response({'error': 'Operating system is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        os_instance, _ = OperatingSystem.objects.get_or_create(
+            name=os_name,
+            defaults={
+                'varient': os_varient,
+                'version': os_version,
+                'vendor': os_vendor
+            }
+        )
+
+        # Step 2: Handle Hardware Profile
+        hw_name = data.pop('hw_name', None)
+        hw_manufacturer = data.pop('hw_manufacturer', None)
+        hw_desc = data.pop('hw_desc', None)
+        if not hw_name:
+            return Response({'error': 'Hardware profile is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        hwprofile_instance, _ = HardwareProfile.objects.get_or_create(
+            name=hw_name,
+            defaults={
+                'description': hw_desc,
+                'manufacturer': hw_manufacturer
+            }
+        )
+
+        # Step 3: Add the related object references to the Node data
+        data['operating_system'] = os_instance.id
+        data['hardware_profile'] = hwprofile_instance.id
+        
+        # Step 4: Check for existing Node and update or create
+        uniqueid = data.get('uniqueid')  # Use unique identifier to find the Node
+
+        try:
+            # Try to update the existing node
+            node = Node.objects.get(uniqueid=uniqueid)
+            serializer = NodeSerializer(instance=node, data=data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Node.DoesNotExist:
+            # Create a new node if not found
+            status_instance, _ = Status.objects.get_or_create(
+                name='setup',
+                defaults={'description': 'Node is not in production'}
+            )
+            data['status'] = status_instance.id
+            serializer = NodeSerializer(data=data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # deployment status refresh
 def get_deployment_status(request, deployment_id):
@@ -599,6 +670,7 @@ def create_vm(request):
                 name='Vmware Virtual Platform',
                     defaults={
                         'description': 'Vmware Virtual Platform',  
+                        'manufacturer:': 'Vmware, Inc.',  
                     }
             )
             

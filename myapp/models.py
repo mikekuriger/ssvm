@@ -112,10 +112,10 @@ class HardwareProfile(models.Model):
 
     
 class Node(models.Model):
-    name = models.CharField(max_length=255, null=True, blank=True)
-    serial_number = models.CharField(max_length=255, null=True, blank=True)
+    name = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    serial_number = models.CharField(max_length=255, unique=True, null=True, blank=True)
     centrify_zone = models.CharField(max_length=255, null=True, blank=True)
-    created_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True) #deployment_date = date.strftime('%Y-%m-%dT%H:%M')
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     hardware_profile = models.ForeignKey(HardwareProfile, on_delete=models.SET_NULL, null=True, blank=True)
     operating_system = models.ForeignKey(OperatingSystem, on_delete=models.SET_NULL, null=True, blank=True)
