@@ -36,7 +36,7 @@ datacenters:
             B-2-7: 
             B-2-8: 
             B-2-9:
-           # B-2-1: "Oracle Only"
+            B-2-1: "Oracle Only"
 
     ev3:
         name: "Ashburn Datacenter"
@@ -69,7 +69,7 @@ datacenters:
             A-1-6:
             A-1-7:
             A-1-8:
-            #A-1-4: "Oracle Only"
+            A-1-4: "Oracle Only"
 
     
 server_types:
