@@ -30,13 +30,13 @@ import yaml
 
 
 # function based apt, uses api_view
-@api_view(['POST'])
-def register_node(request):
-    serializer = NodeSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+# @api_view(['POST'])
+# def register_node(request):
+#     serializer = NodeSerializer(data=request.data)
+#     if serializer.is_valid():
+#         serializer.save()
+#         return Response(serializer.data, status=status.HTTP_201_CREATED)
+#     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 # class based api, uses APIView
@@ -46,7 +46,7 @@ class NodeRegistrationAPIView(APIView):
 
         # Step 1: Extract and process OS-related data
         os_name = data.pop('os_name', None)
-        os_varient = data.pop('os_varient', None)
+        os_variant = data.pop('os_variant', None)
         os_version = data.pop('os_version', None)
         os_vendor = data.pop('os_vendor', None)
         
@@ -56,8 +56,8 @@ class NodeRegistrationAPIView(APIView):
         os_instance, _ = OperatingSystem.objects.get_or_create(
             name=os_name,
             defaults={
-                'varient': os_varient,
-                'version': os_version,
+                'variant': os_variant,
+                'version_number': os_version,
                 'vendor': os_vendor
             }
         )
@@ -343,71 +343,6 @@ def cancel_screamtest(request, deployment_id):
         messages.error(request, f"Deployment {deployment.deployment_name} is not in screamtesting status.")
     
     return redirect('deployment_list')
-
-
-
-# functions to view system logs
-# @login_required
-# def view_system_logs(request, log_type):
-#     log_files = {
-#         'destroy': [ _os.path.join(settings.BASE_DIR, 'logs', 'destroy.log')],
-#         'deployment': [ _os.path.join(settings.BASE_DIR, 'logs', 'deployment.log')],
-#         'task': [ _os.path.join(settings.BASE_DIR, 'logs', 'django-background-tasks.log') ],
-#         'application': [
-#             _os.path.join(settings.BASE_DIR, 'logs', 'django.log'),
-#             _os.path.join(settings.BASE_DIR, 'django_output.log')
-#         ],
-#     }
-
-#      # Get the requested log file path
-#     log_file_paths = log_files.get(log_type)
-    
-#     if log_file_paths:
-#         filtered_lines = []
-#     # Iterate through each log file in the list
-#         for log_file_path in log_file_paths:
-#             if _os.path.exists(log_file_path):
-#                 with open(log_file_path, 'r') as log_file:
-#                     log_lines = log_file.readlines()
-
-#                     # Apply filters based on the log type
-#                     if log_type == 'deployment':
-#                         # Filter out specific deployment log entries
-#                         filtered_lines.extend([
-#                             line for line in log_lines
-#                             if "Successfully read log file" not in line
-#                             and "Looking for log file at" not in line
-#                         ])
-#                     elif log_type == 'destroy':
-#                         # Filter out specific deployment log entries
-#                         filtered_lines.extend([
-#                             line for line in log_lines
-#                             if "Successfully read log file" not in line
-#                             and "Looking for log file at" not in line
-#                         ])
-#                     elif log_type == 'task':
-#                         # Filter out 'Found 0 deployments' from the background task log
-#                         filtered_lines.extend([
-#                             line for line in log_lines
-#                             if "Found 0 deployments" not in line
-#                         ])
-#                     elif log_type == 'application':
-#                         # Filter out 'Looking for log file' from both application log files
-#                         filtered_lines.extend([
-#                             line for line in log_lines
-#                             if "INFO" not in line
-#                         ])
-#                     else:
-#                         # No filtering for other log types
-#                         filtered_lines.extend(log_lines)
-#             else:
-#                 return HttpResponse(f"Log file '{log_file_path}' not found.", status=404)
-
-#         # Return the filtered log content as plain text
-#         response_content = ''.join(filtered_lines)
-#         return HttpResponse(response_content, content_type='text/plain')
-
-#     return HttpResponse(f"Log type '{log_type}' not found.", status=404)
 
 
 
@@ -778,6 +713,7 @@ def check_dns(request):
 
 # List all nodes
 def node_list(request):
+    from django.db.models import F, ExpressionWrapper, IntegerField
     model_type = request.GET.get('model', 'node')  # Get the model type from the URL parameter
     query = request.GET.get('q', '')
     page_size = int(request.GET.get('page_size', 20))
@@ -789,6 +725,15 @@ def node_list(request):
     else:
         # query = request.GET.get('q')
         nodes = Node.objects.filter(name__icontains=query).order_by('name') if query else Node.objects.all().order_by('name')
+
+        # # Annotate total_cores (processor_count * processor_core_count)
+        # nodes = nodes.annotate(
+        #     total_cores=ExpressionWrapper(
+        #         F('processor_socket_count') * F('processor_core_count'),
+        #         output_field=IntegerField()
+        #     )
+        # )
+        
         paginator = Paginator(nodes, page_size)
     
     page_number = request.GET.get('page')
@@ -803,16 +748,18 @@ def node_list(request):
 
 
 # for listing node status
-#def node_detail(request, node_id):
 def node_detail(request, node_id, model_type):
     if model_type == 'vra':
         node = get_object_or_404(VRA_Node, id=node_id)
-        deployment = get_object_or_404(VRA_Deployment, id=node.deployment_id)
+        deployment = None
+        if node.deployment_id:
+            deployment = get_object_or_404(VRA_Deployment, id=node.deployment_id)
     else:
         node = get_object_or_404(Node, id=node_id)
-        deployment = get_object_or_404(Deployment, id=node.deployment_id)
+        deployment = None
+        if node.deployment_id:
+            deployment = get_object_or_404(Deployment, id=node.deployment_id)
         
-    #node = get_object_or_404(Node, id=node_id)
     return render(request, 'node_detail.html', {
         'node': node,
         'deployment': deployment

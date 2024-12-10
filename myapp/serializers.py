@@ -63,5 +63,6 @@ class NodeSerializer(serializers.ModelSerializer):
             'processor_speed', 'processor_socket_count', 'processor_core_count', 
             'processor_count', 'physical_memory', 'physical_memory_sizes', 'swap', 
             'uniqueid', 'kernel_version', 'timezone', 'used_space', 'avail_space', 
-            'centrify_zone', 'created_at', 'operating_system', 'hardware_profile'
+            'centrify_zone', 'created_at', 'operating_system', 'hardware_profile',
+            'disk_size', 'ping_status', 'disk_usage_percent', 'contact'
         ]

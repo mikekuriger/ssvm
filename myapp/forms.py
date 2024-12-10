@@ -157,7 +157,7 @@ class VMCreationForm(forms.Form):
 
     hostname = forms.CharField(
         label="Hostname",
-        max_length=8,
+        max_length=9,
         min_length=3,
         required=True,
         validators=[validate_no_spaces_or_special_characters],

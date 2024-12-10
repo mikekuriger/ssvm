@@ -316,7 +316,7 @@ def get_centrify_zone():
 def import_node(hw_name, hw_manufacturer, hw_desc, serial, processor_manufacturer, processor_model, processor_speed, processor_socket_count, processor_core_count, processor_count, physical_memory, physical_memory_sizes, swap, uniqueid, kernel_version, timezone, used_space, avail_space, centrify_zone):
     
     os_name = distro.name(pretty=True)
-    os_varient = distro.name()
+    os_variant = distro.name()
     os_version = distro.version()
     os_vendor = distro.id()
     
@@ -324,7 +324,7 @@ def import_node(hw_name, hw_manufacturer, hw_desc, serial, processor_manufacture
     os_instance, _ = OperatingSystem.objects.get_or_create(
         name=os_name,
         defaults={
-            'varient': os_varient,
+            'variant': os_variant,
             'version': os_version,
             'vendor': os_vendor}
     )

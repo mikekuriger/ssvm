@@ -34,21 +34,60 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
     const hostnameField = document.getElementById('hostname');
     const appnameField = document.getElementById('appname');
+    const vmCountField = document.querySelector('#deployment_count');
 
-    // Automatically populate the hostname based on application value, Enforce 8-character limit
-    appnameField.addEventListener('input', function() {
+    let maxHostnameLength = 9;
+
+    function updateHostname() {
         if (!hostnameField.dataset.userModified) {
-            hostnameField.value = appnameField.value.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase().substring(0, 8);
-        };
+            hostnameField.value = appnameField.value
+                .replace(/[^a-zA-Z0-9_-]/g, '')
+                .toLowerCase()
+                .substring(0, maxHostnameLength);
+        }
+    }
+
+    // Automatically populate the hostname based on application value
+    appnameField.addEventListener('input', updateHostname);
+
+    // Adjust max length when VM count changes
+    vmCountField.addEventListener('input', function() {
+        const vmCount = parseInt(vmCountField.value, 10) || 1; // Default to 1 if empty or invalid
+        if (vmCount > 1) {
+            maxHostnameLength = 7;
+        } else {
+            maxHostnameLength = 9;
+        }
+        updateHostname();
     });
 
     // Convert hostname input to lowercase, no spaces
     hostnameField.addEventListener('input', function() {
         hostnameField.dataset.userModified = true;
-       // this.value = this.value.toLowerCase();
         this.value = this.value.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
     });
 });
+
+
+
+// document.addEventListener('DOMContentLoaded', function() {
+//     const hostnameField = document.getElementById('hostname');
+//     const appnameField = document.getElementById('appname');
+
+//     // Automatically populate the hostname based on application value, Enforce 8-character limit
+//     appnameField.addEventListener('input', function() {
+//         if (!hostnameField.dataset.userModified) {
+//             hostnameField.value = appnameField.value.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase().substring(0, 8);
+//         };
+//     });
+
+//     // Convert hostname input to lowercase, no spaces
+//     hostnameField.addEventListener('input', function() {
+//         hostnameField.dataset.userModified = true;
+//        // this.value = this.value.toLowerCase();
+//         this.value = this.value.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
+//     });
+// });
 
 // Dynamically update Full Hostnames and enforce hostname length
 document.addEventListener('DOMContentLoaded', function() {
