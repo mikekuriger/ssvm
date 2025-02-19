@@ -169,10 +169,10 @@ AUTH_LDAP_USER_ATTR_MAP = {
 }
 
 # Optional: to set default staff/superuser status
-AUTH_LDAP_USER_FLAGS_BY_GROUP = {
-    "is_staff": "CN=UnixSysAdmins,OU=Roles,OU=Groups,DC=corp,DC=yp,DC=com",
-    #"is_superuser": "CN=UnixSysAdmins,OU=Roles,OU=Groups,DC=corp,DC=yp,DC=com",
-}
+# AUTH_LDAP_USER_FLAGS_BY_GROUP = {
+#     "is_staff": "CN=UnixSysAdmins,OU=Roles,OU=Groups,DC=corp,DC=yp,DC=com",
+#     #"is_superuser": "CN=UnixSysAdmins,OU=Roles,OU=Groups,DC=corp,DC=yp,DC=com",
+# }
 
 AUTH_LDAP_GROUP_SEARCH = LDAPSearch(
     "OU=Groups,DC=corp,DC=yp,DC=com",
