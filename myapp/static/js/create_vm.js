@@ -289,17 +289,38 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to update the network options based on the selected datacenter
     function updateNetworkOptions(datacenter) {
         networkField.innerHTML = ''; // Clear current options
-
+    
         // Add new options based on the selected datacenter's VLANs
         if (datacenters[datacenter] && datacenters[datacenter].vlans) {
-            Object.entries(datacenters[datacenter].vlans).forEach(([vlan, description]) => {
+            Object.entries(datacenters[datacenter].vlans).forEach(([vlan, vlanData]) => {
                 const option = document.createElement('option');
                 option.value = vlan;
-                option.textContent = vlan + " (" + description + ")";
+    
+                // Ensure we extract the VLAN name correctly
+                if (typeof vlanData === 'object' && vlanData.name) {
+                    option.textContent = vlan + " (" + vlanData.name + ")";
+                } else {
+                    option.textContent = vlan;  // Fallback if 'name' is missing
+                }
+    
                 networkField.appendChild(option);
             });
         }
     }
+
+    // function updateNetworkOptions(datacenter) {
+    //     networkField.innerHTML = ''; // Clear current options
+
+    //     // Add new options based on the selected datacenter's VLANs
+    //     if (datacenters[datacenter] && datacenters[datacenter].vlans) {
+    //         Object.entries(datacenters[datacenter].vlans).forEach(([vlan, description]) => {
+    //             const option = document.createElement('option');
+    //             option.value = vlan;
+    //             option.textContent = vlan + " (" + description + ")";
+    //             networkField.appendChild(option);
+    //         });
+    //     }
+    // }
     
     // Function to update the domain options based on the selected datacenter
     function updateDomainOptions(datacenter) {
