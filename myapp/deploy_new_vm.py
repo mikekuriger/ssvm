@@ -36,18 +36,35 @@ from myapp.models import Deployment, Node, OperatingSystem, HardwareProfile, Sta
 import logging
 logger = logging.getLogger('deployment')
 
-# Global Variables
+# Global Variables (not used??)
+# CONFIG = load_config()
+# DATACENTER_CONFIG = CONFIG['datacenters']
+
 # ANSI escape codes for bold text
 bold = '\033[1m'
 _bold = '\033[0m'
 
 # Function to read and parse deployment details
 def parse_input_file(file_path):
-    """Parse deployment file into a dictionary."""
+    """
+    Parse deployment file into a dictionary.
+
+    Parameters:
+    file_path (str): The path to the deployment file.
+
+    Returns:
+    dict: A dictionary containing the parsed deployment details.
+    """
     with open(file_path, 'r') as f:
         return {key.strip(): value.strip() for line in f if ':' in line for key, value in [line.split(':', 1)]}
 
 def setup_status_instances():
+    """
+    Set up status instances in the database.
+
+    Returns:
+    dict: A dictionary mapping status names to Status objects.
+    """
     statuses = {
         'building': 'Node is building',
         'setup': 'Node is in setup',
@@ -60,7 +77,6 @@ def setup_status_instances():
         status_objects[name] = obj
     return status_objects
     
-
 parser = argparse.ArgumentParser(description='Deploy script with file input')
 parser.add_argument('file', help='Name of the file to read for deployment')
 args = parser.parse_args()
@@ -106,7 +122,7 @@ datacenter_config = config['datacenters']
 pool = f"/{DC}dccomp01/host/{CLUSTER}/Resources"
 folder = f"/{DC}dccomp01/vm/vRA - Thryv Cloud/SSVM"
 
-# for govc 
+# for govc (will use pyvim at some point)
 datacenter = config['datacenters'][DC]
 vcenter = datacenter['vcenter']
 username = datacenter['credentials']['username']
@@ -115,15 +131,23 @@ os.environ["GOVC_URL"] = ("https://" + vcenter)
 os.environ["GOVC_USERNAME"] = username
 os.environ["GOVC_PASSWORD"] = password
 
-
 CLONE=True
 if "SSVM-" in OS:
     CLONE=False
 
-
-
 def run_command(command, capture_output=True, check=True, text=True):
-    """Run a shell command and handle errors."""
+    """
+    Run a shell command and handle errors.
+
+    Parameters:
+    command (list): The command to run.
+    capture_output (bool): Whether to capture the output.
+    check (bool): Whether to check the return code.
+    text (bool): Whether to treat the output as text.
+
+    Returns:
+    subprocess.CompletedProcess: The result of the command.
+    """
     try:
         return subprocess.run(command, capture_output=capture_output, check=check, text=text)
     except subprocess.CalledProcessError as e:
@@ -134,10 +158,17 @@ def run_command(command, capture_output=True, check=True, text=True):
             args = e.cmd
         return FailedResult()
        
-
-
 def get_dc_variables():
-    """Set up datacenter-specific configuration."""
+    """
+    Set up datacenter-specific configuration.
+
+    Parameters:
+    dc (str): The datacenter name.
+    vlan (str): The VLAN name.
+
+    Returns:
+    tuple: A tuple containing network, netmask, gateway, vlan_name, dc_name, dns, and domains.
+    """
     if DC not in datacenter_config:
         handle_failure(f"Datacenter {DC} not found in configuration.")
 
@@ -183,9 +214,13 @@ def get_dc_variables():
     gateway = network.split('-')[0] + ".1"
     return network, netmask, gateway, vlan_name, dc_name, dns, domains
 
-
-
 def update_node():
+    """
+    Update or create a node in the database.
+
+    Returns:
+    tuple: A tuple containing the Node object and a boolean indicating if the node was created.
+    """
     hw_profile, _ = HardwareProfile.objects.get_or_create(
         name='Vmware Virtual Platform',
         defaults={'description': 'Vmware Virtual Platform'}
@@ -208,8 +243,13 @@ def update_node():
     )
     return node, created
 
-
 def get_datastorecluster():
+    """
+    Get the datastore cluster name.
+
+    Returns:
+    str: The datastore cluster name.
+    """
     print(CLUSTER, DC)
     # Normalize the cluster name to lowercase and remove hyphens
     normalized_cluster = CLUSTER.replace('-', '').lower()
@@ -236,6 +276,14 @@ def get_datastorecluster():
         return None
 
 def print_deployment(DNS, Domains, Netmask):
+    """
+    Print deployment details.
+
+    Parameters:
+    DNS (str): DNS server.
+    Domains (str): DNS domains.
+    Netmask (str): Network mask.
+    """
     print(f"{bold}Details:{_bold}", flush=True)
     print(f"OS - {OS}", flush=True)
     logger.info(f"OS - {OS}")
@@ -288,7 +336,12 @@ def print_deployment(DNS, Domains, Netmask):
 
     
 def does_vm_exist():
-    """Check if a VM with the same name already exists, and check if the source VM (template) exists before cloning."""
+    """
+    Check if a VM with the same name already exists, and check if the source VM (template) exists before cloning.
+
+    Returns:
+    bool: True if the VM exists, False otherwise.
+    """
     try:
         # Check for the template (source VM)
         print("Checking template - ", end="", flush=True)
@@ -334,10 +387,14 @@ def does_vm_exist():
     except Exception as e:
         handle_failure(f"Error while checking VM existence: {str(e)}")
 
-
-
 def clone_vm(datastorecluster, network):
-    """Clone a VM from a template."""
+    """
+    Clone a VM from a template.
+
+    Parameters:
+    datastorecluster (str): The datastore cluster name.
+    network (str): The network name.
+    """
     pool = f"/{DC}dccomp01/host/{CLUSTER}/Resources"
     folder = f"/{DC}dccomp01/vm/vRA - Thryv Cloud/SSVM"
     
@@ -408,11 +465,11 @@ def clone_vm(datastorecluster, network):
                 time.sleep(delay)  # Wait for 30 seconds before retrying
             else:
                 handle_failure("Maximum retries reached. Exiting.")
-        
-
 
 def resize_boot_disk():
-    # Resize boot disk if needed
+    """
+    Resize boot disk if needed.
+    """
     if DISK > 100:
         boot_disk_size=(str(DISK) + "G")
         print(f"Resizing boot disk to {bold}{boot_disk_size}{_bold}", flush=True)
@@ -422,10 +479,10 @@ def resize_boot_disk():
         print(f"Disk resize not needed", flush=True)
         logger.info(f"Disk resize not needed")
     
-
 def add_disk():
-    # if requested, add 2nd disk
-    # global ADDDISK
+    """
+    Add a second disk if requested.
+    """
     if ADDDISK != 'False':
         disk_size, label = ADDDISK.split(',')
         disk_name = (VM + "/" + VM + "_z")
@@ -459,12 +516,14 @@ def add_disk():
         else:
             print("No valid datastore found for the VM.", flush=True)
             logger.error("No valid datastore found for the VM.")
-    # else:
-    #     ADDDISK='False'
-
-
 
 def get_mac_address():
+    """
+    Get MAC address from vCenter.
+
+    Returns:
+    str: The MAC address.
+    """
     print(f"{bold}Getting MAC address from vCenter{_bold}", flush=True)
     logger.info(f"Getting MAC address from vCenter")
     govc_command = ["govc", "vm.info", "-json", VM]
@@ -486,10 +545,15 @@ def get_mac_address():
     else:
         handle_failure("No MAC address found")
 
-
-
 def add_to_dns(mac_address, vlan_name, dc_name):
-    
+    """
+    Add a VM to DNS (eIP).
+
+    Parameters:
+    mac_address (str): The MAC address.
+    vlan_name (str): The VLAN name.
+    dc_name (str): The datacenter name.
+    """
     from SOLIDserverRest import SOLIDserverRest
     import logging, math, ipaddress, pprint
 
@@ -627,9 +691,18 @@ def add_to_dns(mac_address, vlan_name, dc_name):
     node = add_ip_address(free_address['address'][2],hostname,space['id'],mac_address)
     del(SDS_CON)
 
-
 def handle_dns(mac_address, vlan_name, dc_name):
+    """
+    Handle DNS resolution for the VM.
 
+    Parameters:
+    mac_address (str): The MAC address.
+    vlan_name (str): The VLAN name.
+    dc_name (str): The datacenter name.
+
+    Returns:
+    str: The IP address of the VM.
+    """
     max_retries = 60
     retry_delay = 10
     
@@ -653,8 +726,10 @@ def handle_dns(mac_address, vlan_name, dc_name):
     # If all attempts fail, exit with error
     handle_failure(f"Failed to resolve {VM}.{DOMAIN} after {max_retries} attempts!")
 
-
 def power_off():
+    """
+    Power off the VM if it is powered on.
+    """
     print(f"{bold}Powering off {VM} in case it's on{_bold}", flush=True)
     logger.info(f"Powering off {VM} in case it's on")
     power_status = run_command(["govc", "vm.info", VM])
@@ -662,8 +737,18 @@ def power_off():
         run_command(["govc", "vm.power", "-off", "-force", VM])
 
 
-def customize(mac_address, IP, netmask, gateway, dns, domains):                    
-    # Customize the VM
+def customize(mac_address, IP, netmask, gateway, dns, domains):
+    """
+    Customize the VM with network settings.
+
+    Parameters:
+    mac_address (str): The MAC address.
+    IP (str): The IP address.
+    netmask (str): The network mask.
+    gateway (str): The gateway address.
+    dns (str): The DNS server.
+    domains (str): The DNS domains.
+    """
     print(f"{bold}Customizing VM details{_bold}\n- IP ({IP})\n- Netmask ({netmask})\n- Gateway ({gateway})\n- DNS ({dns})\n- Domains ({domains})", flush=True)
   
     result = run_command([
@@ -717,10 +802,10 @@ def customize(mac_address, IP, netmask, gateway, dns, domains):
         print("Error:", set_result.stderr)
         logger.error("Error:", set_result.stderr)
 
-
-
-
 def cloud_init():
+    """
+    Generate and attach cloud-init ISO for VM customization.
+    """
     if not CLONE:
         from jinja2 import Environment, FileSystemLoader
         
@@ -907,9 +992,10 @@ def cloud_init():
             print("Error:", set_result.stderr)
             logger.error("Error:", set_result.stderr)
 
-
-
 def power_on():
+    """
+    Power on the VM and check its status.
+    """
     print(f"{bold}Power on the VM, then check status{_bold}", flush=True)
     logger.info(f"Power on the VM, then check status")
     time.sleep(int(random.uniform(1, 3)))
@@ -948,8 +1034,10 @@ def power_on():
                 else:
                     handle_failure(f"Failed to remove {VM} from centrify after {max_retries} attempts")
 
-
 def rename_yellowpages():
+    """
+    Rename yellowpages VMs with FQDN in vCenter.
+    """
     if "yellowpages" in DOMAIN:
         govc_command = ["govc", "vm.change", "-name", f"{VM}.{DOMAIN}", "-vm", VM]
         result = run_command(govc_command)
@@ -966,8 +1054,13 @@ def rename_yellowpages():
             logger.info(f"Node status = failed.")
             return 'failed'
             
-
 def check_power_status():
+    """
+    Check the power status of the VM.
+
+    Returns:
+    str: 'inservice' if the VM is powered on, 'failed' otherwise.
+    """
     vm=VM
     if "yellowpages" in DOMAIN:
         vm=f"{VM}.{DOMAIN}"
@@ -993,99 +1086,23 @@ def check_power_status():
         logger.info(f"Node status = failed.")
         return 'failed'
 
-
-
-# def fetch_cmdb_uuid():
-#     # Fetch cmdb_uuid and UUID
-#     print(f"{bold}Fetching cmdb_uuid and UUID from Vcenter{_bold}")
-#     logger.info("Fetching cmdb_uuid and UUID from Vcenter")
-
-#     retries = 30
-#     delay = 10
-    
-#     attempt = 0
-#     while attempt < retries:
-    
-#         try:
-#             attempt += 1
-#             print(f"Attempt {attempt} of {retries} to fetch cmdb_uuid", flush=True)
-#             logger.info(f"Attempt {attempt} of {retries} to fetch cmdb_uuid")
-    
-#             govc_command = ["govc", "vm.info", "-json", VM]
-#             uuid_result = run_command(govc_command)
-        
-#             if uuid_result.returncode == 0:
-#                 vm_info = json.loads(uuid_result.stdout)
-#                 cmdb_uuid_value = None
-                
-#                 for item in vm_info.get("virtualMachines", [])[0].get("value", []):
-#                     if item.get("key") == 1001:
-#                         cmdb_uuid_value = item.get("value")
-#                         print(f"cmdb_uuid value 1: {cmdb_uuid_value}")
-#                         logger.info(f"cmdb_uuid value 1: {cmdb_uuid_value}")
-#                         break
-        
-#                 if not cmdb_uuid_value:
-#                     custom_values = vm_info.get("virtualMachines", [])[0].get("customValue", [])
-#                     for field in custom_values:
-#                         if field.get("key") == 1001:
-#                             cmdb_uuid_value = field.get("value")
-#                             print(f"cmdb_uuid value 2: {cmdb_uuid_value}")
-#                             logger.info(f"cmdb_uuid value 2: {cmdb_uuid_value}")
-#                             break
-            
-#                 if cmdb_uuid_value:
-#                     print(f"cmdb_uuid value: {cmdb_uuid_value}", flush=True)
-#                     logger.info(f"cmdb_uuid value: {cmdb_uuid_value}")
-#                     break  # Exit the retry loop since the operation was successful
-
-#         except subprocess.CalledProcessError as e:
-#             print(f"cmdb_uuid value not found on attempt {attempt}: {e.stderr}", flush=True)
-#             logger.error(f"cmdb_uuid value not found on attempt {attempt}: {e.stderr}")
-    
-#             if attempt < retries:
-#                 print(f"Retrying in {delay} seconds...", flush=True)
-#                 logger.info(f"Retrying in {delay} seconds...")
-#                 time.sleep(delay)  
-#             else:
-#                 print("Maximum retries reached. Exiting.")
-#                 print("cmdb_uuid value not found.")
-#                 logger.error("Maximum retries reached. Exiting.")
-#                 logger.error("cmdb_uuid value not found.")
-                          
-#         vm_values = vm_info.get("virtualMachines", [{}])[0] 
-#         config = vm_values.get("config", {})
-    
-#         uuid_value = config.get("uuid")
-                          
-#         if uuid_value:
-#             print(f"uuid value: {uuid_value}")
-#             logger.info(f"uuid value: {uuid_value}")
-#         else:
-#             print("uuid value not found.")
-#             logger.error("uuid value not found.")
-
-#         return cmdb_uuid_value, uuid_value
-        
-#     else:
-#         print("Failed to retrieve VM info.")
-#         logger.error("Failed to retrieve VM info.")
-#         print("Error:", uuid_result.stderr)                    
-#         logger.error("Error:", uuid_result.stderr)
-#         return None, None
-
-
-
 def fetch_cmdb_uuid():
-    # Fetch cmdb_uuid and UUID
+    """
+    Fetch cmdb_uuid and UUID from vCenter.
+
+    Returns:
+    tuple: cmdb_uuid and uuid value.
+    """
     print(f"{bold}Fetching cmdb_uuid from vCenter{_bold}")
     logger.info("Fetching cmdb_uuid from vCenter")
 
     # The cmdb_uuid is not always populated right away in vcenter
     # it depends on how long it takes the cmdb to scan for new servers
     # it might be better to populate this later with a cron job
+    # broken in ev3, works in st1
+    # we don't need this, just nice to have for referencing VMs
     
-    retries = 30
+    retries = 10
     delay = 20
     cmdb_uuid_value = None
 
@@ -1155,11 +1172,15 @@ def fetch_cmdb_uuid():
 
     return cmdb_uuid_value, uuid_value
 
-
-
-# finalize_node_status('inservice', cmdb_uuid, uuid)
 def finalize_node_status(status, cmdb_uuid, uuid):
-    """Update node's final status and details."""
+    """
+    Update node's final status and details.
+
+    Parameters:
+    status (str): The status to set.
+    cmdb_uuid (str): The cmdb UUID.
+    uuid (str): The VM UUID.
+    """
     name=f"{VM}.{DOMAIN}"
     try:
         node = Node.objects.get(name=name)
@@ -1184,9 +1205,16 @@ def finalize_node_status(status, cmdb_uuid, uuid):
     print(f"Cloud-init will now perform post-deployment operations.  Please be patient, this can take a while.", flush=True)
     logger.info(f"Cloud-init will now perform post-deployment operations.  Please be patient, this can take a while.")
 
-
-
 def convert_uuid_to_serial(uniqueid):
+    """
+    Convert a UUID to a serial number.
+
+    Parameters:
+    uniqueid (str): The UUID.
+
+    Returns:
+    str: The serial number.
+    """
     # Split the UUID into its components
     parts = uniqueid.split('-')
     
@@ -1202,11 +1230,14 @@ def convert_uuid_to_serial(uniqueid):
     # Assemble the serial number with "VMware-" prefix
     serial = f"VMware-{part1} {part2} {part3}-{part4} {part5}"
     return serial
-    
-    
-    
+
 def handle_failure(message):
-    """Update node's status to failed"""
+    """
+    Handle failure by updating node's status to failed.
+
+    Parameters:
+    message (str): The failure message.
+    """
     name=f"{VM}.{DOMAIN}"
     try:
         node = Node.objects.get(name=name)
@@ -1219,10 +1250,11 @@ def handle_failure(message):
     node.status = status_instances['failed']
     node.save(update_fields=['status'])
     sys.exit(1)
-
-
     
 def main():
+    """
+    Main function to handle the deployment process.
+    """
     print(f"{bold}** Main **{_bold}")
 
     print(f"{bold}** get_dc_variables{_bold}")
