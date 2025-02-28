@@ -182,3 +182,8 @@ StandardError=append:/home/ssvm/ssvm/django-background-tasks.log
 
 [Install]
 WantedBy=multi-user.target
+
+TODO: 
+remove static configs from deploy_new_vm.py and use the config file 
+document all functions and files
+remove govc dependency (maybe)
