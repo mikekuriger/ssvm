@@ -1,0 +1,217 @@
+# config file SSVM build tool
+# 10-1-24 Mike Kuriger
+        
+global:
+    eip:
+        eipmaster: "st1dceipmaster.corp.pvt"
+        username: "ssvm_admin"
+        password: "somepassword"
+
+datacenters:
+    st1:
+        name: "Data Center"
+        domains:
+            corp.pvt:
+            st1.yellowpages.com:
+        dns: "10.6.1.111,10.4.1.111"
+        dnsdomains: "corp.pvt dexmedia.com superpages.com supermedia.com prod.st1.yellowpages.com np.st1.yellowpages.com st1.yellowpages.com yellowpages.com"
+        vcenter: "st1vccomp01a.corp.pvt"
+        credentials:
+            username: "admin"
+            password: "somepassword"
+        vlans:
+            VLAN540: 
+                name: "ST1 - Weblogic"
+                network: "10.5.32-VLAN540-DvS"
+                netmask: "255.255.252.0"
+            VLAN421: 
+                name: "vlan 421- linux_421"
+                network: "10.5.4-VLAN421-DvS"
+                netmask: "255.255.252.0"
+        clusters:
+            B-2-2: 
+            B-2-3: 
+            B-2-4: 
+            B-2-6: 
+            B-2-7: 
+            B-2-8: 
+            B-2-9:
+            B-2-1: "Oracle Only"
+
+    ev3:
+        name: "Ashburn Datacenter"
+        domains:
+            corp.pvt: 
+            ev1.yellowpages.com: 
+        dns: "10.4.1.111,10.6.1.111"
+        dnsdomains: "corp.pvt dexmedia.com superpages.com supermedia.com prod.ev1.yellowpages.com np.ev1.yellowpages.com ev1.yellowpages.com yellowpages.com"
+        vcenter: "ev3vccomp01a.corp.pvt"
+        credentials:
+            username: "admin"
+            password: "somepassword"
+        vlans:
+            VLAN540: 
+                name: "EV3 - Weblogic"
+                network: "10.2.32-VLAN540-DvS"
+                netmask: "255.255.252.0"
+            VLAN421: 
+                name: "vlan 421- linux_421"
+                network: "10.2.4-VLAN421-DvS"
+                netmask: "255.255.252.0"
+        clusters:
+            A-1-1: #commented out clusters that don't have datastore clusters set up
+            A-1-2:
+            A-1-3:
+            A-1-5:
+            A-1-6:
+            A-1-7:
+            A-1-8:
+            A-1-4: "Oracle Only"
+
+    
+server_types:
+    lnp: 'Production'
+    lnd: 'Development'
+    lnt: 'Testing'
+    lnq: 'QA'
+
+oss:
+    SSVM-OEL7: 'Oracle Linux Server 7.9'
+    SSVM-OEL8: 'Oracle Linux Server 8.10'
+    SSVM-OEL9: 'Oracle Linux Server 9'
+    # SSVM-ROCKY8: "Rocky 8 Linux"
+    # SSVM-ROCKY9: "Rocky 9 Linux"
+    
+    
+centrify_zones:
+    grp-bis:
+    grp-contentlisting:
+    grp-dba:
+    grp-esb:
+    grp-kgen:
+    grp-merchantplatform:
+    grp-nonprod:
+    grp-search:
+    grp-sem:
+    grp-sre:
+    grp-unix:
+    grp-vra:
+    app-admintool:
+    app-adsvc:
+    app-afrontier:
+    app-appservices:
+    app-argo:
+    app-ascp:
+    app-astroman:
+    app-atlantis:
+    app-autosuggest:
+    app-autosys:
+    app-awt:
+    app-bds:
+    app-bento:
+    app-blitzwing:
+    app-bni:
+    app-cassandra:
+    app-categorization:
+    app-citystate:
+    app-clientportal:
+    app-cmt:
+    app-consumer:
+    app-contentassistant:
+    app-creditandbilling:
+    app-dataops:
+    app-devtools:
+    app-dexknows:
+    app-dexnet:
+    app-dexsocial:
+    app-drobot:
+    app-encrypt-services:
+    app-feeder:
+    app-flash:
+    app-fms:
+    app-graylog:
+    app-grid:
+    app-gump:
+    app-hadoop:
+    app-halo:
+    app-herd:
+    app-hr:
+    app-hubble:
+    app-hudson:
+    app-icamp:
+    app-img:
+    app-informatica:
+    app-itl:
+    app-ivanti:
+    app-jira:
+    app-jupyter:
+    app-kms:
+    app-kt:
+    app-kwbadt:
+    app-learch:
+    app-loadgen:
+    app-maestro:
+    app-mapp:
+    app-mdm:
+    app-minion:
+    app-mlpui:
+    app-modok:
+    app-mof:
+    app-mogwai:
+    app-mturk:
+    app-nagios:
+    app-nbt:
+    app-newrelic:
+    app-ocforms:
+    app-opensearch:
+    app-opsdb:
+    app-pcd:
+    app-peoplesoft:
+    app-presence:
+    app-prm:
+    app-pubapi:
+    app-pwu:
+    app-qis:
+    app-qlik:
+    app-quai:
+    app-rabbit:
+    app-rhino:
+    app-rhydon:
+    app-rservices:
+    app-salestool:
+    app-saturn:
+    app-searchapi:
+    app-sfdc:
+    app-shield:
+    app-solr:
+    app-spellchecker:
+    app-spyro:
+    app-sso:
+    app-ssvm:
+    app-superpages:
+    app-syndication:
+    app-systemx:
+    app-tam:
+    app-taxonomy:
+    app-thanos:
+    app-tpkg:
+    app-trafficdata:
+    app-tws:
+    app-ucc:
+    app-uitl:
+    app-ventura:
+    app-vision:
+    app-wordpress:
+    app-ypa:
+    app-ypca:
+    app-ypcd:
+    app-ypcms:
+    app-ypcst:
+    app-ypec:
+    app-yplst:
+    app-ypm:
+    app-ypst:
+    app-ypu:
+    app-yup:
+    app-zemo:
+    app-zeppelin:
