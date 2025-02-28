@@ -183,6 +183,7 @@ ip.py
 logs/*
 migrate
 myapp/config-safe.yaml
+myapp/config.yaml
 myapp/deploy_new_vm_2.py
 myapp/replace_prints.sh
 myapp/templates/view_destroylog.html
